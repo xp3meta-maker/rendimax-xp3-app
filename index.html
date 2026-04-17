@@ -2032,7 +2032,8 @@ function doLogin() {
 
 function handleGoogleCredential(response) {
     const payload = JSON.parse(atob(response.credential.split('.')[1]));
-    applyUser(payload.given_name || payload.name, payload.email, payload.picture || null);
+    const displayName = (payload.name || payload.given_name || (payload.email ? payload.email.split('@')[0] : '') || 'Usuario').trim();
+    applyUser(displayName, payload.email, payload.picture || null);
     document.getElementById('login-screen').style.display = 'none';
     postLogin();
 }
@@ -2040,7 +2041,8 @@ function handleGoogleCredential(response) {
 function applyUser(name, email, picture) {
     console.log('Applying User:', name, email);
     localStorage.setItem('rendimax_session', JSON.stringify({ name, email, picture, loginTime: Date.now() }));
-    document.getElementById('usr-name').textContent   = name.split(' ')[0];
+    const firstName = (name || 'U').split(' ')[0];
+    document.getElementById('usr-name').textContent   = firstName;
     document.getElementById('user-label').textContent = '⛽ ' + email;
     document.getElementById('admin-user').textContent = name;
     const av = document.getElementById('usr-avatar');
@@ -2050,10 +2052,7 @@ function applyUser(name, email, picture) {
         av.style.backgroundPosition = 'center';
         av.textContent = '';
     } else {
-        av.textContent = name[0].toUpperCase();
-    }
-} else {
-        av.textContent = name[0].toUpperCase();
+        av.textContent = (name && name[0] ? name[0] : '?').toUpperCase();
     }
 }
 
@@ -2063,10 +2062,8 @@ function doLogout() {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
         document.getElementById('login-pass').value  = '';
-        // Clear query param
         history.replaceState({}, '', window.location.pathname);
     }
-}
 }
 
 function postLogin() {
@@ -2076,10 +2073,7 @@ function postLogin() {
     const n = new Date();
     document.getElementById('admin-date').textContent =
         n.toLocaleDateString('es-CO', {day:'numeric',month:'short',year:'numeric'}) + ' · En vivo';
-    
-    // Explicitly transition to Home
     showScreen('s-home', 'nb-home');
-}) + ' · En vivo';
 }
 
 // ================================================================
@@ -2424,7 +2418,6 @@ El potencial estimado de inversión inteligente es de: *${total}*.
 
 ¿A qué hora tienes disponibilidad para formalizar el pedido y despachar?`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-}
     alert('✅ Cotización lista para ' + client + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
 }
 async function saveVisitToFirebase() {
