@@ -1972,14 +1972,58 @@ const ROUTE = [
   }
 ];
 
-// WEEKLY ROUTE PLAN — based on geography to minimize travel
-const WEEKLY_PLAN = {
-    MON: { name:'Lunes',     zone:'Barranquilla Norte',          emoji:'🌊', clients:['ESTACION ECOS SAN JOSUE','PUERTO SALGAR'],               numClients:2, desc:'Zona costera norte. 2 estaciones. Salir temprano y aprovechar la mañana costera.' },
-    TUE: { name:'Martes',    zone:'Barranquilla Sur / Soledad',  emoji:'🏙️', clients:['EDS EL DESCANSO','EDS PAPIROS','EDS PUENTE PUMAREJO'],  numClients:3, desc:'3 puntos de venta en zona metropolitana sur. Alta densidad, distancias cortas entre ellos.' },
-    WED: { name:'Miércoles', zone:'Atlántico Interior / Sucre',  emoji:'🌵', clients:['EDS SABANALARGA','EDS EL PASO'],                          numClients:2, desc:'Recorrido por el interior. Salir a las 7am por la Ruta 25 hacia Sabanalarga.' },
-    THU: { name:'Jueves',    zone:'⚠️ PRIORIDAD Sincelejo/Bolívar', emoji:'🔴', clients:['EDS MONSU (Clemencia)','EDS ESMERALDA (Sincelejo)'],    numClients:2, desc:'PRIORIDAD #1 — $7.2M en juego. Monsu en mañana (Clemencia), Esmeralda en la tarde (Sincelejo). Dedicar máximo tiempo.' },
-    FRI: { name:'Viernes',   zone:'Magdalena / Santa Marta',     emoji:'🌴', clients:['EDS LOS ALMENDROS'],                                       numClients:1, desc:'Zona Magdalena. Visita a Los Almendros Santa Marta. Puede combinarse con prospectos nuevos.' },
+// Plan semanal derivado de ROUTE (mismo día en campo `day`). Actualizar ROUTE/export_71 para cambiar barrido.
+const DAY_META = {
+    MON: { name:'Lunes',     emoji:'🌊' },
+    TUE: { name:'Martes',    emoji:'🏙️' },
+    WED: { name:'Miércoles', emoji:'🌵' },
+    THU: { name:'Jueves',    emoji:'🔴' },
+    FRI: { name:'Viernes',   emoji:'🌴' },
 };
+
+function buildWeeklyPlanSnapshot() {
+    const keys = ['MON','TUE','WED','THU','FRI'];
+    const out = {};
+    keys.forEach(function(dayKey) {
+        var list = ROUTE.filter(function(c) { return c.day === dayKey; }).sort(function(a, b) {
+            return (b.hist || 0) - (a.hist || 0);
+        });
+        var meta = DAY_META[dayKey];
+        var numClients = list.length;
+        var citySet = {};
+        list.forEach(function(c) {
+            var ct = (c.city || '').trim();
+            if (ct) citySet[ct] = true;
+        });
+        var cities = Object.keys(citySet).sort();
+        var zoneLabel = cities.length === 0
+            ? ('Día ' + dayKey)
+            : (cities.length <= 3 ? cities.join(' · ') : cities.slice(0, 3).join(' · ') + ' +' + (cities.length - 3));
+        var crit = list.filter(function(c) { return (c.days || 0) > 400; }).length;
+        var inactive = list.filter(function(c) { return c.status === 'INACTIVO'; }).length;
+        function shortName(c) {
+            var n = (c.company || c.name || '').trim();
+            return n.length > 36 ? n.slice(0, 34) + '…' : n;
+        }
+        var preview = numClients
+            ? list.slice(0, 4).map(shortName)
+            : ['(Sin clientes con day=' + dayKey + ' en ROUTE)'];
+        var descParts = [];
+        descParts.push(numClients + ' EDS en agenda según datos cargados.');
+        if (cities.length) descParts.push('Ciudades: ' + zoneLabel + '.');
+        if (crit) descParts.push(crit + ' con más de 400 días sin comprar.');
+        if (inactive) descParts.push(inactive + ' INACTIVO en cartera.');
+        out[dayKey] = {
+            name: meta.name,
+            emoji: meta.emoji,
+            zone: zoneLabel,
+            clients: preview,
+            numClients: numClients,
+            desc: descParts.join(' ')
+        };
+    });
+    return out;
+}
 
 // ================================================================
 // NAVIGATION
@@ -2147,6 +2191,7 @@ function buildAgenda() {
     const todayKey = keys[dayIdx];
     const planKeys = ['MON','TUE','WED','THU','FRI'];
     const planShort = ['L','M','X','J','V'];
+    const WEEKLY_PLAN = buildWeeklyPlanSnapshot();
 
     // Week number
     const yn = new Date(today.getFullYear(), 0, 1);
@@ -2178,9 +2223,9 @@ function buildAgenda() {
     document.getElementById('ruta-subtitle').textContent   = tp.numClients + ' estaciones prioritarias hoy · Zona: ' + tp.zone;
 
     // Real Metrics update
-    let vCompleted = localStorage.getItem('vCount') || 0;
+    let vCompleted = parseInt(localStorage.getItem('vCount') || '0', 10) || 0;
     let vTotal = tp.numClients;
-    let vPerc = Math.round((vCompleted / vTotal) * 100) || 0;
+    let vPerc = vTotal > 0 ? Math.min(100, Math.round((vCompleted / vTotal) * 100)) : 0;
 
     const vText = document.getElementById('home-visits-text');
     if(vText) vText.textContent = vCompleted + ' de ' + vTotal + ' visitas';
