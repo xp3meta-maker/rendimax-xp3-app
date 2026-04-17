@@ -2038,6 +2038,8 @@ function handleGoogleCredential(response) {
 }
 
 function applyUser(name, email, picture) {
+    console.log('Applying User:', name, email);
+    localStorage.setItem('rendimax_session', JSON.stringify({ name, email, picture, loginTime: Date.now() }));
     document.getElementById('usr-name').textContent   = name.split(' ')[0];
     document.getElementById('user-label').textContent = '⛽ ' + email;
     document.getElementById('admin-user').textContent = name;
@@ -2050,23 +2052,34 @@ function applyUser(name, email, picture) {
     } else {
         av.textContent = name[0].toUpperCase();
     }
+} else {
+        av.textContent = name[0].toUpperCase();
+    }
 }
 
 function doLogout() {
     if (confirm('¿Cerrar sesión de Rendimax XP3?')) {
+        localStorage.removeItem('rendimax_session');
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
         document.getElementById('login-pass').value  = '';
-        showScreen('s-home','nb-home');
+        // Clear query param
+        history.replaceState({}, '', window.location.pathname);
     }
+}
 }
 
 function postLogin() {
+    console.log('Post Login sequence started');
     buildAgenda();
     startGPS();
     const n = new Date();
     document.getElementById('admin-date').textContent =
         n.toLocaleDateString('es-CO', {day:'numeric',month:'short',year:'numeric'}) + ' · En vivo';
+    
+    // Explicitly transition to Home
+    showScreen('s-home', 'nb-home');
+}) + ' · En vivo';
 }
 
 // ================================================================
@@ -2507,9 +2520,30 @@ function selR(el) {
 // ================================================================
 // BOOT (pre-login)
 // ================================================================
+
+// ================================================================
+// BOOT & SESSION RESTORE
+// ================================================================
+const savedSession = localStorage.getItem('rendimax_session');
+if (savedSession) {
+    try {
+        const s = JSON.parse(savedSession);
+        console.log('Restoring session for:', s.email);
+        applyUser(s.name, s.email, s.picture);
+        document.getElementById('login-screen').style.display = 'none';
+        postLogin();
+    } catch (e) {
+        console.error('Session restore failed:', e);
+        localStorage.removeItem('rendimax_session');
+    }
+} else {
+    console.log('No active session found.');
+}
+
 buildRouteList();
 updateCalcTotal();
 buildAgenda();
+
 
 </script>
 </body>
