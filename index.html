@@ -211,13 +211,13 @@
                 <div class="ring-w">
                     <svg width="76" height="76" viewBox="0 0 76 76">
                         <circle class="rbg" cx="38" cy="38" r="34"/>
-                        <circle class="rbar" cx="38" cy="38" r="34"/>
+                        <circle class="rbar" id="home-perc-bar" cx="38" cy="38" r="34"/>
                     </svg>
-                    <div class="rtext"><span style="font-size:17px;font-weight:800;color:var(--yellow);">30%</span><span style="font-size:8px;color:var(--t3);">META</span></div>
+                    <div class="rtext"><span style="font-size:17px;font-weight:800;color:var(--yellow);" id="home-perc-text">0%</span><span style="font-size:8px;color:var(--t3);">META</span></div>
                 </div>
                 <div style="flex:1;">
                     <p class="lbl" style="margin-bottom:4px;">Meta del Día</p>
-                    <h3 style="font-size:16px;margin-bottom:4px;">3 de 10 visitas</h3>
+                    <h3 style="font-size:16px;margin-bottom:4px;" id="home-visits-text">0 visitas hoy</h3>
                     <p class="sub" id="today-banner-sub">Cargando ruta de hoy...</p>
                     <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
                         <span class="badge by">En progreso</span>
@@ -510,7 +510,7 @@
                     <span style="font-weight:700;font-size:14px;" id="admin-user">—</span>
                     <span class="badge bg" style="margin-left:auto;">EN RUTA</span>
                 </div>
-                <p class="sub">3/10 visitas · Última: <strong style="color:var(--t1);">EDS Esmeralda</strong> hace 23 min</p>
+                <p class="sub" id="admin-bot-txt">0 visitas · Iniciando día</p>
             </div>
 
             <div class="g2" style="margin-bottom:14px;">
@@ -801,6 +801,27 @@ function buildAgenda() {
     document.getElementById('today-banner-sub').textContent = tp.emoji + ' ' + tp.zone + ' · ' + tp.numClients + ' EDS en agenda';
     document.getElementById('ruta-day-badge').textContent  = tp.name;
     document.getElementById('ruta-subtitle').textContent   = tp.numClients + ' estaciones prioritarias hoy · Zona: ' + tp.zone;
+
+    // Real Metrics update
+    let vCompleted = localStorage.getItem('vCount') || 0;
+    let vTotal = tp.numClients;
+    let vPerc = Math.round((vCompleted / vTotal) * 100) || 0;
+
+    const vText = document.getElementById('home-visits-text');
+    if(vText) vText.textContent = vCompleted + ' de ' + vTotal + ' visitas';
+
+    const pText = document.getElementById('home-perc-text');
+    if(pText) pText.textContent = vPerc + '%';
+    
+    const rBar = document.getElementById('home-perc-bar');
+    if (rBar) {
+        const fullRing = 213.63;
+        rBar.style.strokeDasharray = fullRing;
+        rBar.style.strokeDashoffset = fullRing - (fullRing * vPerc / 100);
+    }
+
+    const aTxt = document.getElementById('admin-bot-txt');
+    if(aTxt) aTxt.innerHTML = vCompleted + '/' + vTotal + ' visitas · Última: <strong style="color:var(--t1);">Ninguna aún</strong>';
 
     // Weekly plan cards
     const planDiv = document.getElementById('weekly-plan-list');
