@@ -2242,7 +2242,6 @@ function setHomeLocation() {
 
 function buildRouteList() {
     const list = document.getElementById('route-list');
-    const list = document.getElementById('route-list');
     list.innerHTML = '';
     let filteredRoute = ROUTE;
     if(window.routeDayFilter) { filteredRoute = ROUTE.filter(x => x.day === window.routeDayFilter); window.routeDayFilter = null; }
