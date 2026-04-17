@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendimax XP3 · App Comercial Costa Norte</title>
+    <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer><\/script>
+    <style>
+        :root {
+            --navy: #070c18; --navy2: #0d1426; --navy3: #131d35;
+            --blue: #2563eb; --blue2: #3b82f6; --blue-glow: rgba(37,99,235,.35);
+            --gold: #f59e0b; --gold2: #fbbf24;
+            --red: #ef4444; --green: #10b981; --purple: #7c3aed;
+            --t1: #f1f5f9; --t2: #94a3b8; --t3: #64748b;
+            --glass: rgba(255,255,255,.04); --border: rgba(255,255,255,.08);
+        }
+        * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+        body { background:radial-gradient(ellipse at 30% 20%,#0f1f40 0%,#000 70%); font-family:'Inter',sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
+        #phone { width:390px; min-height:844px; background:var(--navy); border-radius:50px; border:2px solid #1e293b; box-shadow:0 60px 120px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.05),inset 0 1px 0 rgba(255,255,255,.08); position:relative; overflow:hidden; display:flex; flex-direction:column; }
+        .sbar { height:50px; padding:14px 28px 0; display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:600; color:var(--t1); flex-shrink:0; background:linear-gradient(180deg,rgba(37,99,235,.07),transparent); }
+        #content { flex:1; overflow:hidden; position:relative; min-height:700px; }
+        .screen { position:absolute; inset:0; overflow-y:auto; padding:20px 20px 100px; display:none; animation:su .3s cubic-bezier(.34,1.56,.64,1); scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+        .screen.active { display:block; }
+        @keyframes su { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        #nav { height:88px; background:rgba(7,12,24,.96); backdrop-filter:blur(24px); border-top:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-around; padding-top:12px; flex-shrink:0; }
+        .nb { background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--t3); font-size:9px; font-family:'Inter',sans-serif; font-weight:600; cursor:pointer; transition:.25s; padding:5px 8px; border-radius:14px; }
+        .nb .ic { font-size:20px; transition:.25s; }
+        .nb.active { color:var(--blue2); }
+        .nb.active .ic { filter:drop-shadow(0 0 8px rgba(59,130,246,.7)); transform:scale(1.1); }
+        .card { background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:14px; position:relative; overflow:hidden; }
+        .card::before { content:''; position:absolute; top:0;left:0;right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent); }
+        .cb { border-color:rgba(37,99,235,.35); background:rgba(37,99,235,.07); }
+        .cg2 { border-color:rgba(245,158,11,.3); background:rgba(245,158,11,.06); }
+        .cr { border-color:rgba(239,68,68,.3); background:rgba(239,68,68,.07); }
+        .cg { border-color:rgba(16,185,129,.3); background:rgba(16,185,129,.07); }
+        .cp { border-color:rgba(124,58,237,.3); background:rgba(124,58,237,.07); }
+        h1 { font-family:'Outfit',sans-serif; font-size:26px; font-weight:800; color:var(--t1); line-height:1.1; }
+        h2 { font-family:'Outfit',sans-serif; font-size:21px; font-weight:700; color:var(--t1); }
+        h3 { font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; color:var(--t1); }
+        .lbl { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--t3); }
+        .val { font-size:13px; font-weight:600; color:var(--t1); }
+        .sub { font-size:11px; color:var(--t2); line-height:1.4; }
+        .badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+        .br { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); animation:pb 2s infinite; }
+        .bg { background:rgba(16,185,129,.15); color:#6ee7b7; border:1px solid rgba(16,185,129,.3); }
+        .bb { background:rgba(59,130,246,.15); color:#93c5fd; border:1px solid rgba(59,130,246,.3); }
+        .bgd{ background:rgba(245,158,11,.15); color:#fcd34d; border:1px solid rgba(245,158,11,.3); }
+        @keyframes pb { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)} 50%{box-shadow:0 0 0 5px rgba(239,68,68,0)} }
+        .ring-w { position:relative; width:76px; height:76px; flex-shrink:0; }
+        .ring-w svg { transform:rotate(-90deg); }
+        .rbg { fill:none; stroke:#1e293b; stroke-width:5; }
+        .rbar { fill:none; stroke:url(#rg); stroke-width:5; stroke-linecap:round; stroke-dasharray:213.63; stroke-dashoffset:149.54; }
+        .rtext { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .ai-box { background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(124,58,237,.08)); border:1px solid rgba(59,130,246,.4); border-radius:18px; padding:16px; animation:ag 3.5s ease-in-out infinite; margin-bottom:14px; }
+        @keyframes ag { 0%,100%{box-shadow:0 0 12px rgba(59,130,246,.15);border-color:rgba(59,130,246,.4)} 50%{box-shadow:0 0 30px rgba(59,130,246,.35),0 0 8px rgba(124,58,237,.25);border-color:rgba(124,58,237,.5)} }
+        .ai-chip { background:linear-gradient(90deg,#2563eb,#7c3aed); color:#fff; font-size:9px; font-weight:700; padding:3px 10px; border-radius:100px; letter-spacing:.06em; text-transform:uppercase; }
+        .btn { border:none; border-radius:14px; font-family:'Inter',sans-serif; font-weight:600; cursor:pointer; transition:all .2s; }
+        .btn-p { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; padding:13px 16px; font-size:13px; width:100%; box-shadow:0 6px 20px rgba(37,99,235,.35); }
+        .btn-p:active { transform:scale(.97); }
+        .btn-sm { padding:7px 14px; font-size:11px; }
+        .btn-gh { background:var(--glass); border:1px solid var(--border); color:var(--t1); padding:10px 14px; font-size:12px; }
+        .btn-go { background:linear-gradient(135deg,#10b981,#059669); color:#fff; box-shadow:0 4px 12px rgba(16,185,129,.3); }
+        .btn-google { background:#fff; color:#1f2937; padding:13px 16px; font-size:13px; width:100%; display:flex; align-items:center; justify-content:center; gap:10px; font-weight:600; box-shadow:0 4px 15px rgba(0,0,0,.3); }
+        .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+        .div { height:1px; background:var(--border); margin:12px 0; }
+        .tag { background:var(--navy3); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:11px; cursor:pointer; transition:.2s; }
+        .tag.sel { border-color:var(--blue2); color:#93c5fd; background:rgba(59,130,246,.1); }
+        textarea,input,select { background:var(--navy3); border:1px solid var(--border); border-radius:14px; color:var(--t1); font-family:'Inter',sans-serif; font-size:13px; padding:12px 14px; width:100%; outline:none; transition:.2s; }
+        textarea:focus,input:focus,select:focus { border-color:var(--blue2); box-shadow:0 0 0 3px rgba(59,130,246,.18); }
+        textarea { resize:none; height:90px; }
+        .kpi { padding:14px; border-radius:16px; background:var(--glass); border:1px solid var(--border); }
+        .kv { font-family:'Outfit',sans-serif; font-size:22px; font-weight:700; }
+        .kl { font-size:10px; color:var(--t3); margin-top:2px; font-weight:500; }
+        .bar-wrap { display:flex; align-items:flex-end; gap:8px; height:56px; }
+        .bar { flex:1; border-radius:6px 6px 0 0; background:linear-gradient(180deg,#3b82f6,#1d4ed8); opacity:.6; }
+        .hcell { height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:rgba(255,255,255,.8); }
+        #gps-t { position:absolute; top:-90px; left:16px; right:16px; background:linear-gradient(135deg,#1d4ed8,#3b82f6); color:#fff; padding:14px 16px; border-radius:18px; box-shadow:0 15px 40px rgba(37,99,235,.5); display:flex; align-items:center; gap:12px; z-index:999; transition:top .6s cubic-bezier(.34,1.56,.64,1); }
+        #gps-t.show { top:58px; }
+        .slbl { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--t3); margin:20px 0 10px; }
+        .pdot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+        .pr { background:var(--red); box-shadow:0 0 8px var(--red); }
+        .po { background:#f97316; box-shadow:0 0 8px #f97316; }
+        .pgr { background:var(--green); box-shadow:0 0 8px var(--green); }
+        .hist-i { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+        .hdot { width:10px; height:10px; border-radius:50%; margin-top:3px; flex-shrink:0; }
+        .offline { display:inline-flex; align-items:center; gap:6px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:100px; padding:5px 12px; font-size:10px; color:#fca5a5; }
+        .mrow { display:flex; justify-content:space-between; align-items:center; padding:9px 0; }
+        .mrow+.mrow { border-top:1px solid var(--border); }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:10px; }
+        .nb2 { width:30px; height:30px; border-radius:9px; background:var(--navy3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--t2); flex-shrink:0; }
+        /* ===== CALCULATOR ===== */
+        .calc-prod { display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--navy3); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; }
+        .qty-ctrl { display:flex; align-items:center; gap:10px; }
+        .qty-btn { width:32px; height:32px; border-radius:10px; border:1px solid var(--border); background:var(--navy2); color:var(--t1); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s; }
+        .qty-btn:hover { background:var(--blue); border-color:var(--blue2); }
+        .qty-val { font-weight:700; font-size:16px; min-width:28px; text-align:center; }
+        .calc-total { background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04)); border:1px solid rgba(245,158,11,.3); border-radius:16px; padding:14px; margin-top:14px; }
+        /* ===== LOGIN ===== */
+        #login-screen { position:fixed; inset:0; background:var(--navy); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; }
+        .login-logo { font-family:'Outfit',sans-serif; font-size:32px; font-weight:800; text-align:center; line-height:1.1; margin-bottom:8px; }
+        .login-logo span { color:var(--blue2); }
+        /* Product color dots */
+        .prod-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .gas20 { background:#3b82f6; }
+        .gas6  { background:#8b5cf6; }
+        .d110  { background:#f59e0b; }
+        .d60   { background:#f97316; }
+        .d20   { background:#10b981; }
+    </style>
+</head>
+<body>
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="login-screen">
+    <div style="text-align:center;margin-bottom:40px;">
+        <div style="font-size:48px;margin-bottom:12px;">⛽</div>
+        <div class="login-logo">Rendimax<br><span>XP3</span></div>
+        <p class="sub" style="margin-top:8px;font-size:12px;">App Comercial · Costa Norte 2026</p>
+    </div>
+    <div style="width:100%;max-width:320px;">
+        <div class="card" style="margin-bottom:0;">
+            <p class="lbl" style="margin-bottom:16px;">Iniciar sesión</p>
+            <input type="email" id="login-email" placeholder="correo@rendimax.com.co" style="margin-bottom:12px;">
+            <input type="password" id="login-pass" placeholder="Contraseña" style="margin-bottom:16px;">
+            <button class="btn btn-p" onclick="doLogin()" style="margin-bottom:12px;">🔐 Ingresar</button>
+            <div style="text-align:center;margin-bottom:12px;color:var(--t3);font-size:11px;">— o —</div>
+            <!-- Google Identity Services real button -->
+            <div id="g_id_onload"
+                 data-client_id="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleCredential"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left"
+                 data-width="288"
+                 style="display:flex;justify-content:center;margin-bottom:4px;">
+            </div>
+            <p class="sub" style="text-align:center;font-size:10px;margin-top:10px;">Proyecto: APLICACION MOBIL COMERCIAL<br>xp3meta@rendimax.com.co</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="phone">
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#7c3aed"/>
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <div class="sbar">
+        <span style="font-weight:700;">16:04</span>
+        <span id="user-label" style="font-size:10px;color:var(--blue2);">⛽ Rendimax XP3</span>
+        <span>📶 🔋</span>
+    </div>
+
+    <div id="gps-t">
+        <span style="font-size:24px;">📍</span>
+        <div>
+            <div style="font-weight:700;font-size:12px;">Entrando en radio · EDS Esmeralda</div>
+            <div style="font-size:10px;opacity:.85;margin-top:2px;">Visita iniciada · Geofencing activo</div>
+        </div>
+        <span style="margin-left:auto;cursor:pointer;" onclick="this.closest('#gps-t').classList.remove('show')">✕</span>
+    </div>
+
+    <div id="content">
+
+        <!-- ========== HOME ========== -->
+        <div id="s-home" class="screen active">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                <div>
+                    <p class="sub" style="margin-bottom:2px;">Hola, <span id="usr-name">Luz Mary</span> 👋</p>
+                    <h1>Rendimax<br><span style="color:var(--blue2);">XP3</span></h1>
+                </div>
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff;box-shadow:0 6px 20px rgba(37,99,235,.4);" id="usr-avatar">L</div>
+            </div>
+
+            <div class="card cb" style="display:flex;align-items:center;gap:18px;margin-bottom:10px;">
+                <div class="ring-w">
+                    <svg width="76" height="76" viewBox="0 0 76 76">
+                        <circle class="rbg" cx="38" cy="38" r="34"/>
+                        <circle class="rbar" cx="38" cy="38" r="34"/>
+                    </svg>
+                    <div class="rtext"><span style="font-size:17px;font-weight:800;color:var(--blue2);">30%</span><span style="font-size:8px;color:var(--t3);">Meta</span></div>
+                </div>
+                <div style="flex:1;">
+                    <p class="lbl" style="margin-bottom:4px;">Meta del Día</p>
+                    <h3 style="font-size:16px;margin-bottom:4px;">3 de 10 visitas</h3>
+                    <p class="sub">Costa Norte · 17 Abr 2026</p>
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <span class="badge bb">En progreso</span>
+                        <span class="badge bg">Ruta activa</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="g2" style="margin-bottom:14px;">
+                <div class="kpi" style="border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.05);">
+                    <div class="kv" style="color:var(--gold);">$847k</div>
+                    <div class="kl">Potencial hoy</div>
+                </div>
+                <div class="kpi">
+                    <div class="kv">127</div>
+                    <div class="kl">Días en ruta</div>
+                </div>
+            </div>
+
+            <div class="slbl">Resumen Zona Costa Norte</div>
+            <div class="card cg2">
+                <div class="g3" style="margin-bottom:14px;">
+                    <div style="text-align:center;padding:8px;background:rgba(255,255,255,.03);border-radius:12px;">
+                        <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;">71</div>
+                        <div class="lbl" style="font-size:9px;">EDS Base</div>
+                    </div>
+                    <div style="text-align:center;padding:8px;background:rgba(37,99,235,.1);border-radius:12px;border:1px solid rgba(37,99,235,.2);">
+                        <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--blue2);">7</div>
+                        <div class="lbl" style="font-size:9px;">Activas 2025</div>
+                    </div>
+                    <div style="text-align:center;padding:8px;background:rgba(239,68,68,.1);border-radius:12px;border:1px solid rgba(239,68,68,.2);">
+                        <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--red);">64</div>
+                        <div class="lbl" style="font-size:9px;">Perdidas</div>
+                    </div>
+                </div>
+                <div class="div"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <p class="sub" style="font-size:10px;">Vol. perdido total (vs 2022-2024)</p>
+                    </div>
+                    <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--gold);">$127M</div>
+                </div>
+            </div>
+
+            <div class="card cr">
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                    <span style="font-size:22px;flex-shrink:0;">⚠️</span>
+                    <div>
+                        <h3 style="margin-bottom:5px;">Alerta · Cliente Crítico</h3>
+                        <p class="sub">EDS Esmeralda inactiva <strong style="color:var(--t1);">540 días</strong> · Potencial: <strong style="color:var(--gold);">$199,416/mes</strong></p>
+                        <button class="btn btn-p btn-sm" style="width:auto;margin-top:12px;box-shadow:none;" onclick="showScreen('s-ficha','nb-ficha')">Ver Ficha 360° →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="slbl">Accesos Rápidos</div>
+            <div class="g2">
+                <button class="btn btn-gh" style="border-radius:16px;padding:14px;text-align:left;" onclick="showScreen('s-calc','nb-calc')">
+                    <div style="font-size:22px;margin-bottom:6px;">🧮</div>
+                    <div style="font-weight:700;font-size:12px;">Calcular Pedido</div>
+                    <div class="sub" style="font-size:10px;">Precios y totales XP3</div>
+                </button>
+                <button class="btn btn-gh" style="border-radius:16px;padding:14px;text-align:left;" onclick="showScreen('s-ruta','nb-ruta')">
+                    <div style="font-size:22px;margin-bottom:6px;">📍</div>
+                    <div style="font-weight:700;font-size:12px;">Mi Ruta</div>
+                    <div class="sub" style="font-size:10px;">10 visitas programadas</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========== RUTA ========== -->
+        <div id="s-ruta" class="screen">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <h2>Ruta de Hoy</h2><span class="badge bb">17 Abr 2026</span>
+            </div>
+            <p class="sub" style="margin-bottom:16px;">10 estaciones · Ordenadas por potencial perdido</p>
+            <div class="card" style="padding:12px;margin-bottom:16px;">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:5px;"><div class="pdot pr"></div><span class="sub" style="font-size:10px;">Crítico &gt;400 días</span></div>
+                    <div style="display:flex;align-items:center;gap:5px;"><div class="pdot po"></div><span class="sub" style="font-size:10px;">Alto potencial</span></div>
+                    <div style="display:flex;align-items:center;gap:5px;"><div class="pdot pgr"></div><span class="sub" style="font-size:10px;">Activo</span></div>
+                </div>
+            </div>
+            <div id="route-list"></div>
+        </div>
+
+        <!-- ========== FICHA 360 ========== -->
+        <div id="s-ficha" class="screen">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;">
+                <div style="width:56px;height:56px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.35);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">🏢</div>
+                <div>
+                    <h2 style="font-size:18px;line-height:1.2;">EDS Esmeralda</h2>
+                    <p class="sub" style="font-size:11px;margin-top:2px;">CONSTRUCTORA LA ESMERALDA SAS · NIT 900584454</p>
+                    <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;">
+                        <span class="badge br">INACTIVO 540 días</span>
+                        <span style="font-size:10px;color:var(--t2);">📍 Sincelejo</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacto -->
+            <div class="card" style="padding:12px;margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span class="lbl">Contacto</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:14px;">📞</span><span class="sub">3182910659</span><span class="badge bb" style="margin-left:auto;cursor:pointer;" onclick="alert('Llamando a 3182910659...')">Llamar</span></div>
+                    <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:14px;">📧</span><span class="sub" style="font-size:10px;">cagior4@gmail.com</span></div>
+                    <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:14px;">📍</span><span class="sub" style="font-size:10px;">CR 18 23 20 EDIF CAJA AGRARIA</span></div>
+                </div>
+            </div>
+
+            <div class="card cg2">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><span style="font-size:18px;">🏆</span><span class="lbl" style="color:var(--gold);">Historial de Oro · 2022–2025</span></div>
+                <div class="mrow"><span class="sub">Promedio mensual histórico</span><span style="font-weight:700;color:var(--gold);font-size:14px;">$199,416/mes</span></div>
+                <div class="mrow"><span class="sub">Compra actual 2025</span><span style="font-weight:700;color:var(--red);">$0 COP</span></div>
+                <div class="mrow"><span class="sub">Volumen total perdido</span><span style="font-weight:800;color:var(--gold);font-size:15px;">$7,173,906</span></div>
+                <div class="mrow"><span class="sub">Unidades 2022-2025 (Gas+Motos)</span><span class="val">2,454 uds</span></div>
+                <div class="mrow"><span class="sub">Reducción vs. período histórico</span><span style="font-weight:700;color:var(--red);">-100% 🔴</span></div>
+                <div class="mrow" style="border:none;padding-bottom:0;"><span class="sub">Productos más usados</span><div style="display:flex;gap:4px;"><div style="display:flex;align-items:center;gap:3px;"><div class="prod-dot gas20"></div><span style="font-size:10px;color:var(--t2);">Gas 20ml</span></div><div style="display:flex;align-items:center;gap:3px;"><div class="prod-dot gas6"></div><span style="font-size:10px;color:var(--t2);">Motos 6ml</span></div></div></div>
+            </div>
+
+            <div class="card" style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><span style="font-size:18px;">💰</span><span class="lbl">Estado Financiero</span></div>
+                <div class="g2" style="margin-bottom:12px;">
+                    <div style="text-align:center;padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:14px;">
+                        <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--red);">540</div>
+                        <div class="lbl" style="font-size:9px;margin-top:2px;">Días sin comprar</div>
+                    </div>
+                    <div style="text-align:center;padding:12px;background:var(--navy3);border:1px solid var(--border);border-radius:14px;">
+                        <div style="font-size:14px;font-weight:700;color:var(--t2);">N/A</div>
+                        <div class="lbl" style="font-size:9px;margin-top:2px;">Última factura</div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;">
+                    <p class="sub" style="font-size:11px;">💡 Bonificaciones pendientes · Verificar con cartera antes de la visita</p>
+                </div>
+            </div>
+
+            <div class="ai-box">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="font-size:20px;">🤖</span>
+                    <span class="ai-chip">IA Co-Pilot · Rendimax XP3</span>
+                    <span class="sub" style="margin-left:auto;font-size:10px;color:var(--blue2);">⚡ Activo</span>
+                </div>
+                <p class="sub" style="font-size:12px;line-height:1.7;">
+                    Este es el <strong style="color:var(--t1);">MAYOR comprador histórico</strong> de la Costa con <strong style="color:var(--gold);">$7.17M en 4 años</strong>. Promedio: <strong style="color:var(--t1);">60 uds/mes</strong> de XP3 Gasolina y Motos.
+                    <br><br>
+                    <strong style="color:var(--blue2);">Apertura:</strong> <em>"¿Qué necesitaría Rendimax XP3 para volver a ser su proveedor hoy?"</em>
+                    <br><br>
+                    <strong style="color:var(--t1);">Precio →</strong> Bonificación 60+ uds/mes. &nbsp;
+                    <strong style="color:var(--t1);">Compet. →</strong> XP3 = 8–12% ahorro en consumo = $240k/mes neto.
+                </p>
+                <button class="btn btn-p btn-sm" style="margin-top:12px;box-shadow:none;" onclick="showScreen('s-calc','nb-calc')">🧮 Calcular pedido para este cliente</button>
+            </div>
+
+            <div class="slbl">Historial de Visitas</div>
+            <div class="card">
+                <div class="hist-i"><div class="hdot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">12 Feb 2026</div><div class="sub" style="font-size:11px;margin-top:2px;">Encargado no disponible. Dejó tarjeta. Próximo: llamar lunes.</div></div></div>
+                <div class="hist-i"><div class="hdot" style="background:var(--gold);box-shadow:0 0 6px var(--gold);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">15 Ene 2026</div><div class="sub" style="font-size:11px;margin-top:2px;">Reunión con gerente. Evalúa propuesta. Menciona competencia.</div></div></div>
+                <div class="hist-i" style="border-bottom:none;"><div class="hdot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">08 Nov 2025</div><div class="sub" style="font-size:11px;margin-top:2px;">Primera visita de reactivación. Muy receptivo. Pide cotización.</div></div></div>
+            </div>
+
+            <div class="g2" style="margin-bottom:10px;">
+                <button class="btn btn-p" onclick="showScreen('s-registro','nb-registro')">✅ Iniciar Visita</button>
+                <button class="btn btn-gh btn-sm" style="font-size:12px;" onclick="alert('Llamando a 3182910659...')">📞 Llamar</button>
+            </div>
+            <button class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:8px;" onclick="alert('Abriendo Google Maps...')">📍 Abrir en Google Maps</button>
+            <button class="btn btn-gh" style="width:100%;font-size:12px;" onclick="showScreen('s-calc','nb-calc')">🧮 Calcular Pedido</button>
+        </div>
+
+        <!-- ========== CALCULADORA ========== -->
+        <div id="s-calc" class="screen">
+            <h2 style="margin-bottom:4px;">Calculadora de Pedido</h2>
+            <p class="sub" style="margin-bottom:18px;">Rendimax XP3 · Precios 2026 · Costa Norte</p>
+
+            <div class="card" style="padding:12px;margin-bottom:18px;">
+                <p class="lbl" style="margin-bottom:8px;">Cliente</p>
+                <select id="calc-client" onchange="updateCalcClient()">
+                    <option value="">— Seleccionar EDS —</option>
+                    <option value="esmeralda">EDS Esmeralda (Constructora La Esmeralda)</option>
+                    <option value="sabanalarga">EDS Sabanalarga (Coesco)</option>
+                    <option value="descanso">EDS El Descanso (Combured)</option>
+                    <option value="almendros">EDS Los Almendros (Choles Movil)</option>
+                    <option value="monsu">EDS Monsu (Gastrans)</option>
+                    <option value="sanjosue">Ecos San Josue (Robles Camargo)</option>
+                    <option value="elpaso">EDS El Paso (Capital Premium)</option>
+                    <option value="otro">Otro cliente...</option>
+                </select>
+                <div id="client-hist-hint" style="display:none;margin-top:10px;padding:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;">
+                    <p class="sub" style="font-size:11px;">📊 Promedio histórico: <strong id="hist-avg" style="color:var(--gold);"></strong> · Sugerido: <strong id="hist-sug" style="color:var(--t1);"></strong></p>
+                </div>
+            </div>
+
+            <p class="lbl" style="margin-bottom:10px;">Productos XP3</p>
+            <div id="products-list">
+                <!-- Generated by JS -->
+            </div>
+
+            <div class="calc-total">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span class="lbl">RESUMEN DEL PEDIDO</span>
+                    <span class="badge bgd" id="total-units-badge">0 unidades</span>
+                </div>
+                <div id="calc-breakdown" style="margin-bottom:12px;"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid rgba(245,158,11,.2);">
+                    <span style="font-weight:700;font-size:13px;">Total Estimado</span>
+                    <span style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--gold);" id="calc-total-val">$0</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span class="sub" style="font-size:11px;">Ahorro estimado cliente (8%)</span>
+                    <span style="font-weight:700;color:var(--green);font-size:13px;" id="calc-savings">$0</span>
+                </div>
+            </div>
+
+            <div class="g2" style="margin-top:14px;">
+                <button class="btn btn-p" onclick="sendQuote()">📤 Enviar Cotización</button>
+                <button class="btn btn-gh btn-sm" onclick="clearCalc()">🔄 Limpiar</button>
+            </div>
+        </div>
+
+        <!-- ========== VISITA ========== -->
+        <div id="s-registro" class="screen">
+            <h2 style="margin-bottom:4px;">Registrar Visita</h2>
+            <p class="sub" style="margin-bottom:18px;">Modo offline · Sincroniza al reconectar</p>
+
+            <div class="card cb" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <div><h3 style="font-size:15px;">EDS Esmeralda</h3><p class="sub" style="font-size:11px;margin-top:2px;">CONSTRUCTORA LA ESMERALDA SAS</p></div>
+                <div style="text-align:right;"><span class="badge bb">📍 GPS</span><p class="sub" style="font-size:10px;margin-top:4px;">Auto-detectado</p></div>
+            </div>
+
+            <div class="g2" style="margin-bottom:18px;">
+                <div class="kpi"><div class="kl">Hora llegada</div><div class="kv" style="font-size:20px;margin-top:3px;">10:47 AM</div></div>
+                <div class="kpi" style="border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.06);"><div class="kl">Duración</div><div id="timer" class="kv" style="font-size:20px;color:var(--blue2);margin-top:3px;">00:00</div></div>
+            </div>
+
+            <div class="slbl">Resultado</div>
+            <div class="g2" style="margin-bottom:18px;">
+                <div class="tag" id="r1" onclick="selR(this)">🛒 Pedido</div>
+                <div class="tag" id="r2" onclick="selR(this)">🔁 Seguimiento</div>
+                <div class="tag" id="r3" onclick="selR(this)">🚫 Sin respuesta</div>
+                <div class="tag" id="r4" onclick="selR(this)">❌ Rechazado</div>
+            </div>
+
+            <div class="slbl">Unidades Pedidas</div>
+            <div class="g2" style="margin-bottom:18px;">
+                <input type="number" placeholder="XP3 Gasolina 20ml" min="0">
+                <input type="number" placeholder="XP3 Motos 6ml" min="0">
+            </div>
+
+            <div class="slbl">Comentario</div>
+            <textarea id="comment" placeholder="Describe qué pasó... (escribe 'precio' o 'competencia' para activar IA Co-Pilot)"></textarea>
+
+            <div id="ai-sug" style="display:none;margin-top:14px;" class="ai-box">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:18px;">💡</span><span class="ai-chip">Respuesta IA · XP3</span></div>
+                <p class="sub" style="font-size:12px;line-height:1.7;">XP3 genera ahorro del <strong style="color:var(--blue2);">8–12%</strong> en consumo. Con su histórico de 60 uds/mes = <strong style="color:var(--gold);">$240,000/mes en ahorro neto</strong>.<br><em style="color:var(--blue2);">"¿Ya calculaste cuánto te cuesta no usar XP3 vs. la competencia?"</em></p>
+            </div>
+
+            <div style="margin-top:18px;margin-bottom:16px;display:flex;justify-content:center;">
+                <div class="offline">🔴 Sin internet · Guardado local</div>
+            </div>
+            <button class="btn btn-p">📤 Guardar y Sincronizar</button>
+        </div>
+
+        <!-- ========== ADMIN (GERENCIA) ========== -->
+        <div id="s-admin" class="screen">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;">
+                <div><p class="lbl" style="color:var(--gold);margin-bottom:4px;">Control Gerencial</p><h2>Costa Norte</h2><p class="sub">17 Abr 2026 · En vivo</p></div>
+                <button class="btn btn-gh btn-sm" style="font-size:11px;">🔄 Refresh</button>
+            </div>
+
+            <div class="card cg" style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <div style="width:10px;height:10px;background:var(--green);border-radius:50%;animation:pb 1.5s infinite;"></div>
+                    <span style="font-weight:700;font-size:14px;">Luz Mary Sanjuan</span>
+                    <span class="badge bg" style="margin-left:auto;">EN RUTA</span>
+                </div>
+                <p class="sub">3/10 visitas · Última: <strong style="color:var(--t1);">EDS Esmeralda</strong> hace 23 min</p>
+            </div>
+
+            <div class="g2" style="margin-bottom:14px;">
+                <div class="kpi"><div class="kv" style="font-size:17px;">8:12 AM</div><div class="kl">Primera visita</div></div>
+                <div class="kpi"><div class="kv" style="font-size:17px;">10:47 AM</div><div class="kl">Última visita</div></div>
+                <div class="kpi"><div class="kv" style="font-size:17px;">28 min</div><div class="kl">Prom/cliente</div></div>
+                <div class="kpi"><div class="kv" style="font-size:17px;">47 km</div><div class="kl">Km recorridos</div></div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🔥</span><span class="lbl">Cobertura por Zona</span></div>
+                <div class="g3">
+                    <div class="hcell" style="background:rgba(37,99,235,.85);">BQ</div>
+                    <div class="hcell" style="background:rgba(37,99,235,.6);">Soledad</div>
+                    <div class="hcell" style="background:rgba(37,99,235,.18);">Sabana.</div>
+                    <div class="hcell" style="background:rgba(37,99,235,.35);">Ctg.</div>
+                    <div class="hcell" style="background:rgba(37,99,235,.1);">Sincelejo</div>
+                    <div class="hcell" style="background:rgba(239,68,68,.2);color:#fca5a5;">⚠ Mtría</div>
+                </div>
+            </div>
+
+            <div class="slbl">Top 5 · Oportunidades</div>
+            <div class="card">
+                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Esmeralda (Sincelejo)</div><div class="sub" style="font-size:10px;">540 días · $199k/mes · NIT 900584454</div></div><span style="font-weight:800;color:var(--gold);font-size:14px;">$7.2M</span></div>
+                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">Ecos San Josue</div><div class="sub" style="font-size:10px;">420 días · $81k/mes</div></div><span style="font-weight:800;color:var(--gold);font-size:13px;">$2.9M</span></div>
+                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Monsu (Gastrans)</div><div class="sub" style="font-size:10px;">380 días · $78k/mes</div></div><span style="font-weight:800;color:var(--gold);font-size:13px;">$2.8M</span></div>
+                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Los Almendros</div><div class="sub" style="font-size:10px;">310 días · $76k/mes</div></div><span style="font-weight:800;color:var(--gold);font-size:13px;">$2.7M</span></div>
+                <div class="mrow" style="padding:6px 0;border-bottom:none;"><div><div style="font-weight:600;font-size:12px;">EDS El Paso (Capital Premium)</div><div class="sub" style="font-size:10px;">290 días · $64k/mes</div></div><span style="font-weight:800;color:var(--gold);font-size:13px;">$2.3M</span></div>
+            </div>
+
+            <div class="slbl">Visitas Esta Semana</div>
+            <div class="card">
+                <div style="display:flex;gap:14px;margin-bottom:12px;">
+                    <div><span style="font-size:20px;font-weight:700;color:var(--blue2);">15</span><div class="sub" style="font-size:10px;">Esta semana</div></div>
+                    <div><span style="font-size:20px;font-weight:700;">42</span><div class="sub" style="font-size:10px;">Mes acum.</div></div>
+                    <div><span style="font-size:20px;font-weight:700;color:var(--green);">71%</span><div class="sub" style="font-size:10px;">Cumplimiento</div></div>
+                </div>
+                <div class="bar-wrap">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="bar" style="width:100%;height:40px;"></div><span class="sub" style="font-size:9px;">L</span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="bar" style="width:100%;height:50px;opacity:.8;"></div><span class="sub" style="font-size:9px;">M</span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="bar" style="width:100%;height:56px;background:linear-gradient(180deg,#7c3aed,#2563eb);opacity:1;box-shadow:0 0 10px rgba(37,99,235,.4);"></div><span class="sub" style="font-size:9px;color:var(--blue2);">Hoy</span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="bar" style="width:100%;height:25px;opacity:.2;"></div><span class="sub" style="font-size:9px;">J</span></div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="bar" style="width:100%;height:12px;opacity:.15;"></div><span class="sub" style="font-size:9px;">V</span></div>
+                </div>
+            </div>
+
+            <button class="btn btn-gh" style="width:100%;font-size:12px;" onclick="doLogout()">🔓 Cerrar Sesión</button>
+        </div>
+    </div><!-- end content -->
+
+    <nav id="nav">
+        <button class="nb active" id="nb-home" onclick="showScreen('s-home','nb-home')"><span class="ic">🏠</span>Home</button>
+        <button class="nb" id="nb-ruta" onclick="showScreen('s-ruta','nb-ruta')"><span class="ic">📍</span>Ruta</button>
+        <button class="nb" id="nb-ficha" onclick="showScreen('s-ficha','nb-ficha')"><span class="ic">🃏</span>Ficha</button>
+        <button class="nb" id="nb-calc" onclick="showScreen('s-calc','nb-calc')"><span class="ic">🧮</span>Pedido</button>
+        <button class="nb" id="nb-registro" onclick="showScreen('s-registro','nb-registro')"><span class="ic">✅</span>Visita</button>
+        <button class="nb" id="nb-admin" onclick="showScreen('s-admin','nb-admin')"><span class="ic">📊</span>Admin</button>
+    </nav>
+</div>
+
+<script>
+// ========== PRECIOS RENDIMAX XP3 2026 ==========
+const PRODUCTS = [
+    { id:'gas20', name:'XP3 Gasolina 20ml',  price:6505,  dotClass:'gas20', icon:'⛽' },
+    { id:'gas6',  name:'XP3 Motos 6ml',      price:2932,  dotClass:'gas6',  icon:'🏍️' },
+    { id:'d110',  name:'XP3 Diesel 110ml',   price:13597, dotClass:'d110',  icon:'🚛' },
+    { id:'d60',   name:'XP3 Diesel 60ml',    price:12211, dotClass:'d60',   icon:'🚛' },
+    { id:'d20',   name:'XP3 Diesel 20ml',    price:6118,  dotClass:'d20',   icon:'🚛' },
+];
+
+const CLIENT_HIST = {
+    esmeralda:  { avg:199416, sug:'60 uds Gas 20ml + 60 uds Motos 6ml' },
+    sabanalarga:{ avg:72707,  sug:'30 uds Gas 20ml + 60 uds Motos 6ml' },
+    descanso:   { avg:50240,  sug:'30 uds Gas 20ml + 30 uds Motos 6ml' },
+    almendros:  { avg:76492,  sug:'30 uds Gas 20ml + 30 uds Diesel 110ml' },
+    monsu:      { avg:77665,  sug:'30 uds Gas 20ml + 30 uds Diesel 20ml' },
+    sanjosue:   { avg:81145,  sug:'60 uds Gas 20ml + 30 uds Motos 6ml' },
+    elpaso:     { avg:64363,  sug:'30 uds Diesel 20ml + 30 uds Gas 20ml' },
+};
+
+const ROUTE = [
+    { num:1, name:'EDS ESMERALDA',           company:'CONSTRUCTORA LA ESMERALDA SAS',  avg:199416, days:540, status:'INACTIVO', p:'r', city:'Sincelejo',       phone:'3182910659', hist:'$7,173,906' },
+    { num:2, name:'ESTACION ECOS SAN JOSUE', company:'ROBLES CAMARGO LUIS FELIX',       avg:81145,  days:420, status:'INACTIVO', p:'r', city:'Barranquilla',    phone:'N/A',         hist:'$2,921,220' },
+    { num:3, name:'EDS MONSU',               company:'INVERSIONES GASTRANS S.A.S',      avg:77665,  days:380, status:'INACTIVO', p:'r', city:'Clemencia',       phone:'3184010327',  hist:'$2,795,940' },
+    { num:4, name:'EDS LOS ALMENDROS',       company:'CHOLES MOVIL JOSE MAUSYR',        avg:76492,  days:310, status:'INACTIVO', p:'o', city:'Santa Marta',     phone:'3043326718',  hist:'$2,753,700' },
+    { num:5, name:'EDS SABANALARGA',         company:'COESCO COLOMBIA SAS',             avg:72707,  days:0,   status:'ACTIVO',   p:'g', city:'Sabanalarga',     phone:'N/A',         hist:'$2,617,440' },
+    { num:6, name:'EDS EL PASO',             company:'CAPITAL PREMIUM S.A.S.',          avg:64363,  days:290, status:'INACTIVO', p:'o', city:'Los Palmitos',    phone:'N/A',         hist:'$2,317,075' },
+    { num:7, name:'PUERTO SALGAR',           company:'CREDISEGUROS DE LA COSTA',        avg:57808,  days:260, status:'INACTIVO', p:'o', city:'Puerto Colombia',  phone:'3182575151',  hist:'$2,081,100' },
+    { num:8, name:'EDS EL DESCANSO',         company:'COMBURED SAS',                    avg:50240,  days:0,   status:'ACTIVO',   p:'g', city:'Soledad',         phone:'3214893031',  hist:'$1,808,640' },
+    { num:9, name:'EDS PAPIROS',             company:'METROPOLITANA DE COMBUSTIBLE',    avg:43808,  days:200, status:'INACTIVO', p:'o', city:'Barranquilla',    phone:'N/A',         hist:'$1,577,100' },
+    { num:10,name:'EDS PUENTE PUMAREJO',     company:'COESCO COLOMBIA SAS',             avg:38250,  days:0,   status:'ACTIVO',   p:'g', city:'Barranquilla',    phone:'7198803',     hist:'$1,377,000' },
+];
+
+// ========== NAVIGATION ==========
+function showScreen(id, navId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (navId) {
+        document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+        document.getElementById(navId).classList.add('active');
+    }
+}
+
+// ========== LOGIN ==========
+function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    if (!email || !pass) { alert('Ingrese correo y contraseña.'); return; }
+    // For demo: accept any credentials
+    const name = email.split('@')[0].replace(/\./g,' ').split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+    document.getElementById('usr-name').textContent = name.split(' ')[0];
+    document.getElementById('usr-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('login-screen').style.display = 'none';
+    setTimeout(showGPS, 2000);
+}
+
+// ========== GOOGLE IDENTITY SERVICES CALLBACK ==========
+function handleGoogleCredential(response) {
+    // Decode the JWT credential returned by Google
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const name    = payload.given_name || payload.name || payload.email.split('@')[0];
+    const email   = payload.email;
+    const picture = payload.picture || '';
+
+    // Populate the app with the real Google account data
+    document.getElementById('usr-name').textContent    = name;
+    document.getElementById('usr-avatar').textContent  = name[0].toUpperCase();
+    document.getElementById('user-label').textContent  = '⛽ ' + email;
+
+    // Show profile picture if available
+    const avatar = document.getElementById('usr-avatar');
+    if (picture) {
+        avatar.style.backgroundImage  = `url(${picture})`;
+        avatar.style.backgroundSize   = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.textContent = '';
+    }
+
+    // Close login and start session
+    document.getElementById('login-screen').style.display = 'none';
+    setTimeout(showGPS, 2000);
+}
+
+function doLogout() {
+    if (confirm('¿Cerrar sesión?')) {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('login-email').value = '';
+        document.getElementById('login-pass').value = '';
+    }
+}
+
+// ========== GPS TOAST ==========
+function showGPS() {
+    const t = document.getElementById('gps-t');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 5500);
+}
+
+// ========== ROUTE LIST ==========
+const list = document.getElementById('route-list');
+ROUTE.forEach(c => {
+    const bCls  = c.status === 'ACTIVO' ? 'bg' : 'br';
+    const dotCls= {r:'pr',o:'po',g:'pgr'}[c.p];
+    const daysTxt= c.days > 0 ? `${c.days} días inactivo` : 'Compras regulares';
+    const avg   = '$' + c.avg.toLocaleString('es-CO');
+    const div   = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div class="nb2">${c.num}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px;">
+            <h3 style="font-size:13px;line-height:1.2;">${c.name}</h3>
+            <span class="badge ${bCls}" style="flex-shrink:0;">${c.status}</span>
+          </div>
+          <p class="sub" style="font-size:10px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.company}</p>
+          <p class="sub" style="font-size:10px;margin-bottom:6px;">📍 ${c.city}${c.phone !== 'N/A' ? ' · 📞 ' + c.phone : ''}</p>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <div class="pdot ${dotCls}"></div>
+            <span class="sub" style="font-size:10px;">${daysTxt}</span>
+            <span style="margin-left:auto;font-weight:700;color:var(--gold);font-size:13px;">${avg}/mes</span>
+          </div>
+          <p class="sub" style="font-size:10px;margin-bottom:12px;">Histórico 2022-2025: <strong style="color:var(--gold);">${c.hist}</strong></p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-p btn-sm" style="flex:1;box-shadow:none;font-size:11px;" onclick="showScreen('s-ficha','nb-ficha')">🃏 Ficha 360°</button>
+            <button class="btn btn-gh btn-sm btn-go" style="flex:1;font-size:11px;" onclick="alert('Abriendo Maps para ${c.name}...')">📍 IR</button>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+});
+
+// ========== CALCULATOR ==========
+const prodList = document.getElementById('products-list');
+const qtys = {};
+PRODUCTS.forEach(p => {
+    qtys[p.id] = 0;
+    const div = document.createElement('div');
+    div.className = 'calc-prod';
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="prod-dot ${p.dotClass}"></div>
+        <div>
+          <div style="font-weight:600;font-size:12px;">${p.icon} ${p.name}</div>
+          <div class="sub" style="font-size:10px;">$${p.price.toLocaleString('es-CO')} / unidad</div>
+        </div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${p.id}',-1)">−</button>
+        <span class="qty-val" id="qty-${p.id}">0</span>
+        <button class="qty-btn" onclick="changeQty('${p.id}',1)">+</button>
+      </div>`;
+    prodList.appendChild(div);
+});
+
+function changeQty(id, delta) {
+    qtys[id] = Math.max(0, (qtys[id] || 0) + delta);
+    document.getElementById('qty-' + id).textContent = qtys[id];
+    updateCalcTotal();
+}
+
+function updateCalcTotal() {
+    let total = 0, units = 0;
+    let breakdown = '';
+    PRODUCTS.forEach(p => {
+        const q = qtys[p.id] || 0;
+        if (q > 0) {
+            const sub = q * p.price;
+            total += sub;
+            units += q;
+            breakdown += `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0;">
+              <span>${p.icon} ${p.name} × ${q}</span>
+              <span>$${sub.toLocaleString('es-CO')}</span>
+            </div>`;
+        }
+    });
+    document.getElementById('calc-total-val').textContent = '$' + total.toLocaleString('es-CO');
+    document.getElementById('calc-savings').textContent  = '$' + Math.round(total * 0.08).toLocaleString('es-CO');
+    document.getElementById('total-units-badge').textContent = units + ' unidades';
+    document.getElementById('calc-breakdown').innerHTML   = breakdown || '<p class="sub" style="font-size:11px;">Seleccione productos para calcular</p>';
+}
+
+function updateCalcClient() {
+    const key  = document.getElementById('calc-client').value;
+    const hint = document.getElementById('client-hist-hint');
+    if (key && CLIENT_HIST[key]) {
+        document.getElementById('hist-avg').textContent = '$' + CLIENT_HIST[key].avg.toLocaleString('es-CO') + '/mes';
+        document.getElementById('hist-sug').textContent = CLIENT_HIST[key].sug;
+        hint.style.display = 'block';
+    } else {
+        hint.style.display = 'none';
+    }
+}
+
+function sendQuote() {
+    const client = document.getElementById('calc-client').value;
+    const total  = document.getElementById('calc-total-val').textContent;
+    if (!client || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
+    alert(`✅ Cotización enviada por correo a ${client}\nTotal: ${total}\n\nEn producción se envía automáticamente vía Gmail API desde xp3meta@rendimax.com.co`);
+}
+
+function clearCalc() {
+    PRODUCTS.forEach(p => { qtys[p.id] = 0; document.getElementById('qty-' + p.id).textContent = '0'; });
+    document.getElementById('calc-client').value = '';
+    document.getElementById('client-hist-hint').style.display = 'none';
+    updateCalcTotal();
+}
+
+// ========== TIMER ==========
+let secs = 0;
+setInterval(() => {
+    if (document.getElementById('s-registro').classList.contains('active')) {
+        secs++;
+        document.getElementById('timer').textContent =
+            String(Math.floor(secs/60)).padStart(2,'0') + ':' + String(secs%60).padStart(2,'0');
+    }
+}, 1000);
+
+// ========== AI IN VISIT ==========
+document.getElementById('comment').addEventListener('input', function() {
+    const kw = ['precio','competencia','caro','descuento','oferta'];
+    document.getElementById('ai-sug').style.display =
+        kw.some(k => this.value.toLowerCase().includes(k)) ? 'block' : 'none';
+});
+
+// ========== RESULT SELECTOR ==========
+function selR(el) {
+    ['r1','r2','r3','r4'].forEach(id => { const e = document.getElementById(id); if(e) e.classList.remove('sel'); });
+    el.classList.add('sel');
+}
+
+// Init calculator
+updateCalcTotal();
+</script>
+</body>
+</html>
