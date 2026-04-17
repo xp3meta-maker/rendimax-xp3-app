@@ -128,6 +128,22 @@
         .search-wrap input { padding-left:40px; background:var(--dark2); }
         .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:16px; pointer-events:none; }
     </style>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAOLo1rnabrfbMSXKZLkmZsYFkDAasfAWE",
+          authDomain: "rendimax-xp3.firebaseapp.com",
+          projectId: "rendimax-xp3",
+          storageBucket: "rendimax-xp3.firebasestorage.app",
+          messagingSenderId: "607175383173",
+          appId: "1:607175383173:web:380d7658eaf7e4de33b1ec"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        db.enablePersistence().catch(err => console.warn('Offline persistence error: ', err));
+    </script>
 </head>
 <body>
 
@@ -492,9 +508,9 @@
             </div>
 
             <div style="margin-top:18px;margin-bottom:16px;display:flex;justify-content:center;">
-                <div class="offline">🔴 Sin internet · Guardado local</div>
+                <div class="offline" id="online-status-banner">🟢 Geofencing activo · Sincronización en la Nube</div>
             </div>
-            <button class="btn btn-p">📤 Guardar y Sincronizar</button>
+            <button class="btn btn-p" id="btn-save-visit" onclick="saveVisitToFirebase()">📤 Guardar y Sincronizar</button>
         </div>
 
         <!-- ==================== ADMIN ==================== -->
@@ -1001,6 +1017,49 @@ function sendQuote() {
     const total  = document.getElementById('calc-total-val').textContent;
     if (!client || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
     alert('✅ Cotización lista para ' + client + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
+}
+async function saveVisitToFirebase() {
+    try {
+        const btn = document.getElementById('btn-save-visit');
+        btn.textContent = '⏳ Sincronizando...';
+        btn.disabled = true;
+
+        const res = document.querySelector('.r1.sel, .r2.sel, .r3.sel, .r4.sel') || document.querySelector('.card.brdr.sel');
+        const resVal = res ? res.textContent : 'No especificado';
+        const comment = document.getElementById('comment').value;
+        const calcVal = document.getElementById('calc-total-val').textContent;
+
+        const payload = {
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            routeDay: new Date().toDateString(),
+            result: resVal.trim(),
+            comment: comment || '',
+            amountCalculated: calcVal,
+            clientRef: currentFicha ? currentFicha.name : 'Ruta Generica'
+        };
+
+        let c = parseInt(localStorage.getItem('vCount') || 0);
+        localStorage.setItem('vCount', c + 1);
+
+        await db.collection('visitas').add(payload);
+
+        alert('✅ Visita registrada correctamente y sincronizada (Offline-first)');
+        
+        setTimeout(() => {
+            btn.textContent = '📤 Guardar y Sincronizar';
+            btn.disabled = false;
+            document.getElementById('comment').value = '';
+            showScreen('s-home', 'nb-home');
+            buildAgenda();
+        }, 500);
+
+    } catch (e) {
+        console.error('Error guardando visita:', e);
+        alert('⚠️ Error interno al guardar.');
+        const btn = document.getElementById('btn-save-visit');
+        btn.disabled = false;
+        btn.textContent = '📤 Guardar y Sincronizar';
+    }
 }
 
 function clearCalc() {
