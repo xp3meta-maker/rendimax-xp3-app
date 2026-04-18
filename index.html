@@ -390,7 +390,7 @@
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
             <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). <strong>Barranquilla</strong> se divide en <strong>sur/centro</strong> (ámbar) y <strong>norte</strong> (amarillo claro, eje hacia Santa Marta) según latitud ≥ <span id="baq-cut-lat-label">11.0</span>°. Soledad sigue en metro. El día de visita sigue en la agenda y en cada ficha.</p>
-            <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad central:</strong> Baq/Soledad, Santa Marta, Cartagena y corredor cercano. <strong>⏸ Standby:</strong> recorridos largos o pocas paradas (Sincelejo/Sucre, Cesar, río/costa al sur, Montes de María, otras); <em>siguen en la ruta</em> para cuando sectorices esa zona.</p>
+            <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad comercial (nunca standby):</strong> metro Baq/Soledad, Santa Marta, <strong>Cartagena y costa Bolívar</strong>, y <strong>corredor Magdalena sur</strong> (Ciénaga, Sabanalarga, Santa Ana…). <strong>⏸ Standby:</strong> solo zonas lejanas o de pocas paradas (Sincelejo, Cesar, <em>interior río/Sucre «Costa»</em> —no Cartagena—, Montes de María, otras); <em>siguen en la ruta</em> para sectorizar después.</p>
             <label class="sub" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:10px;line-height:1.3;">
                 <input type="checkbox" id="map-hide-standby" onchange="initOrRefreshRouteMap()"> Ocultar en el mapa los puntos en standby (siguen en la lista y en el plan)
             </label>
@@ -3271,12 +3271,12 @@ var GEO_ZONE_META = {
     ZONA_SUCRE_SINCE: { color: '#a855f7', shortLabel: 'Sincelejo / Sucre' },
     ZONA_BOL_MT: { color: '#22c55e', shortLabel: 'Montes de María' },
     ZONA_MAG_CORREDOR: { color: '#f59e0b', shortLabel: 'Corredor Mag. sur' },
-    ZONA_MAG_RIO: { color: '#14b8a6', shortLabel: 'Magdalena río/Costa' },
+    ZONA_MAG_RIO: { color: '#14b8a6', shortLabel: 'Interior río (Sucre/Mag — no Cartagena)' },
     ZONA_CESAR: { color: '#8b5cf6', shortLabel: 'Cesar' },
     ZONA_OTRAS: { color: '#64748b', shortLabel: 'Otras' }
 };
 
-/** Standby: lejos o pocas estaciones; no se quitan del JSON — priorizar recuperación en núcleo costa/metro. Ajustar claves si el negocio cambia. */
+/** Standby: lejos o pocas estaciones. NO incluye Cartagena (ZONA_BOL_CART) ni corredor sur naranja (ZONA_MAG_CORREDOR) — prioridad turismo/potencial costa. */
 var GEO_ZONE_STANDBY_KEYS = {
     ZONA_SUCRE_SINCE: true,
     ZONA_CESAR: true,
