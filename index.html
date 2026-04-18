@@ -389,7 +389,7 @@
                 <h2 style="margin:0;">Mapa de ruta</h2>
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
-            <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). El día de visita sigue en la agenda y en cada ficha. Círculos ~20 km por zona.</p>
+            <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). <strong>Barranquilla</strong> se divide en <strong>sur/centro</strong> (ámbar) y <strong>norte</strong> (amarillo claro, eje hacia Santa Marta) según latitud ≥ <span id="baq-cut-lat-label">11.0</span>°. Soledad sigue en metro. El día de visita sigue en la agenda y en cada ficha.</p>
             <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad central:</strong> Baq/Soledad, Santa Marta, Cartagena y corredor cercano. <strong>⏸ Standby:</strong> recorridos largos o pocas paradas (Sincelejo/Sucre, Cesar, río/costa al sur, Montes de María, otras); <em>siguen en la ruta</em> para cuando sectorices esa zona.</p>
             <label class="sub" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:10px;line-height:1.3;">
                 <input type="checkbox" id="map-hide-standby" onchange="initOrRefreshRouteMap()"> Ocultar en el mapa los puntos en standby (siguen en la lista y en el plan)
@@ -3178,6 +3178,12 @@ function buildRouteList() {
             + '</div>'
             + '<p class="sub" style="font-size:10px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.company + '</p>'
             + '<p class="sub" style="font-size:10px;margin-bottom:4px;">📍 ' + c.city
+            + (function() {
+                var mpk = mapPaintKeyFromClient(c);
+                if (mpk === 'SECTOR_BAQ_NORTE') return ' · <span style="opacity:.95;">Baq norte → eje SM</span>';
+                if (mpk === 'SECTOR_BAQ_SUR') return ' · <span style="opacity:.95;">Baq sur/centro</span>';
+                return '';
+            })()
             + ' · Parada ' + listPos + (totalStops ? ' de ' + totalStops : '')
             + ((c.routeWave || 1) > 1 ? ' · Turno ' + (c.routeWave || 1) : '')
             + (c.stopOrder ? ' · Orden datos ' + c.stopOrder : '')
@@ -3238,8 +3244,27 @@ function geoZoneKeyFromClient(c) {
     return 'ZONA_OTRAS';
 }
 
+/** Corte aprox. Barranquilla: norte (eje Troncal/SM) vs sur/centro (metro). Ajustar si refinás por comuna/calle. */
+var BAQ_NORTE_MIN_LAT = 11.0;
+
+/** Color en mapa: divide Baq en dos sectores; resto igual que geoZoneKeyFromClient. */
+function mapPaintKeyFromClient(c) {
+    if (c.prospect === true || c.status === 'PROSPECTO') return 'PROSPECTO';
+    var s = normCityKey(c.city);
+    if (s.includes('BARRANQUILLA')) {
+        var la = parseFloat(c.lat);
+        if (!isNaN(la)) {
+            return la >= BAQ_NORTE_MIN_LAT ? 'SECTOR_BAQ_NORTE' : 'SECTOR_BAQ_SUR';
+        }
+        return 'SECTOR_BAQ_SUR';
+    }
+    return geoZoneKeyFromClient(c);
+}
+
 var GEO_ZONE_META = {
     PROSPECTO: { color: '#ea580c', shortLabel: 'Prospecto' },
+    SECTOR_BAQ_SUR: { color: '#ca8a04', shortLabel: 'Baq sur/centro (metro)' },
+    SECTOR_BAQ_NORTE: { color: '#fbbf24', shortLabel: 'Baq norte (eje Santa Marta)' },
     ZONA_ATL_METRO: { color: '#eab308', shortLabel: 'Atlántico metro (Baq/Soledad)' },
     ZONA_MAG_SM: { color: '#ef4444', shortLabel: 'Santa Marta' },
     ZONA_BOL_CART: { color: '#3b82f6', shortLabel: 'Cartagena / Bol. costa' },
@@ -3264,12 +3289,19 @@ function geoZoneStandby(zk) {
     return zk !== 'PROSPECTO' && !!GEO_ZONE_STANDBY_KEYS[zk];
 }
 
+/** Standby por negocio (no por sector visual Baq). */
+function clientStandbyFromBusinessZone(c) {
+    return geoZoneStandby(geoZoneKeyFromClient(c));
+}
+
 function geoZoneColor(zk) {
     var m = GEO_ZONE_META[zk];
     return m ? m.color : '#64748b';
 }
 
 function updateMapDriveAndLegend() {
+    var baqLab = document.getElementById('baq-cut-lat-label');
+    if (baqLab) baqLab.textContent = String(BAQ_NORTE_MIN_LAT);
     var estEl = document.getElementById('map-drive-estimate');
     var legEl = document.getElementById('map-zone-legend');
     var h = getHomeCoordsForKm();
@@ -3279,11 +3311,10 @@ function updateMapDriveAndLegend() {
     allRouteClients().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null) return;
-        var zk = geoZoneKeyFromClient(c);
         var km = getDistance(h.lat, h.lng, ec.lat, ec.lng);
         var hrs = (km * 1.2) / 52;
         if (hrs > maxH) { maxH = hrs; maxKm = km * 1.2; }
-        if (!geoZoneStandby(zk)) {
+        if (!geoZoneStandby(geoZoneKeyFromClient(c))) {
             anyCore = true;
             if (hrs > maxHCore) { maxHCore = hrs; maxKmCore = km * 1.2; }
         }
@@ -3338,8 +3369,8 @@ function initOrRefreshRouteMap() {
     allRouteClients().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null || isNaN(ec.lat) || isNaN(ec.lng)) return;
-        var zk = geoZoneKeyFromClient(c);
-        if (hideStandby && geoZoneStandby(zk)) return;
+        if (hideStandby && clientStandbyFromBusinessZone(c)) return;
+        var zk = mapPaintKeyFromClient(c);
         if (!byZone[zk]) byZone[zk] = [];
         byZone[zk].push(c);
     });
@@ -3348,7 +3379,7 @@ function initOrRefreshRouteMap() {
         var clients = byZone[zk];
         if (!clients.length) return;
         var col = geoZoneColor(zk);
-        var st = geoZoneStandby(zk);
+        var st = clients.some(function(cc) { return clientStandbyFromBusinessZone(cc); });
         var sumLat = 0, sumLng = 0;
         clients.forEach(function(c) {
             var ec = getEffectiveCoords(c);
@@ -3370,17 +3401,20 @@ function initOrRefreshRouteMap() {
             var ec = getEffectiveCoords(c);
             var pinNote = ec.fromVisit ? ' · GPS visita' : '';
             var sm = GEO_ZONE_META[zk] ? GEO_ZONE_META[zk].shortLabel : zk;
-            var sbLine = st ? '<br><span style="opacity:.9;">⏸ Standby — atender en segunda ola al sectorizar</span>' : '';
+            var stPin = clientStandbyFromBusinessZone(c);
+            var sbLine = stPin ? '<br><span style="opacity:.9;">⏸ Standby — atender en segunda ola al sectorizar</span>' : '';
+            var biz = geoZoneKeyFromClient(c);
+            var bizLab = (GEO_ZONE_META[biz] && GEO_ZONE_META[biz].shortLabel) ? GEO_ZONE_META[biz].shortLabel : biz;
             L.circleMarker([ec.lat, ec.lng], {
                 radius: (zk === 'PROSPECTO') ? 8 : 5,
                 color: col,
                 fillColor: col,
-                fillOpacity: st ? 0.4 : 0.88,
-                weight: st ? 2 : 1,
-                dashArray: st ? '4 3' : null
+                fillOpacity: stPin ? 0.4 : 0.88,
+                weight: stPin ? 2 : 1,
+                dashArray: stPin ? '4 3' : null
             }).addTo(routeMapLayerGroup).bindPopup(
                 (zk === 'PROSPECTO' ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '')
-                + '<br><span style="opacity:.85;">Zona: ' + sm + ' · Día agenda: ' + (c.day || '—') + '</span>' + pinNote + sbLine
+                + '<br><span style="opacity:.85;">Mapa: ' + sm + ' · Negocio: ' + bizLab + ' · Día: ' + (c.day || '—') + '</span>' + pinNote + sbLine
             );
             bounds.extend([ec.lat, ec.lng]);
         });
