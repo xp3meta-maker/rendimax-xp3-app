@@ -574,6 +574,7 @@
                 <div><h3 style="font-size:15px;" id="visit-name">EDS Esmeralda</h3><p class="sub" style="font-size:11px;margin-top:2px;" id="visit-company">CONSTRUCTORA LA ESMERALDA SAS</p></div>
                 <div style="text-align:right;"><span class="badge by">📍 GPS</span><p class="sub" style="font-size:10px;margin-top:4px;" id="visit-dist">Verificando...</p></div>
             </div>
+            <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:-8px 0 14px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">Al iniciar la visita se captura tu ubicación como referencia real del cliente (segundo plano).</p>
 
             <div class="g2" style="margin-bottom:18px;">
                 <div class="kpi"><div class="kl">Hora llegada</div><div class="kv" style="font-size:20px;margin-top:3px;" id="visit-time">--:--</div></div>
@@ -2657,6 +2658,41 @@ function getTodayRouteDayKey() {
 }
 loadProspects();
 
+// Anclas GPS por cliente: capturadas al pulsar «Iniciar visita» (referencia real en terreno).
+var VISIT_ANCHORS = {};
+var LS_VISIT_ANCHORS = 'rendimax_visit_anchors_v1';
+var visitSessionGps = null;
+function loadVisitAnchors() {
+    try {
+        VISIT_ANCHORS = JSON.parse(localStorage.getItem(LS_VISIT_ANCHORS) || '{}');
+        if (!VISIT_ANCHORS || typeof VISIT_ANCHORS !== 'object') VISIT_ANCHORS = {};
+    } catch (e) { VISIT_ANCHORS = {}; }
+}
+function saveVisitAnchors() {
+    localStorage.setItem(LS_VISIT_ANCHORS, JSON.stringify(VISIT_ANCHORS));
+}
+function setVisitAnchorForClient(num, lat, lng, accuracy) {
+    if (num == null || isNaN(lat) || isNaN(lng)) return;
+    VISIT_ANCHORS[num] = {
+        lat: lat,
+        lng: lng,
+        accuracy: accuracy != null ? Math.round(accuracy) : null,
+        capturedAt: Date.now(),
+        geoSource: 'visit_start'
+    };
+    saveVisitAnchors();
+}
+/** Coordenadas para mapas / distancia: prioridad ancla de visita sobre ficha. */
+function getEffectiveCoords(c) {
+    if (!c) return null;
+    var a = VISIT_ANCHORS[c.num];
+    if (a && typeof a.lat === 'number' && typeof a.lng === 'number') {
+        return { lat: a.lat, lng: a.lng, fromVisit: true };
+    }
+    return { lat: c.lat, lng: c.lng, fromVisit: false };
+}
+loadVisitAnchors();
+
 // Plan semanal derivado de ROUTE (mismo día en campo `day`). Actualizar ROUTE/export_71 para cambiar barrido.
 const DAY_META = {
     MON: { name:'Lunes',     emoji:'🌊' },
@@ -2734,6 +2770,7 @@ function showScreen(id, navId, isPop = false) {
     document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
     if (navId) document.getElementById(navId).classList.add('active');
     if (id === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 200);
+    if (id === 's-registro') onVisitScreenOpened();
 }
 
 // ================================================================
@@ -2842,7 +2879,8 @@ function checkGeofence() {
     if (userLat === null) return;
     let nearest = null, nearDist = Infinity;
     allRouteClients().forEach(c => {
-        const d = haversine(userLat, userLon, c.lat, c.lng);
+        var ec = getEffectiveCoords(c);
+        const d = haversine(userLat, userLon, ec.lat, ec.lng);
         if (d < GEOFENCE_RADIUS_M && d < nearDist) { nearest = c; nearDist = d; }
     });
     if (nearest && nearest.name !== lastAlerted) {
@@ -2859,12 +2897,52 @@ function checkGeofence() {
 
 function updateFichaDistance() {
     if (!currentFicha || userLat === null) return;
-    const d = haversine(userLat, userLon, currentFicha.lat, currentFicha.lng);
+    var ec = getEffectiveCoords(currentFicha);
+    const d = haversine(userLat, userLon, ec.lat, ec.lng);
     let txt;
     if (d < 1000) txt = Math.round(d) + 'm de distancia';
     else txt = (d/1000).toFixed(1) + 'km de distancia';
+    if (ec.fromVisit) txt += ' · pin visita';
     document.getElementById('ficha-distance').textContent = txt;
     document.getElementById('visit-dist').textContent = txt;
+}
+
+function onVisitScreenOpened() {
+    visitSessionGps = null;
+    var el = document.getElementById('visit-gps-capture');
+    if (el) el.textContent = 'Capturando GPS de llegada (segundo plano)...';
+    timerSecs = 0;
+    var te = document.getElementById('timer');
+    if (te) te.textContent = '00:00';
+    if (!currentFicha || currentFicha.num == null) {
+        if (el) el.textContent = 'Sin cliente en contexto.';
+        return;
+    }
+    if (!navigator.geolocation) {
+        if (el) el.textContent = 'GPS no disponible en este dispositivo.';
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            var acc = pos.coords.accuracy;
+            setVisitAnchorForClient(currentFicha.num, lat, lng, acc);
+            visitSessionGps = { lat: lat, lng: lng, accuracy: acc, capturedAt: Date.now() };
+            if (el) {
+                el.textContent = 'Referencia guardada para este cliente (±' + Math.round(acc) + ' m). Se usa en mapa y navegación hasta una visita nueva.';
+                el.style.borderColor = 'rgba(16,185,129,.45)';
+            }
+            updateFichaDistance();
+            if (typeof initOrRefreshRouteMap === 'function' && document.getElementById('s-mapa') && document.getElementById('s-mapa').classList.contains('active')) {
+                initOrRefreshRouteMap();
+            }
+        },
+        function() {
+            if (el) el.textContent = 'No se obtuvo GPS. Activá ubicación precisa y volvé a entrar a esta pantalla.';
+        },
+        { enableHighAccuracy: true, timeout: 28000, maximumAge: 0 }
+    );
 }
 
 // ================================================================
@@ -2992,12 +3070,13 @@ function buildRouteList() {
     var totalStops = filteredRoute.length;
     filteredRoute.forEach((c, idx) => {
         const listPos = idx + 1;
+        const em = getEffectiveCoords(c);
         const isProspect = c.prospect === true || c.status === 'PROSPECTO';
         const iCls   = isProspect ? 'by' : (c.status === 'ACTIVO' ? 'bg' : 'br');
         const dCls   = isProspect ? 'po' : {r:'pr',o:'po',g:'pgr'}[c.p];
         let distTxt = '';
-        if (userHomeLat && userHomeLng && c.lat && c.lng) {
-            let dist = getDistance(userHomeLat, userHomeLng, c.lat, c.lng);
+        if (userHomeLat && userHomeLng && em.lat && em.lng) {
+            let dist = getDistance(userHomeLat, userHomeLng, em.lat, em.lng);
             if (dist > 50) distTxt = `<span style="color:var(--yellow);font-weight:700;"> ⚠️ Vía a ${Math.round(dist)}km (Peajes)</span>`;
             else distTxt = ` <span style="opacity:0.6;">(Local ${Math.round(dist)}km)</span>`;
         }
@@ -3032,7 +3111,7 @@ function buildRouteList() {
             + '<p class="sub" style="font-size:10px;margin-bottom:12px;">' + histLine + '</p>'
             + '<div style="display:flex;gap:8px;">'
             + '<button class="btn btn-p btn-sm" style="flex:1;box-shadow:none;font-size:11px;" onclick="openFichaByNum(' + c.num + ')">🃏 Ficha 360°</button>'
-            + '<button class="btn btn-gh btn-go btn-sm" style="flex:1;font-size:11px;" onclick="openMapsFor(' + c.lat + ',' + c.lng + ',\'' + c.name.replace(/'/g,"\\'") + '\')">📍 IR</button>'
+            + '<button class="btn btn-gh btn-go btn-sm" style="flex:1;font-size:11px;" onclick="openMapsFor(' + em.lat + ',' + em.lng + ',\'' + c.name.replace(/'/g,"\\'") + '\')">📍 IR</button>'
             + '</div>'
             + '</div></div>';
         list.appendChild(el);
@@ -3079,11 +3158,16 @@ function initOrRefreshRouteMap() {
     var bounds = L.latLngBounds([]);
     keys.forEach(function(dayKey) {
         var clients = allRouteClients().filter(function(c) {
-            return c.day === dayKey && c.lat != null && c.lng != null && !isNaN(c.lat) && !isNaN(c.lng);
+            if (c.day !== dayKey) return false;
+            var ec = getEffectiveCoords(c);
+            return ec.lat != null && ec.lng != null && !isNaN(ec.lat) && !isNaN(ec.lng);
         });
         if (!clients.length) return;
         var sumLat = 0, sumLng = 0;
-        clients.forEach(function(c) { sumLat += c.lat; sumLng += c.lng; });
+        clients.forEach(function(c) {
+            var ec = getEffectiveCoords(c);
+            sumLat += ec.lat; sumLng += ec.lng;
+        });
         var clat = sumLat / clients.length;
         var clng = sumLng / clients.length;
         L.circle([clat, clng], {
@@ -3095,18 +3179,20 @@ function initOrRefreshRouteMap() {
         }).addTo(routeMapLayerGroup).bindPopup('Referencia ~20 km · ' + dayKey);
         bounds.extend([clat, clng]);
         clients.forEach(function(c) {
+            var ec = getEffectiveCoords(c);
             var isPr = c.prospect === true || c.status === 'PROSPECTO';
             var col = isPr ? '#f97316' : dayColors[dayKey];
-            L.circleMarker([c.lat, c.lng], {
+            var pinNote = ec.fromVisit ? ' · GPS visita' : '';
+            L.circleMarker([ec.lat, ec.lng], {
                 radius: isPr ? 8 : 5,
                 color: col,
                 fillColor: col,
                 fillOpacity: 0.88,
                 weight: 1
             }).addTo(routeMapLayerGroup).bindPopup(
-                (isPr ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '') + ' · ' + (c.day || '')
+                (isPr ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '') + ' · ' + (c.day || '') + pinNote
             );
-            bounds.extend([c.lat, c.lng]);
+            bounds.extend([ec.lat, ec.lng]);
         });
     });
     if (userLat != null && userLon != null) {
@@ -3267,6 +3353,13 @@ function openFichaCore(c) {
             fb.style.display = 'block';
             fbt.textContent = 'Comprobá en terreno que el pin coincide con la estación. Si no, usá búsqueda por dirección o pedí actualización de coordenadas en oficina.';
         }
+        if (VISIT_ANCHORS[c.num] && fbt) {
+            fb.style.display = 'block';
+            var extra = ' «Ir con GPS» usa el punto capturado al iniciar una visita en este dispositivo (referencia real).';
+            if ((fbt.textContent || '').indexOf('iniciar una visita') === -1) {
+                fbt.textContent = (fbt.textContent || '') + extra;
+            }
+        }
     }
     updateFichaDistance();
     showScreen('s-ficha','nb-ficha');
@@ -3281,7 +3374,9 @@ function callClient() {
 }
 
 function openCurrentMaps() {
-    if (currentFicha) openMapsFor(currentFicha.lat, currentFicha.lng, currentFicha.name);
+    if (!currentFicha) return;
+    var ec = getEffectiveCoords(currentFicha);
+    openMapsFor(ec.lat, ec.lng, currentFicha.name);
 }
 
 function openCurrentMapsAddress() {
@@ -3391,13 +3486,26 @@ async function saveVisitToFirebase() {
         const comment = document.getElementById('comment').value;
         const calcVal = document.getElementById('calc-total-val').textContent;
 
+        var anchorPayload = null;
+        if (currentFicha && currentFicha.num != null && VISIT_ANCHORS[currentFicha.num]) {
+            var ax = VISIT_ANCHORS[currentFicha.num];
+            anchorPayload = { lat: ax.lat, lng: ax.lng, accuracyM: ax.accuracy, capturedAtMs: ax.capturedAt, source: 'visit_start' };
+        }
         const payload = {
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             routeDay: new Date().toDateString(),
             result: resVal.trim(),
             comment: comment || '',
             amountCalculated: calcVal,
-            clientRef: currentFicha ? currentFicha.name : 'Ruta Generica'
+            clientRef: currentFicha ? currentFicha.name : 'Ruta Generica',
+            clientNum: currentFicha ? currentFicha.num : null,
+            gpsAtVisitStart: visitSessionGps ? {
+                lat: visitSessionGps.lat,
+                lng: visitSessionGps.lng,
+                accuracyM: visitSessionGps.accuracy != null ? Math.round(visitSessionGps.accuracy) : null,
+                capturedAtMs: visitSessionGps.capturedAt
+            } : null,
+            clientAnchor: anchorPayload
         };
 
         let c = parseInt(localStorage.getItem('vCount') || 0);
