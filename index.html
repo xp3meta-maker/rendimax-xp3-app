@@ -574,7 +574,8 @@
                 <div><h3 style="font-size:15px;" id="visit-name">EDS Esmeralda</h3><p class="sub" style="font-size:11px;margin-top:2px;" id="visit-company">CONSTRUCTORA LA ESMERALDA SAS</p></div>
                 <div style="text-align:right;"><span class="badge by">📍 GPS</span><p class="sub" style="font-size:10px;margin-top:4px;" id="visit-dist">Verificando...</p></div>
             </div>
-            <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:-8px 0 14px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">Al iniciar la visita se captura tu ubicación como referencia real del cliente (segundo plano).</p>
+            <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:-8px 0 8px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">La primera vez que visites a un cliente se guarda el GPS como referencia. Las visitas siguientes no sobrescriben ese pin automáticamente.</p>
+            <button type="button" class="btn btn-gh btn-sm" style="width:100%;font-size:11px;margin-bottom:14px;" onclick="overwriteVisitAnchorFromGps()">🔄 Actualizar ubicación GPS (solo si el pin guardado está mal)</button>
 
             <div class="g2" style="margin-bottom:18px;">
                 <div class="kpi"><div class="kl">Hora llegada</div><div class="kv" style="font-size:20px;margin-top:3px;" id="visit-time">--:--</div></div>
@@ -2910,7 +2911,7 @@ function updateFichaDistance() {
 function onVisitScreenOpened() {
     visitSessionGps = null;
     var el = document.getElementById('visit-gps-capture');
-    if (el) el.textContent = 'Capturando GPS de llegada (segundo plano)...';
+    if (el) el.textContent = 'Comprobando si ya hay ubicación guardada...';
     timerSecs = 0;
     var te = document.getElementById('timer');
     if (te) te.textContent = '00:00';
@@ -2918,20 +2919,40 @@ function onVisitScreenOpened() {
         if (el) el.textContent = 'Sin cliente en contexto.';
         return;
     }
+    var num = currentFicha.num;
+    var existing = VISIT_ANCHORS[num];
+    if (existing && typeof existing.lat === 'number' && typeof existing.lng === 'number') {
+        visitSessionGps = {
+            lat: existing.lat,
+            lng: existing.lng,
+            accuracy: existing.accuracy,
+            capturedAt: existing.capturedAt || Date.now(),
+            reusedAnchor: true
+        };
+        if (el) {
+            el.textContent = 'Este cliente ya tiene ubicación guardada; no se reescribe al abrir la visita. Las siguientes visitas usan el mismo pin. Usá «Actualizar» abajo solo si hace falta corregir.';
+            el.style.borderColor = 'rgba(59,130,246,.35)';
+            el.style.background = 'rgba(59,130,246,.06)';
+        }
+        updateFichaDistance();
+        return;
+    }
     if (!navigator.geolocation) {
         if (el) el.textContent = 'GPS no disponible en este dispositivo.';
         return;
     }
+    if (el) el.textContent = 'Primera visita: capturando GPS de llegada...';
     navigator.geolocation.getCurrentPosition(
         function(pos) {
             var lat = pos.coords.latitude;
             var lng = pos.coords.longitude;
             var acc = pos.coords.accuracy;
-            setVisitAnchorForClient(currentFicha.num, lat, lng, acc);
-            visitSessionGps = { lat: lat, lng: lng, accuracy: acc, capturedAt: Date.now() };
+            setVisitAnchorForClient(num, lat, lng, acc);
+            visitSessionGps = { lat: lat, lng: lng, accuracy: acc, capturedAt: Date.now(), reusedAnchor: false };
             if (el) {
-                el.textContent = 'Referencia guardada para este cliente (±' + Math.round(acc) + ' m). Se usa en mapa y navegación hasta una visita nueva.';
+                el.textContent = 'Referencia guardada (±' + Math.round(acc) + ' m). Las próximas visitas no la sobrescriben solas.';
                 el.style.borderColor = 'rgba(16,185,129,.45)';
+                el.style.background = 'rgba(16,185,129,.08)';
             }
             updateFichaDistance();
             if (typeof initOrRefreshRouteMap === 'function' && document.getElementById('s-mapa') && document.getElementById('s-mapa').classList.contains('active')) {
@@ -2939,7 +2960,43 @@ function onVisitScreenOpened() {
             }
         },
         function() {
-            if (el) el.textContent = 'No se obtuvo GPS. Activá ubicación precisa y volvé a entrar a esta pantalla.';
+            if (el) el.textContent = 'No se obtuvo GPS. Activá ubicación precisa y tocá «Actualizar ubicación GPS».';
+        },
+        { enableHighAccuracy: true, timeout: 28000, maximumAge: 0 }
+    );
+}
+
+function overwriteVisitAnchorFromGps() {
+    if (!currentFicha || currentFicha.num == null) {
+        alert('No hay cliente seleccionado.');
+        return;
+    }
+    if (!navigator.geolocation) {
+        alert('GPS no disponible.');
+        return;
+    }
+    var el = document.getElementById('visit-gps-capture');
+    if (el) el.textContent = 'Obteniendo nueva posición...';
+    var num = currentFicha.num;
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            var acc = pos.coords.accuracy;
+            setVisitAnchorForClient(num, lat, lng, acc);
+            visitSessionGps = { lat: lat, lng: lng, accuracy: acc, capturedAt: Date.now(), reusedAnchor: false, manualUpdate: true };
+            if (el) {
+                el.textContent = 'Ubicación actualizada manualmente (±' + Math.round(acc) + ' m).';
+                el.style.borderColor = 'rgba(16,185,129,.45)';
+                el.style.background = 'rgba(16,185,129,.08)';
+            }
+            updateFichaDistance();
+            if (typeof initOrRefreshRouteMap === 'function' && document.getElementById('s-mapa') && document.getElementById('s-mapa').classList.contains('active')) {
+                initOrRefreshRouteMap();
+            }
+        },
+        function() {
+            if (el) el.textContent = 'No se pudo leer el GPS. Reintentá.';
         },
         { enableHighAccuracy: true, timeout: 28000, maximumAge: 0 }
     );
@@ -3503,7 +3560,9 @@ async function saveVisitToFirebase() {
                 lat: visitSessionGps.lat,
                 lng: visitSessionGps.lng,
                 accuracyM: visitSessionGps.accuracy != null ? Math.round(visitSessionGps.accuracy) : null,
-                capturedAtMs: visitSessionGps.capturedAt
+                capturedAtMs: visitSessionGps.capturedAt,
+                reusedExistingAnchor: visitSessionGps.reusedAnchor === true,
+                manualAnchorUpdate: visitSessionGps.manualUpdate === true
             } : null,
             clientAnchor: anchorPayload
         };
