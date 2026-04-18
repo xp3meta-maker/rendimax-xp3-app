@@ -257,8 +257,12 @@
 
             <div class="g2" style="margin-bottom:14px;">
                 <div class="kpi" style="border-color:rgba(255,179,0,.25);background:rgba(255,179,0,.05);">
-                    <div class="kv" style="color:var(--yellow);">$847k</div>
-                    <div class="kl">Potencial hoy</div>
+                    <div class="kv" id="home-meta-dia-kv" style="color:var(--yellow);font-size:15px;line-height:1.15;word-break:break-word;">$—</div>
+                    <div class="kl" id="home-meta-dia-kl">Meta ventas hoy (sugerida)</div>
+                    <p class="sub" id="home-meta-mes-sub" style="font-size:9px;margin-top:6px;line-height:1.4;color:var(--t2);"></p>
+                    <div style="height:4px;background:var(--dark3);border-radius:4px;overflow:hidden;margin-top:8px;">
+                        <div id="home-ventas-mes-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--yellow),#FF7A00);transition:width .45s;"></div>
+                    </div>
                 </div>
                 <div class="kpi"><div class="kv">127</div><div class="kl">Días sin comprar</div></div>
             </div>
@@ -278,11 +282,6 @@
                         <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--red);">64</div>
                         <div class="lbl" style="font-size:9px;">Perdidas</div>
                     </div>
-                </div>
-                <div class="div"></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <p class="sub" style="font-size:10px;">Vol. perdido total (2022-2025)</p>
-                    <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--yellow);">$127M</div>
                 </div>
             </div>
 
@@ -318,7 +317,7 @@
                 <h2>Mi Agenda</h2>
                 <span class="badge by" id="week-badge">Semana —</span>
             </div>
-            <p class="sub" style="margin-bottom:18px;">Plan de barrido total · Costa Norte · ORC 2026</p>
+            <p class="sub" style="margin-bottom:18px;">Etiqueta ORC por fecha (día hábil del mes y festivos Colombia) y debajo el barrido de cartera asignado a cada día laboral.</p>
 
             <div class="week-strip" id="week-strip"></div>
 
@@ -353,7 +352,7 @@
         <div id="s-ruta" class="screen">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
                 <div style="flex:1;min-width:0;">
-                    <h2 style="margin:0 0 6px 0;">Ruta de Hoy</h2>
+                    <h2 style="margin:0 0 6px 0;" id="ruta-screen-title">Ruta comercial</h2>
                     <span class="badge by" id="ruta-day-badge">Hoy</span>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:min(46%,140px);">
@@ -361,7 +360,16 @@
                     <button type="button" class="btn btn-p" style="font-size:11px;padding:10px 8px;margin:0;" onclick="openProspectForm()">➕ Nuevo cliente</button>
                 </div>
             </div>
-            <p class="sub" style="margin-bottom:14px;" id="ruta-subtitle">10 estaciones · Ordenadas por potencial perdido</p>
+            <p class="sub" style="margin-bottom:10px;" id="ruta-subtitle">—</p>
+            <p class="lbl" style="margin-bottom:6px;">Filtrar por día de visita</p>
+            <div id="route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                <button type="button" class="tag" data-route-day="MON" onclick="setRouteListDay('MON')">Lun</button>
+                <button type="button" class="tag" data-route-day="TUE" onclick="setRouteListDay('TUE')">Mar</button>
+                <button type="button" class="tag" data-route-day="WED" onclick="setRouteListDay('WED')">Mié</button>
+                <button type="button" class="tag" data-route-day="THU" onclick="setRouteListDay('THU')">Jue</button>
+                <button type="button" class="tag" data-route-day="FRI" onclick="setRouteListDay('FRI')">Vie</button>
+                <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
+            </div>
 
             <div class="search-wrap">
                 <span class="search-icon">🔍</span>
@@ -389,6 +397,7 @@
                 <h2 style="margin:0;">Mapa de ruta</h2>
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
+            <p class="sub" style="margin-bottom:6px;line-height:1.45;font-size:10px;">Marcadores: mismo criterio que la lista en <strong>Ruta</strong> (día Lun–Vie o <strong>Todos</strong>).</p>
             <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). <strong>Barranquilla</strong> se divide en <strong>sur/centro</strong> (ámbar) y <strong>norte</strong> (amarillo claro, eje hacia Santa Marta) según latitud ≥ <span id="baq-cut-lat-label">11.0</span>°. Soledad sigue en metro. El día de visita sigue en la agenda y en cada ficha.</p>
             <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad comercial (nunca standby):</strong> metro Baq/Soledad, Santa Marta, <strong>Cartagena y costa Bolívar</strong>, y <strong>corredor Magdalena sur</strong> (Ciénaga, Sabanalarga, Santa Ana…). <strong>⏸ Standby:</strong> solo zonas lejanas o de pocas paradas (Sincelejo, Cesar, <em>interior río/Sucre «Costa»</em> —no Cartagena—, Montes de María, otras); <em>siguen en la ruta</em> para sectorizar después.</p>
             <label class="sub" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:10px;line-height:1.3;">
@@ -504,7 +513,7 @@
                     <span class="sub" style="margin-left:auto;font-size:10px;color:var(--yellow);">⚡ Activo</span>
                 </div>
                 <p class="sub" style="font-size:12px;line-height:1.7;" id="ficha-ai-text">—</p>
-                <button class="btn btn-p btn-sm" style="margin-top:12px;box-shadow:none;" onclick="showScreen('s-calc','nb-calc')">🧮 Calcular pedido para este cliente</button>
+                <button class="btn btn-p btn-sm" style="margin-top:12px;box-shadow:none;" onclick="openCalcForCurrentFicha()">🧮 Calcular pedido para este cliente</button>
             </div>
 
             <div class="slbl">Historial de Visitas</div>
@@ -520,7 +529,7 @@
             </div>
             <button class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:8px;" onclick="openCurrentMaps()">📍 Ir con GPS (coordenadas)</button>
             <button class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:8px;" onclick="openCurrentMapsAddress()">🧭 Buscar por dirección en Maps</button>
-            <button class="btn btn-gh" style="width:100%;font-size:12px;" onclick="showScreen('s-calc','nb-calc')">🧮 Calcular Pedido</button>
+            <button class="btn btn-gh" style="width:100%;font-size:12px;" onclick="openCalcForCurrentFicha()">🧮 Calcular Pedido</button>
         </div>
 
         <!-- ==================== CALCULADORA ==================== -->
@@ -532,13 +541,6 @@
                 <p class="lbl" style="margin-bottom:8px;">Cliente</p>
                 <select id="calc-client" onchange="updateCalcClient()">
                     <option value="">— Seleccionar EDS —</option>
-                    <option value="esmeralda">EDS Esmeralda (La Esmeralda)</option>
-                    <option value="sabanalarga">EDS Sabanalarga (Coesco)</option>
-                    <option value="descanso">EDS El Descanso (Combured)</option>
-                    <option value="almendros">EDS Los Almendros (Choles Movil)</option>
-                    <option value="monsu">EDS Monsu (Gastrans)</option>
-                    <option value="sanjosue">Ecos San Josue (Robles Camargo)</option>
-                    <option value="elpaso">EDS El Paso (Capital Premium)</option>
                     <option value="otro">Otro cliente...</option>
                 </select>
                 <div id="client-hist-hint" style="display:none;margin-top:10px;padding:10px;background:rgba(255,179,0,.08);border:1px solid rgba(255,179,0,.2);border-radius:10px;">
@@ -632,6 +634,14 @@
                 <p class="sub" id="admin-bot-txt">0 visitas · Iniciando día</p>
             </div>
 
+            <div class="card cy" style="margin-bottom:14px;">
+                <div class="lbl" style="margin-bottom:8px;">Objetivo de ventas · mes</div>
+                <p class="sub" style="font-size:11px;margin-bottom:10px;line-height:1.45;">Meta regional <strong style="color:var(--t1);">$10.000.000</strong> (inicial). Registrá acá lo facturado o acordado en el mes para ver el avance en el Home.</p>
+                <label class="sub" for="admin-ventas-mes-input" style="display:block;margin-bottom:4px;">Acumulado del mes (COP)</label>
+                <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:10px;">
+                <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
+            </div>
+
             <div class="g2" style="margin-bottom:14px;">
                 <div class="kpi"><div class="kv" style="font-size:17px;">8:12 AM</div><div class="kl">Primera visita</div></div>
                 <div class="kpi"><div class="kv" style="font-size:17px;">10:47 AM</div><div class="kl">Última visita</div></div>
@@ -704,17 +714,7 @@ const PRODUCTS = [
     { id:'d20',   name:'XP3 Diesel 20ml',   price:6118,  dotClass:'d20',   icon:'🚛' },
 ];
 
-const CLIENT_HIST = {
-    esmeralda:   { avg:199416, sug:'60 uds Gas 20ml + 60 uds Motos 6ml' },
-    sabanalarga: { avg:72707,  sug:'30 uds Gas 20ml + 60 uds Motos 6ml' },
-    descanso:    { avg:50240,  sug:'30 uds Gas 20ml + 30 uds Motos 6ml' },
-    almendros:   { avg:76492,  sug:'30 uds Gas 20ml + 30 uds Diesel 110ml' },
-    monsu:       { avg:77665,  sug:'30 uds Gas 20ml + 30 uds Diesel 20ml' },
-    sanjosue:    { avg:81145,  sug:'60 uds Gas 20ml + 30 uds Motos 6ml' },
-    elpaso:      { avg:64363,  sug:'30 uds Diesel 20ml + 30 uds Gas 20ml' },
-};
-
-// ROUTE: 10 priority stations with REAL GPS coordinates per city
+// ROUTE: cartera Costa Norte (coords por ciudad/EDS); la calculadora lista todos vía populateCalcClientSelect().
 const ROUTE = [
   {
     "num": 1,
@@ -2709,6 +2709,164 @@ const DAY_META = {
     FRI: { name:'Viernes',   emoji:'🌴' },
 };
 
+/** Festivos CO (mismo criterio que `festivos_colombia_2026.txt`) — día no hábil si figura aquí. */
+// <auto:orc_festivos_co>
+var ORC_FESTIVOS_CO_2026 = new Set([
+    '2026-01-01','2026-01-12','2026-03-23','2026-04-02','2026-04-03','2026-05-01',
+    '2026-05-18','2026-06-08','2026-06-15','2026-06-29','2026-07-20','2026-08-07',
+    '2026-08-17','2026-10-12','2026-11-02','2026-11-16','2026-12-08','2026-12-25'
+]);
+// </auto:orc_festivos_co>
+
+function orcDateKeyISO(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+/** Lunes=0 … domingo=6 (como Python weekday). */
+function orcPyWeekday(d) {
+    return (d.getDay() + 6) % 7;
+}
+function orcEsHabilCol(d) {
+    if (orcPyWeekday(d) >= 5) return false;
+    return !ORC_FESTIVOS_CO_2026.has(orcDateKeyISO(d));
+}
+/** Índice hábil 1…N dentro del mes de `d`, o null si no es hábil. Alineado con `generar_calendario_orc.py`. */
+function orcIndiceHabilMes(d) {
+    if (!orcEsHabilCol(d)) return null;
+    var y = d.getFullYear(), m = d.getMonth(), dom = d.getDate();
+    var idx = 0;
+    for (var day = 1; day <= dom; day++) {
+        var cur = new Date(y, m, day);
+        if (orcEsHabilCol(cur)) idx++;
+    }
+    return idx;
+}
+/**
+ * Etiqueta operativa ORC para una fecha concreta (viáticos, bloque inicio de mes, martes sin viajera, etc.).
+ * @returns {{ etiqueta: string, nota: string, corto: string }}
+ */
+function orcEtiquetaOperativa(d) {
+    if (!orcEsHabilCol(d)) {
+        if (orcPyWeekday(d) >= 5) {
+            return { etiqueta: 'Fin de semana', nota: '', corto: 'Fin de semana' };
+        }
+        return { etiqueta: 'Festivo / no hábil', nota: 'Ajustar si trabajan festivos', corto: 'Festivo' };
+    }
+    var idx = orcIndiceHabilMes(d);
+    if (idx <= 2) {
+        return {
+            etiqueta: 'Sin viaje — cierre adm. / organización',
+            nota: '1.º o 2.º día hábil del mes',
+            corto: 'Sin viaje (inicio mes)'
+        };
+    }
+    if (idx >= 3 && idx <= 7) {
+        return {
+            etiqueta: 'Solo cercanos (metro / radio corto)',
+            nota: 'Sin viajeras largas; viáticos en curso',
+            corto: 'Solo cercanos'
+        };
+    }
+    var wd = orcPyWeekday(d);
+    if (wd === 1) {
+        return { etiqueta: 'Post reunión — local / metro corto', nota: 'Martes: no viajera larga', corto: 'Post reunión' };
+    }
+    if (wd === 2) {
+        return {
+            etiqueta: 'Puede viajera (Cartagena / SM / eje) si aprobada',
+            nota: 'Miércoles: típico viajeras',
+            corto: 'Viajera posible'
+        };
+    }
+    if (wd === 3) {
+        return { etiqueta: 'Corredor cercano (pool sin lejanas)', nota: 'Jueves', corto: 'Corredor cercano' };
+    }
+    if (wd === 4) {
+        return { etiqueta: 'Cierre metro / pendientes', nota: 'Viernes', corto: 'Cierre metro' };
+    }
+    if (wd === 0) {
+        return { etiqueta: 'Metro Baq sur + Soledad', nota: 'Lunes', corto: 'Metro sur' };
+    }
+    return { etiqueta: 'Campo', nota: '', corto: 'Campo' };
+}
+
+/** Meta de facturación mensual inicial ORC (COP). */
+var ORC_META_VENTAS_MES_COP = 10000000;
+
+function formatCopCOP(n) {
+    if (typeof n !== 'number' || isNaN(n)) return '—';
+    try {
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+    } catch (e) {
+        return '$' + Math.round(n).toLocaleString('es-CO');
+    }
+}
+
+function orcCountBusinessDaysInMonth(y, m0) {
+    var last = new Date(y, m0 + 1, 0).getDate();
+    var n = 0;
+    for (var day = 1; day <= last; day++) {
+        var dt = new Date(y, m0, day);
+        if (orcEsHabilCol(dt)) n++;
+    }
+    return n;
+}
+
+function orcVentasMesStorageKey() {
+    var d = new Date();
+    return 'orc_ventas_mes_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function getOrcVentasMesAcumuladoCOP() {
+    var v = parseInt(localStorage.getItem(orcVentasMesStorageKey()) || '0', 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+}
+
+function updateHomeVentasMeta() {
+    var now = new Date();
+    var hab = orcCountBusinessDaysInMonth(now.getFullYear(), now.getMonth());
+    var metaMes = ORC_META_VENTAS_MES_COP;
+    var metaDia = hab > 0 ? Math.round(metaMes / hab) : 0;
+    var acum = getOrcVentasMesAcumuladoCOP();
+    var falta = Math.max(0, metaMes - acum);
+    var pct = metaMes > 0 ? Math.min(100, Math.round((acum / metaMes) * 1000) / 10) : 0;
+
+    var kv = document.getElementById('home-meta-dia-kv');
+    var kl = document.getElementById('home-meta-dia-kl');
+    var sub = document.getElementById('home-meta-mes-sub');
+    var bar = document.getElementById('home-ventas-mes-bar');
+    if (kv) kv.textContent = formatCopCOP(metaDia);
+    if (kl) kl.textContent = 'Meta sugerida hoy (objetivo mes ÷ ' + hab + ' días hábiles)';
+    if (sub) {
+        var lines = [];
+        lines.push('Objetivo mes ' + formatCopCOP(metaMes) + ' · ' + hab + ' hábiles en el mes.');
+        if (acum > 0) {
+            lines.push('Acumulado ' + formatCopCOP(acum) + ' · ' + pct + '% · Falta ' + formatCopCOP(falta) + '.');
+        } else {
+            lines.push('Registrá el acumulado en Admin para ver % y barra de avance.');
+        }
+        sub.textContent = lines.join(' ');
+    }
+    if (bar) bar.style.width = pct + '%';
+}
+
+function loadAdminVentasMesField() {
+    var inp = document.getElementById('admin-ventas-mes-input');
+    if (!inp) return;
+    var v = getOrcVentasMesAcumuladoCOP();
+    inp.value = v > 0 ? String(v) : '';
+}
+
+function saveOrcVentasMesFromAdmin() {
+    var inp = document.getElementById('admin-ventas-mes-input');
+    if (!inp) return;
+    var raw = String(inp.value || '').replace(/\D/g, '');
+    var n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    localStorage.setItem(orcVentasMesStorageKey(), String(n));
+    updateHomeVentasMeta();
+    alert('Acumulado guardado. Revisá el avance en Home.');
+}
+
 function buildWeeklyPlanSnapshot() {
     const keys = ['MON','TUE','WED','THU','FRI'];
     const out = {};
@@ -2777,7 +2935,15 @@ function showScreen(id, navId, isPop = false) {
     document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
     if (navId) document.getElementById(navId).classList.add('active');
     if (id === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 200);
+    if (id === 's-ruta') buildRouteList();
     if (id === 's-registro') onVisitScreenOpened();
+    if (id === 's-home') updateHomeVentasMeta();
+    if (id === 's-admin') loadAdminVentasMesField();
+    if (id === 's-calc') {
+        var pre = calcPrefillClientNum;
+        calcPrefillClientNum = null;
+        populateCalcClientSelect(pre);
+    }
 }
 
 // ================================================================
@@ -2843,6 +3009,7 @@ function doLogout() {
 function postLogin() {
     console.log('Post Login sequence started');
     buildAgenda();
+    updateHomeVentasMeta();
     startGPS();
     const n = new Date();
     document.getElementById('admin-date').textContent =
@@ -3037,17 +3204,30 @@ function buildAgenda() {
         const isT = d.toDateString() === today.toDateString();
         const el = document.createElement('div');
         el.className = 'wday' + (isT ? ' today' : '');
+        var orcStrip = orcEtiquetaOperativa(d);
+        el.setAttribute('title', 'ORC: ' + orcStrip.etiqueta + (orcStrip.nota ? ' · ' + orcStrip.nota : ''));
         el.innerHTML = '<div class="wday-num">' + d.getDate() + '</div><div class="wday-name">' + planShort[i] + '</div>';
         strip.appendChild(el);
     });
 
-    // Today briefing
+    // Today briefing (ORC por fecha + datos ROUTE del día de semana)
     const tp = WEEKLY_PLAN[todayKey] || WEEKLY_PLAN['MON'];
-    document.getElementById('today-zona-text').textContent = tp.emoji + ' ' + tp.zone;
-    document.getElementById('today-desc-text').textContent = tp.desc;
-    document.getElementById('today-banner-sub').textContent = tp.emoji + ' ' + tp.zone + ' · ' + tp.numClients + ' EDS en agenda';
-    document.getElementById('ruta-day-badge').textContent  = tp.name;
-    document.getElementById('ruta-subtitle').textContent   = tp.numClients + ' estaciones prioritarias hoy · Zona: ' + tp.zone;
+    var orcToday = orcEtiquetaOperativa(today);
+    var zonaLine = tp.emoji + ' ' + tp.zone;
+    document.getElementById('today-zona-text').textContent = orcToday.etiqueta;
+    var descParts = [];
+    if (orcToday.nota) descParts.push(orcToday.nota);
+    if (todayKey === 'SUN' || todayKey === 'SAT') {
+        descParts.push('Barrido Lun–Vie. Zona típica Lun: ' + WEEKLY_PLAN['MON'].zone + '.');
+    } else {
+        descParts.push(zonaLine + '. ' + tp.desc);
+    }
+    document.getElementById('today-desc-text').textContent = descParts.join(' ');
+    document.getElementById('today-banner-sub').textContent =
+        orcToday.corto + ' · ' + zonaLine + ' · ' + tp.numClients + ' EDS en agenda';
+    document.getElementById('ruta-day-badge').textContent  = orcToday.corto + ' · ' + tp.name;
+    document.getElementById('ruta-subtitle').textContent   =
+        orcToday.etiqueta + ' · ' + tp.numClients + ' estaciones · ' + tp.zone;
 
     // Real Metrics update
     let vCompleted = parseInt(localStorage.getItem('vCount') || '0', 10) || 0;
@@ -3077,15 +3257,19 @@ function buildAgenda() {
         const d = new Date(mon); d.setDate(mon.getDate() + i);
         const isT = d.toDateString() === today.toDateString();
         const pl  = WEEKLY_PLAN[k];
+        var orcD = orcEtiquetaOperativa(d);
         const el  = document.createElement('div');
         el.className = 'day-card' + (isT ? ' today' : '');
-        el.onclick = () => { window.routeDayFilter = k; buildRouteList(); showScreen('s-ruta','nb-ruta'); };
+        el.setAttribute('title', 'ORC: ' + orcD.etiqueta);
+        el.onclick = () => { setRouteListDay(k); showScreen('s-ruta','nb-ruta'); };
         el.innerHTML =
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
             + '<div>'
             + '<div class="lbl" style="color:' + (isT?'var(--yellow)':'var(--t3)') + ';">'
             + pl.name.toUpperCase() + ' ' + d.getDate() + (isT?' — HOY ←':'') + '</div>'
-            + '<div style="font-weight:700;font-size:13px;color:var(--t1);margin-top:3px;">' + pl.emoji + ' ' + pl.zone + '</div>'
+            + '<div style="font-size:10px;font-weight:600;color:var(--yellow);margin-top:4px;line-height:1.35;">'
+            + '📋 ' + orcD.etiqueta + '</div>'
+            + '<div style="font-weight:700;font-size:13px;color:var(--t1);margin-top:5px;">' + pl.emoji + ' ' + pl.zone + '</div>'
             + '<div class="sub" style="font-size:10px;margin-top:3px;">' + pl.clients.join(' · ') + '</div>'
             + '</div>'
             + '<span style="font-size:11px;font-weight:700;color:' + (isT?'var(--yellow)':'var(--t3)') + ';white-space:nowrap;">' + pl.numClients + ' visitas</span>'
@@ -3130,11 +3314,69 @@ function setHomeLocation() {
     }
 }
 
+/** MON|TUE|…|FRI|ALL — lista + mapa filtran por `day` en ROUTE (ALL = sin filtro). */
+var routeListDayFilter = null;
+
+function ensureRouteListDayFilterInit() {
+    if (routeListDayFilter != null && routeListDayFilter !== '') return;
+    try {
+        var s = sessionStorage.getItem('xp3_route_list_day_v1');
+        if (s && /^(MON|TUE|WED|THU|FRI|ALL)$/.test(s)) routeListDayFilter = s;
+        else routeListDayFilter = getTodayRouteDayKey();
+    } catch (e) {
+        routeListDayFilter = getTodayRouteDayKey();
+    }
+}
+
+function setRouteListDay(dk) {
+    if (!/^(MON|TUE|WED|THU|FRI|ALL)$/.test(dk)) return;
+    routeListDayFilter = dk;
+    try { sessionStorage.setItem('xp3_route_list_day_v1', dk); } catch (e) {}
+    var si = document.getElementById('search-input');
+    if (si) si.value = '';
+    buildRouteList();
+    if (document.getElementById('s-mapa') && document.getElementById('s-mapa').classList.contains('active')) {
+        setTimeout(function() { initOrRefreshRouteMap(); }, 120);
+    }
+}
+
+function getClientsForRouteListView() {
+    ensureRouteListDayFilterInit();
+    var all = allRouteClients();
+    if (!routeListDayFilter || routeListDayFilter === 'ALL') return all.slice();
+    return all.filter(function(x) { return x.day === routeListDayFilter; });
+}
+
+function updateRouteDayChipsUI() {
+    ensureRouteListDayFilterInit();
+    var wrap = document.getElementById('route-day-chips');
+    if (!wrap) return;
+    wrap.querySelectorAll('.tag[data-route-day]').forEach(function(btn) {
+        var on = btn.getAttribute('data-route-day') === routeListDayFilter;
+        btn.classList.toggle('sel', on);
+    });
+}
+
+function refreshRutaScreenHeader(numStops) {
+    ensureRouteListDayFilterInit();
+    var dk = routeListDayFilter;
+    var dayName = dk === 'ALL' ? 'todos los días' : (DAY_META[dk] ? DAY_META[dk].name : dk);
+    var title = document.getElementById('ruta-screen-title');
+    var badge = document.getElementById('ruta-day-badge');
+    var sub = document.getElementById('ruta-subtitle');
+    if (title) title.textContent = dk === 'ALL' ? 'Cartera completa' : ('Ruta · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
+    if (badge) badge.textContent = dk === 'ALL' ? 'Sin filtro por día' : ('Día · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
+    if (sub) {
+        sub.textContent = numStops + ' estaciones · ' + (dk === 'ALL' ? 'orden por ola/parada' : 'solo ' + dayName + ' · orden por ola/parada');
+    }
+}
+
 function buildRouteList() {
     const list = document.getElementById('route-list');
+    if (!list) return;
     list.innerHTML = '';
-    let filteredRoute = allRouteClients();
-    if(window.routeDayFilter) { filteredRoute = allRouteClients().filter(x => x.day === window.routeDayFilter); window.routeDayFilter = null; }
+    ensureRouteListDayFilterInit();
+    let filteredRoute = getClientsForRouteListView();
     filteredRoute = filteredRoute.slice().sort(function(a, b) {
         var wa = a.routeWave || 1, wb = b.routeWave || 1;
         var oa = a.stopOrder || 0, ob = b.stopOrder || 0;
@@ -3202,10 +3444,22 @@ function buildRouteList() {
             + '</div></div>';
         list.appendChild(el);
     });
+    if (totalStops === 0) {
+        list.innerHTML = '<div id="route-zero-msg" class="card"><p class="sub" style="text-align:center;padding:18px;line-height:1.5;">No hay EDS con <strong style="color:var(--yellow);">day = '
+            + (routeListDayFilter === 'ALL' ? '—' : routeListDayFilter)
+            + '</strong> en la cartera. Elegí otro día o <strong>Todos</strong>, o revisá el export ROUTE.</p></div>';
+    }
+    refreshRutaScreenHeader(totalStops);
+    updateRouteDayChipsUI();
+    var si2 = document.getElementById('search-input');
+    if (si2 && si2.value) filterRoute(si2.value);
+    else document.getElementById('no-results').style.display = 'none';
 }
 
 function filterRoute(q) {
     const t = q.toLowerCase().trim();
+    var zm = document.getElementById('route-zero-msg');
+    if (zm) zm.style.display = t ? 'none' : '';
     const cards = document.querySelectorAll('.route-card');
     let shown = 0;
     cards.forEach(c => {
@@ -3308,7 +3562,7 @@ function updateMapDriveAndLegend() {
     var maxH = 0, maxKm = 0;
     var maxHCore = 0, maxKmCore = 0;
     var anyCore = false;
-    allRouteClients().forEach(function(c) {
+    getClientsForRouteListView().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null) return;
         var km = getDistance(h.lat, h.lng, ec.lat, ec.lng);
@@ -3366,7 +3620,7 @@ function initOrRefreshRouteMap() {
     var hideSbEl = document.getElementById('map-hide-standby');
     var hideStandby = hideSbEl && hideSbEl.checked;
     var byZone = {};
-    allRouteClients().forEach(function(c) {
+    getClientsForRouteListView().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null || isNaN(ec.lat) || isNaN(ec.lng)) return;
         if (hideStandby && clientStandbyFromBusinessZone(c)) return;
@@ -3629,6 +3883,77 @@ function openMapsFor(lat, lng, name) {
 // ================================================================
 // CALCULATOR
 // ================================================================
+/** Al abrir la calculadora desde Ficha, preseleccionar este `num` de cliente. */
+var calcPrefillClientNum = null;
+
+function getCalcClientBySelectValue(val) {
+    if (!val || val === 'otro') return null;
+    return allRouteClients().find(function(c) { return String(c.num) === String(val); }) || null;
+}
+
+function getCalcClientOptionLabel(c) {
+    var biz = (c.company || c.name || '').trim();
+    var city = (c.city || '').trim();
+    if (biz.length > 54) biz = biz.slice(0, 52) + '…';
+    return biz + (city ? ' · ' + city : '');
+}
+
+function suggestMixFromClient(c) {
+    if (!c) return 'Ajustar unidades según surtidores y precios XP3 2026.';
+    var p = (c.p || '').toLowerCase();
+    if (p === 'g') return 'Prioridad recuperación: revisar mix Gasolina + Diesel según islas.';
+    if (p === 'o') return 'Mantener / subir volumen: mix balanceado por surtidor.';
+    return 'Mix XP3 según surtidores; consultá tabla de precios.';
+}
+
+/**
+ * Rellena el desplegable con toda la cartera (ROUTE + prospectos en localStorage).
+ * @param {number|string|null} prefillNum  opcional: `c.num` a preseleccionar
+ */
+function populateCalcClientSelect(prefillNum) {
+    var sel = document.getElementById('calc-client');
+    if (!sel) return;
+    var previous = sel.value;
+    while (sel.firstChild) sel.removeChild(sel.firstChild);
+    var o0 = document.createElement('option');
+    o0.value = '';
+    o0.textContent = '— Seleccionar EDS —';
+    sel.appendChild(o0);
+    var clients = allRouteClients().slice().sort(function(a, b) {
+        var na = (a.company || a.name || '').toLowerCase();
+        var nb = (b.company || b.name || '').toLowerCase();
+        if (na < nb) return -1;
+        if (na > nb) return 1;
+        return (a.num || 0) - (b.num || 0);
+    });
+    clients.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = String(c.num);
+        opt.textContent = getCalcClientOptionLabel(c);
+        sel.appendChild(opt);
+    });
+    var oOtro = document.createElement('option');
+    oOtro.value = 'otro';
+    oOtro.textContent = 'Otro cliente...';
+    sel.appendChild(oOtro);
+    var pick = prefillNum != null && String(prefillNum) !== ''
+        ? String(prefillNum)
+        : previous;
+    if (pick && Array.prototype.some.call(sel.options, function(o) { return o.value === pick; })) {
+        sel.value = pick;
+    } else {
+        sel.value = '';
+    }
+    updateCalcClient();
+}
+
+function openCalcForCurrentFicha() {
+    if (typeof currentFicha !== 'undefined' && currentFicha && currentFicha.num != null) {
+        calcPrefillClientNum = currentFicha.num;
+    }
+    showScreen('s-calc', 'nb-calc');
+}
+
 const prodListEl = document.getElementById('products-list');
 const qtys = {};
 PRODUCTS.forEach(p => {
@@ -3672,33 +3997,38 @@ function updateCalcTotal() {
 }
 
 function updateCalcClient() {
-    const key  = document.getElementById('calc-client').value;
-    const hint = document.getElementById('client-hist-hint');
-    if (key && CLIENT_HIST[key]) {
-        document.getElementById('hist-avg').textContent = '$' + CLIENT_HIST[key].avg.toLocaleString('es-CO') + '/mes';
-        document.getElementById('hist-sug').textContent = CLIENT_HIST[key].sug;
+    var val = document.getElementById('calc-client').value;
+    var hint = document.getElementById('client-hist-hint');
+    var c = getCalcClientBySelectValue(val);
+    if (c && typeof c.avg === 'number' && c.avg > 0) {
+        document.getElementById('hist-avg').textContent = '$' + c.avg.toLocaleString('es-CO') + '/mes';
+        document.getElementById('hist-sug').textContent = suggestMixFromClient(c);
         hint.style.display = 'block';
-    } else { hint.style.display = 'none'; }
+    } else {
+        hint.style.display = 'none';
+    }
 }
 
 function sendQuote() {
-    const client = document.getElementById('calc-client').value;
-    const total  = document.getElementById('calc-total-val').textContent;
-    if (!client || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
-    
-    let phone = '573000000000';
-    const cObj = allRouteClients().find(c => c.name === client);
-    if (cObj && cObj.phone && cObj.phone !== 'N/A') {
-        phone = '57' + cObj.phone.replace(/[^0-9]/g, '');
+    var val = document.getElementById('calc-client').value;
+    var total = document.getElementById('calc-total-val').textContent;
+    if (!val || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
+
+    var cObj = getCalcClientBySelectValue(val);
+    var clientName = val === 'otro'
+        ? 'su estación'
+        : (cObj ? (cObj.company || cObj.name) : 'Cliente');
+    var phone = '573000000000';
+    if (cObj && cObj.phone && String(cObj.phone).trim() !== '' && cObj.phone !== 'N/A') {
+        var digits = String(cObj.phone).replace(/[^0-9]/g, '');
+        if (digits.length >= 10) phone = (digits.indexOf('57') === 0 ? '' : '57') + digits;
     }
-    const msg = `🚀 Hola, somos el equipo comercial de Rendimax XP3.
-Te contactamos para presentarte la propuesta oficial para *${client}*.
-
-El potencial estimado de inversión inteligente es de: *${total}*.
-
-¿A qué hora tienes disponibilidad para formalizar el pedido y despachar?`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-    alert('✅ Cotización lista para ' + client + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
+    var msg = '🚀 Hola, somos el equipo comercial de Rendimax XP3.\n' +
+        'Te contactamos para presentarte la propuesta oficial para *' + clientName + '*.\n\n' +
+        'El potencial estimado de inversión inteligente es de: *' + total + '*.\n\n' +
+        '¿A qué hora tienes disponibilidad para formalizar el pedido y despachar?';
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+    alert('✅ Cotización lista para ' + clientName + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
 }
 async function saveVisitToFirebase() {
     try {
@@ -3764,6 +4094,7 @@ function clearCalc() {
     document.getElementById('calc-client').value = '';
     document.getElementById('client-hist-hint').style.display = 'none';
     updateCalcTotal();
+    updateCalcClient();
 }
 
 // ================================================================
@@ -3829,6 +4160,7 @@ if (savedSession) {
 }
 
 buildRouteList();
+populateCalcClientSelect(null);
 updateCalcTotal();
 buildAgenda();
 
