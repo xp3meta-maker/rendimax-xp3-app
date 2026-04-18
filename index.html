@@ -116,8 +116,11 @@
         .day-card.today { background:rgba(255,179,0,.1); border:1px solid rgba(255,179,0,.4); }
         .day-card:not(.today) { background:var(--dark2); border:1px solid var(--border); }
         .day-card:hover { border-color:rgba(255,179,0,.35); }
-        .week-strip { display:flex; gap:6px; margin-bottom:18px; }
-        .wday { flex:1; text-align:center; padding:10px 4px; border-radius:12px; background:var(--dark2); border:1px solid var(--border); }
+        .week-strip { display:flex; gap:6px; margin-bottom:18px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding-bottom:4px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+        .week-strip::-webkit-scrollbar { height:4px; }
+        .week-strip::-webkit-scrollbar-thumb { background:rgba(255,179,0,.2); border-radius:4px; }
+        .wday { flex:0 0 auto; min-width:48px; text-align:center; padding:10px 6px; border-radius:12px; background:var(--dark2); border:1px solid var(--border); scroll-snap-align:start; cursor:pointer; }
+        .wday.sel { outline:2px solid var(--yellow); outline-offset:1px; }
         .wday.today { background:var(--yellow); border-color:var(--yellow); }
         .wday-num { font-weight:800; font-size:16px; font-family:'Outfit',sans-serif; color:var(--t1); }
         .wday.today .wday-num { color:#000; }
@@ -315,7 +318,7 @@
         <div id="s-agenda" class="screen">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <h2>Mi Agenda</h2>
-                <span class="badge by" id="week-badge">Semana —</span>
+                <span class="badge by" id="week-badge">Día —</span>
             </div>
             <p class="sub" style="margin-bottom:18px;">Etiqueta ORC por fecha (día hábil del mes y festivos Colombia) y debajo el barrido de cartera asignado a cada día laboral.</p>
 
@@ -325,15 +328,15 @@
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                     <span style="font-size:22px;">🎯</span>
                     <div>
-                        <div class="lbl" style="color:var(--yellow);">HOY — MI RUTA</div>
+                        <div class="lbl" style="color:var(--yellow);" id="agenda-main-lbl">MI RUTA</div>
                         <div style="font-weight:700;font-size:15px;color:var(--t1);" id="today-zona-text">Calculando zona...</div>
                     </div>
                 </div>
                 <p class="sub" style="font-size:11px;margin-bottom:12px;line-height:1.6;" id="today-desc-text">Cargando briefing de hoy...</p>
-                <button class="btn btn-p btn-sm" style="width:auto;box-shadow:none;" onclick="showScreen('s-ruta','nb-ruta')">📍 Ver Ruta Detallada →</button>
+                <button class="btn btn-p btn-sm" style="width:auto;box-shadow:none;" onclick="setRouteListDayFromAgendaSelection();showScreen('s-ruta','nb-ruta')">📍 Ver Ruta Detallada →</button>
             </div>
 
-            <div class="slbl">Plan Semanal · Barrido Costa Norte</div>
+            <div class="slbl" id="weekly-plan-slbl">Semana en calendario · Barrido Costa Norte</div>
             <div id="weekly-plan-list"></div>
 
             <div class="ai-box">
@@ -2663,6 +2666,110 @@ function getTodayRouteDayKey() {
     if (k === 'SUN' || k === 'SAT') return 'MON';
     return k;
 }
+
+var AGENDA_SEL_ISO_KEY = 'xp3_agenda_selected_iso_v1';
+var AGENDA_VISITS_BY_DAY_KEY = 'orc_agenda_visits_by_day_v1';
+
+function agendaDateKeyLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function isSameCalendarDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function getAgendaSelectedDate() {
+    try {
+        var s = sessionStorage.getItem(AGENDA_SEL_ISO_KEY);
+        if (s) {
+            var d = new Date(s);
+            if (!isNaN(d.getTime())) return d;
+        }
+    } catch (e) {}
+    return new Date();
+}
+
+function setAgendaSelectedDateAndRefresh(d) {
+    sessionStorage.setItem(AGENDA_SEL_ISO_KEY, d.toISOString());
+    buildAgenda();
+}
+
+function getAgendaVisitsForDayKey(keyISO) {
+    try {
+        var o = JSON.parse(localStorage.getItem(AGENDA_VISITS_BY_DAY_KEY) || '{}');
+        var n = parseInt(o[keyISO] || 0, 10);
+        return isNaN(n) ? 0 : n;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function bumpAgendaVisitCountForDate(d) {
+    var k = agendaDateKeyLocal(d);
+    try {
+        var o = JSON.parse(localStorage.getItem(AGENDA_VISITS_BY_DAY_KEY) || '{}');
+        o[k] = (parseInt(o[k] || 0, 10) || 0) + 1;
+        localStorage.setItem(AGENDA_VISITS_BY_DAY_KEY, JSON.stringify(o));
+    } catch (e) {}
+}
+
+function startOfWeekMonday(d) {
+    var x = new Date(d);
+    x.setHours(12, 0, 0, 0);
+    var day = x.getDay();
+    var diff = day === 0 ? -6 : 1 - day;
+    x.setDate(x.getDate() + diff);
+    return x;
+}
+
+function routePlanKeyFromCalendarDate(d) {
+    var keys = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    return keys[d.getDay()];
+}
+
+function setRouteListDayFromAgendaSelection() {
+    var sel = getAgendaSelectedDate();
+    var k = routePlanKeyFromCalendarDate(sel);
+    if (k === 'SUN' || k === 'SAT') {
+        routeListDayFilter = 'MON';
+    } else {
+        routeListDayFilter = k;
+    }
+    try {
+        sessionStorage.setItem('xp3_route_list_day_v1', routeListDayFilter);
+    } catch (e) {}
+    buildRouteList();
+}
+
+function updateHomeVisitMetricsForRealToday(WEEKLY_PLAN) {
+    var realToday = new Date();
+    var keys = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var todayKey = keys[realToday.getDay()];
+    var tp = WEEKLY_PLAN[todayKey] || WEEKLY_PLAN['MON'];
+    if (todayKey === 'SUN' || todayKey === 'SAT') {
+        tp = WEEKLY_PLAN['MON'];
+    }
+    var vCompleted = parseInt(localStorage.getItem('vCount') || '0', 10) || 0;
+    var vTotal = tp.numClients;
+    var vPerc = vTotal > 0 ? Math.min(100, Math.round((vCompleted / vTotal) * 100)) : 0;
+    var vText = document.getElementById('home-visits-text');
+    if (vText) vText.textContent = vCompleted + ' de ' + vTotal + ' visitas';
+    var pText = document.getElementById('home-perc-text');
+    if (pText) pText.textContent = vPerc + '%';
+    var rBar = document.getElementById('home-perc-bar');
+    if (rBar) {
+        var fullRing = 213.63;
+        rBar.style.strokeDasharray = fullRing;
+        rBar.style.strokeDashoffset = fullRing - (fullRing * vPerc / 100);
+    }
+    var orcToday = orcEtiquetaOperativa(realToday);
+    var zonaLine = tp.emoji + ' ' + tp.zone;
+    var sub = document.getElementById('today-banner-sub');
+    if (sub) sub.textContent = orcToday.corto + ' · ' + zonaLine + ' · ' + tp.numClients + ' EDS en agenda';
+    var aTxt = document.getElementById('admin-bot-txt');
+    if (aTxt) aTxt.innerHTML = vCompleted + '/' + vTotal + ' visitas · Última: <strong style="color:var(--t1);">Ninguna aún</strong>';
+}
+
 loadProspects();
 
 // Anclas GPS por cliente: capturadas al pulsar «Iniciar visita» (referencia real en terreno).
@@ -2936,6 +3043,7 @@ function showScreen(id, navId, isPop = false) {
     if (navId) document.getElementById(navId).classList.add('active');
     if (id === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 200);
     if (id === 's-ruta') buildRouteList();
+    if (id === 's-agenda') buildAgenda();
     if (id === 's-registro') onVisitScreenOpened();
     if (id === 's-home') updateHomeVentasMeta();
     if (id === 's-admin') loadAdminVentasMesField();
@@ -3179,103 +3287,147 @@ function overwriteVisitAnchorFromGps() {
 // AGENDA / CALENDAR
 // ================================================================
 function buildAgenda() {
-    const today  = new Date();
-    const dayIdx = today.getDay(); // 0=Sun 1=Mon ... 6=Sat
-    const keys   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-    const todayKey = keys[dayIdx];
-    const planKeys = ['MON','TUE','WED','THU','FRI'];
-    const planShort = ['L','M','X','J','V'];
-    const WEEKLY_PLAN = buildWeeklyPlanSnapshot();
+    var realToday = new Date();
+    var sel = getAgendaSelectedDate();
+    var keys = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var planKeys = ['MON','TUE','WED','THU','FRI'];
+    var WEEKLY_PLAN = buildWeeklyPlanSnapshot();
 
-    // Week number
-    const yn = new Date(today.getFullYear(), 0, 1);
-    const wn = Math.ceil(((today - yn) / 86400000 + yn.getDay() + 1) / 7);
-    document.getElementById('week-badge').textContent = 'Semana ' + wn;
+    var badgeEl = document.getElementById('week-badge');
+    if (badgeEl) {
+        badgeEl.textContent =
+            'Día ' + sel.getDate() + ' · ' + sel.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+    }
+    var slbl = document.getElementById('weekly-plan-slbl');
+    if (slbl) {
+        var wm = startOfWeekMonday(sel);
+        slbl.textContent =
+            'Semana del ' + wm.getDate() + ' ' + wm.toLocaleDateString('es-CO', { month: 'short' }) + ' · Barrido Costa Norte';
+    }
 
-    // Monday of this week
-    const mon = new Date(today);
-    mon.setDate(today.getDate() - (dayIdx === 0 ? 6 : dayIdx - 1));
+    var strip = document.getElementById('week-strip');
+    if (strip) {
+        strip.innerHTML = '';
+        var range = 40;
+        for (var i = -range; i <= range; i++) {
+            var d = new Date(sel);
+            d.setHours(12, 0, 0, 0);
+            d.setDate(d.getDate() + i);
+            var isSel = isSameCalendarDay(d, sel);
+            var isRealToday = isSameCalendarDay(d, realToday);
+            var el = document.createElement('div');
+            el.className = 'wday' + (isRealToday ? ' today' : '') + (isSel ? ' sel' : '');
+            var orcStrip = orcEtiquetaOperativa(d);
+            el.setAttribute('title', 'ORC: ' + orcStrip.etiqueta + (orcStrip.nota ? ' · ' + orcStrip.nota : ''));
+            var wletters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            el.innerHTML =
+                '<div class="wday-num">' + d.getDate() + '</div><div class="wday-name">'
+                + wletters[d.getDay()]
+                + '</div>';
+            (function (dCopy) {
+                el.onclick = function () {
+                    setAgendaSelectedDateAndRefresh(dCopy);
+                };
+            })(new Date(d));
+            strip.appendChild(el);
+        }
+        requestAnimationFrame(function () {
+            var picked = strip.querySelector('.wday.sel');
+            if (picked && strip.scrollWidth > strip.clientWidth) {
+                var left = picked.offsetLeft - strip.clientWidth / 2 + picked.offsetWidth / 2;
+                strip.scrollLeft = Math.max(0, left);
+            }
+        });
+    }
 
-    // Week strip
-    const strip = document.getElementById('week-strip');
-    strip.innerHTML = '';
-    planKeys.forEach((k, i) => {
-        const d = new Date(mon); d.setDate(mon.getDate() + i);
-        const isT = d.toDateString() === today.toDateString();
-        const el = document.createElement('div');
-        el.className = 'wday' + (isT ? ' today' : '');
-        var orcStrip = orcEtiquetaOperativa(d);
-        el.setAttribute('title', 'ORC: ' + orcStrip.etiqueta + (orcStrip.nota ? ' · ' + orcStrip.nota : ''));
-        el.innerHTML = '<div class="wday-num">' + d.getDate() + '</div><div class="wday-name">' + planShort[i] + '</div>';
-        strip.appendChild(el);
-    });
+    var selKey = routePlanKeyFromCalendarDate(sel);
+    var tpSel = selKey === 'SUN' || selKey === 'SAT' ? null : WEEKLY_PLAN[selKey];
+    if (!tpSel) tpSel = WEEKLY_PLAN['MON'];
+    var orcSel = orcEtiquetaOperativa(sel);
+    var zonaLine = tpSel.emoji + ' ' + tpSel.zone;
 
-    // Today briefing (ORC por fecha + datos ROUTE del día de semana)
-    const tp = WEEKLY_PLAN[todayKey] || WEEKLY_PLAN['MON'];
-    var orcToday = orcEtiquetaOperativa(today);
-    var zonaLine = tp.emoji + ' ' + tp.zone;
-    document.getElementById('today-zona-text').textContent = orcToday.etiqueta;
+    var mainLbl = document.getElementById('agenda-main-lbl');
+    if (mainLbl) {
+        mainLbl.textContent = isSameCalendarDay(sel, realToday) ? 'HOY — MI RUTA' : 'MI RUTA — ' + sel.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' });
+    }
+    document.getElementById('today-zona-text').textContent = orcSel.etiqueta;
     var descParts = [];
-    if (orcToday.nota) descParts.push(orcToday.nota);
-    if (todayKey === 'SUN' || todayKey === 'SAT') {
+    if (orcSel.nota) descParts.push(orcSel.nota);
+    if (selKey === 'SUN' || selKey === 'SAT') {
         descParts.push('Barrido Lun–Vie. Zona típica Lun: ' + WEEKLY_PLAN['MON'].zone + '.');
     } else {
-        descParts.push(zonaLine + '. ' + tp.desc);
+        descParts.push(zonaLine + '. ' + tpSel.desc);
+    }
+    var dk = agendaDateKeyLocal(sel);
+    var vDone = getAgendaVisitsForDayKey(dk);
+    var vTot = selKey === 'SUN' || selKey === 'SAT' ? 0 : (WEEKLY_PLAN[selKey] ? WEEKLY_PLAN[selKey].numClients : 0);
+    if (vTot > 0) {
+        descParts.push('Ejecutado (registrado en app): ' + vDone + '/' + vTot + ' · ' + Math.min(100, Math.round((vDone / vTot) * 100)) + '%');
+    } else if (selKey === 'SUN' || selKey === 'SAT') {
+        descParts.push('Sin paradas laborales ROUTE (sáb/dom).');
     }
     document.getElementById('today-desc-text').textContent = descParts.join(' ');
-    document.getElementById('today-banner-sub').textContent =
-        orcToday.corto + ' · ' + zonaLine + ' · ' + tp.numClients + ' EDS en agenda';
-    document.getElementById('ruta-day-badge').textContent  = orcToday.corto + ' · ' + tp.name;
-    document.getElementById('ruta-subtitle').textContent   =
-        orcToday.etiqueta + ' · ' + tp.numClients + ' estaciones · ' + tp.zone;
 
-    // Real Metrics update
-    let vCompleted = parseInt(localStorage.getItem('vCount') || '0', 10) || 0;
-    let vTotal = tp.numClients;
-    let vPerc = vTotal > 0 ? Math.min(100, Math.round((vCompleted / vTotal) * 100)) : 0;
+    var todayKeyRt = keys[realToday.getDay()];
+    var tpRt = WEEKLY_PLAN[todayKeyRt] || WEEKLY_PLAN['MON'];
+    if (todayKeyRt === 'SUN' || todayKeyRt === 'SAT') tpRt = WEEKLY_PLAN['MON'];
+    var orcRt = orcEtiquetaOperativa(realToday);
+    document.getElementById('ruta-day-badge').textContent = orcRt.corto + ' · ' + tpRt.name;
+    document.getElementById('ruta-subtitle').textContent =
+        orcRt.etiqueta + ' · ' + tpRt.numClients + ' estaciones · ' + tpRt.zone;
 
-    const vText = document.getElementById('home-visits-text');
-    if(vText) vText.textContent = vCompleted + ' de ' + vTotal + ' visitas';
+    updateHomeVisitMetricsForRealToday(WEEKLY_PLAN);
 
-    const pText = document.getElementById('home-perc-text');
-    if(pText) pText.textContent = vPerc + '%';
-    
-    const rBar = document.getElementById('home-perc-bar');
-    if (rBar) {
-        const fullRing = 213.63;
-        rBar.style.strokeDasharray = fullRing;
-        rBar.style.strokeDashoffset = fullRing - (fullRing * vPerc / 100);
+    var weekMon = startOfWeekMonday(sel);
+    var planDiv = document.getElementById('weekly-plan-list');
+    if (planDiv) {
+        planDiv.innerHTML = '';
+        for (var j = 0; j < 7; j++) {
+            var d = new Date(weekMon);
+            d.setDate(weekMon.getDate() + j);
+            var rk = routePlanKeyFromCalendarDate(d);
+            var pl = rk === 'SUN' || rk === 'SAT' ? null : WEEKLY_PLAN[rk];
+            var orcD = orcEtiquetaOperativa(d);
+            var isTR = isSameCalendarDay(d, realToday);
+            var isSelR = isSameCalendarDay(d, sel);
+            var el = document.createElement('div');
+            el.className = 'day-card' + (isTR || isSelR ? ' today' : '');
+            el.setAttribute('title', 'ORC: ' + orcD.etiqueta);
+            (function (dCopy) {
+                el.onclick = function () {
+                    sessionStorage.setItem(AGENDA_SEL_ISO_KEY, dCopy.toISOString());
+                    buildAgenda();
+                };
+            })(new Date(d));
+            var numC = pl ? pl.numClients : 0;
+            var zoneTxt = pl ? pl.zone : '—';
+            var emj = pl ? pl.emoji : '📅';
+            var prev = pl ? pl.clients.join(' · ') : 'Sin asignación ROUTE (fin de semana)';
+            var dk2 = agendaDateKeyLocal(d);
+            var vd = getAgendaVisitsForDayKey(dk2);
+            var pctStr = numC > 0 ? Math.min(100, Math.round((vd / numC) * 100)) + '% hecho' : '—';
+            var head =
+                (pl ? pl.name : (rk === 'SUN' ? 'Domingo' : 'Sábado')).toUpperCase()
+                + ' ' + d.getDate()
+                + (isTR ? ' — HOY' : '')
+                + (isSelR && !isTR ? ' ← elegido' : '');
+            el.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+                + '<div>'
+                + '<div class="lbl" style="color:' + (isTR || isSelR ? 'var(--yellow)' : 'var(--t3)') + ';">'
+                + head + '</div>'
+                + '<div style="font-size:10px;font-weight:600;color:var(--yellow);margin-top:4px;line-height:1.35;">'
+                + '📋 ' + orcD.etiqueta + '</div>'
+                + '<div style="font-weight:700;font-size:13px;color:var(--t1);margin-top:5px;">' + emj + ' ' + zoneTxt + '</div>'
+                + '<div class="sub" style="font-size:10px;margin-top:3px;">' + prev + '</div>'
+                + '<div class="sub" style="font-size:9px;margin-top:4px;opacity:.9;">Historial app: ' + vd + '/' + (numC || '0') + ' · ' + pctStr + '</div>'
+                + '</div>'
+                + '<span style="font-size:11px;font-weight:700;color:' + (isTR ? 'var(--yellow)' : 'var(--t3)') + ';white-space:nowrap;">'
+                + numC + ' paradas</span>'
+                + '</div>';
+            planDiv.appendChild(el);
+        }
     }
-
-    const aTxt = document.getElementById('admin-bot-txt');
-    if(aTxt) aTxt.innerHTML = vCompleted + '/' + vTotal + ' visitas · Última: <strong style="color:var(--t1);">Ninguna aún</strong>';
-
-    // Weekly plan cards
-    const planDiv = document.getElementById('weekly-plan-list');
-    planDiv.innerHTML = '';
-    planKeys.forEach((k, i) => {
-        const d = new Date(mon); d.setDate(mon.getDate() + i);
-        const isT = d.toDateString() === today.toDateString();
-        const pl  = WEEKLY_PLAN[k];
-        var orcD = orcEtiquetaOperativa(d);
-        const el  = document.createElement('div');
-        el.className = 'day-card' + (isT ? ' today' : '');
-        el.setAttribute('title', 'ORC: ' + orcD.etiqueta);
-        el.onclick = () => { setRouteListDay(k); showScreen('s-ruta','nb-ruta'); };
-        el.innerHTML =
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-            + '<div>'
-            + '<div class="lbl" style="color:' + (isT?'var(--yellow)':'var(--t3)') + ';">'
-            + pl.name.toUpperCase() + ' ' + d.getDate() + (isT?' — HOY ←':'') + '</div>'
-            + '<div style="font-size:10px;font-weight:600;color:var(--yellow);margin-top:4px;line-height:1.35;">'
-            + '📋 ' + orcD.etiqueta + '</div>'
-            + '<div style="font-weight:700;font-size:13px;color:var(--t1);margin-top:5px;">' + pl.emoji + ' ' + pl.zone + '</div>'
-            + '<div class="sub" style="font-size:10px;margin-top:3px;">' + pl.clients.join(' · ') + '</div>'
-            + '</div>'
-            + '<span style="font-size:11px;font-weight:700;color:' + (isT?'var(--yellow)':'var(--t3)') + ';white-space:nowrap;">' + pl.numClients + ' visitas</span>'
-            + '</div>';
-        planDiv.appendChild(el);
-    });
 }
 
 // ================================================================
@@ -4067,6 +4219,7 @@ async function saveVisitToFirebase() {
 
         let c = parseInt(localStorage.getItem('vCount') || 0);
         localStorage.setItem('vCount', c + 1);
+        bumpAgendaVisitCountForDate(new Date());
 
         await db.collection('visitas').add(payload);
 
