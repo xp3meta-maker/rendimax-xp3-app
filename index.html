@@ -390,6 +390,10 @@
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
             <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). El día de visita sigue en la agenda y en cada ficha. Círculos ~20 km por zona.</p>
+            <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad central:</strong> Baq/Soledad, Santa Marta, Cartagena y corredor cercano. <strong>⏸ Standby:</strong> recorridos largos o pocas paradas (Sincelejo/Sucre, Cesar, río/costa al sur, Montes de María, otras); <em>siguen en la ruta</em> para cuando sectorices esa zona.</p>
+            <label class="sub" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:10px;line-height:1.3;">
+                <input type="checkbox" id="map-hide-standby" onchange="initOrRefreshRouteMap()"> Ocultar en el mapa los puntos en standby (siguen en la lista y en el plan)
+            </label>
             <p class="sub" id="map-drive-estimate" style="font-size:10px;margin-bottom:10px;line-height:1.45;color:var(--t2);">—</p>
             <div id="map-route-leaflet" style="width:100%;height:48vh;min-height:200px;border-radius:12px;border:1px solid var(--border);margin-bottom:10px;"></div>
             <p class="sub" id="map-zone-legend" style="font-size:9px;margin-bottom:10px;line-height:1.4;color:var(--t3);">—</p>
@@ -3142,6 +3146,8 @@ function buildRouteList() {
         const listPos = idx + 1;
         const em = getEffectiveCoords(c);
         const isProspect = c.prospect === true || c.status === 'PROSPECTO';
+        const zkCard = geoZoneKeyFromClient(c);
+        const isStandbyZone = !isProspect && geoZoneStandby(zkCard);
         const iCls   = isProspect ? 'by' : (c.status === 'ACTIVO' ? 'bg' : 'br');
         const dCls   = isProspect ? 'po' : {r:'pr',o:'po',g:'pgr'}[c.p];
         let distTxt = '';
@@ -3165,7 +3171,10 @@ function buildRouteList() {
             + '<div style="flex:1;min-width:0;">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px;">'
             + '<h3 style="font-size:12px;line-height:1.2;">' + c.name + '</h3>'
+            + '<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:center;">'
             + '<span class="badge ' + iCls + '" style="flex-shrink:0;">' + (isProspect ? 'PROSPECTO' : c.status) + '</span>'
+            + (isStandbyZone ? '<span class="badge" style="flex-shrink:0;background:#475569;font-size:9px;">⏸ Standby</span>' : '')
+            + '</span>'
             + '</div>'
             + '<p class="sub" style="font-size:10px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.company + '</p>'
             + '<p class="sub" style="font-size:10px;margin-bottom:4px;">📍 ' + c.city
@@ -3242,6 +3251,19 @@ var GEO_ZONE_META = {
     ZONA_OTRAS: { color: '#64748b', shortLabel: 'Otras' }
 };
 
+/** Standby: lejos o pocas estaciones; no se quitan del JSON — priorizar recuperación en núcleo costa/metro. Ajustar claves si el negocio cambia. */
+var GEO_ZONE_STANDBY_KEYS = {
+    ZONA_SUCRE_SINCE: true,
+    ZONA_CESAR: true,
+    ZONA_MAG_RIO: true,
+    ZONA_BOL_MT: true,
+    ZONA_OTRAS: true
+};
+
+function geoZoneStandby(zk) {
+    return zk !== 'PROSPECTO' && !!GEO_ZONE_STANDBY_KEYS[zk];
+}
+
 function geoZoneColor(zk) {
     var m = GEO_ZONE_META[zk];
     return m ? m.color : '#64748b';
@@ -3252,18 +3274,29 @@ function updateMapDriveAndLegend() {
     var legEl = document.getElementById('map-zone-legend');
     var h = getHomeCoordsForKm();
     var maxH = 0, maxKm = 0;
+    var maxHCore = 0, maxKmCore = 0;
+    var anyCore = false;
     allRouteClients().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null) return;
+        var zk = geoZoneKeyFromClient(c);
         var km = getDistance(h.lat, h.lng, ec.lat, ec.lng);
         var hrs = (km * 1.2) / 52;
         if (hrs > maxH) { maxH = hrs; maxKm = km * 1.2; }
+        if (!geoZoneStandby(zk)) {
+            anyCore = true;
+            if (hrs > maxHCore) { maxHCore = hrs; maxKmCore = km * 1.2; }
+        }
     });
     if (estEl) {
         var baseName = h.label === 'GPS' ? 'tu base (GPS)' : 'Soledad/base';
-        var txt = 'Máx. lejanía estimada desde ' + baseName + ': ~' + Math.round(maxKm) + ' km carretera · ~' + maxH.toFixed(1) + ' h solo ida (orden de magnitud; no sustituye Maps). ';
+        var txt = '';
+        if (anyCore) {
+            txt += 'Prioridad central (sin standby): máx. ~' + Math.round(maxKmCore) + ' km · ~' + maxHCore.toFixed(1) + ' h ida. ';
+        }
+        txt += 'Todas las paradas: máx. ~' + Math.round(maxKm) + ' km · ~' + maxH.toFixed(1) + ' h ida (orden de magnitud). ';
         if (maxH >= 3) {
-            txt += 'Por encima de ~3 h solo ida: valorar pernocte; ruta 2 días suele requerir ≥12–14 paradas para rentabilizar vs hotel y tiempo.';
+            txt += 'Por encima de ~3 h solo ida: valorar pernocte; ruta 2 días suele requerir ≥12–14 paradas para rentabilizar.';
         } else {
             txt += 'Por debajo de ~3 h ida: suele armarse en jornada de un día (con tus 7 visitas y traslados).';
         }
@@ -3274,10 +3307,11 @@ function updateMapDriveAndLegend() {
         Object.keys(GEO_ZONE_META).forEach(function(k) {
             if (k === 'PROSPECTO') return;
             var m = GEO_ZONE_META[k];
-            parts.push('<span style="color:' + m.color + ';">●</span> ' + m.shortLabel);
+            var sb = geoZoneStandby(k) ? ' <span style="opacity:.75;">⏸</span>' : '';
+            parts.push('<span style="color:' + m.color + ';">●</span> ' + m.shortLabel + sb);
         });
         parts.push('<span style="color:#ea580c;">●</span> Prospecto');
-        legEl.innerHTML = parts.join(' · ');
+        legEl.innerHTML = parts.join(' · ') + '<br><span style="opacity:.85;">⏸ = standby (segunda ola / sectorizar). Borde punteado en mapa.</span>';
     }
 }
 
@@ -3298,11 +3332,14 @@ function initOrRefreshRouteMap() {
         routeMapInstance.removeLayer(routeMapLayerGroup);
     }
     routeMapLayerGroup = L.layerGroup().addTo(routeMapInstance);
+    var hideSbEl = document.getElementById('map-hide-standby');
+    var hideStandby = hideSbEl && hideSbEl.checked;
     var byZone = {};
     allRouteClients().forEach(function(c) {
         var ec = getEffectiveCoords(c);
         if (ec.lat == null || ec.lng == null || isNaN(ec.lat) || isNaN(ec.lng)) return;
         var zk = geoZoneKeyFromClient(c);
+        if (hideStandby && geoZoneStandby(zk)) return;
         if (!byZone[zk]) byZone[zk] = [];
         byZone[zk].push(c);
     });
@@ -3311,6 +3348,7 @@ function initOrRefreshRouteMap() {
         var clients = byZone[zk];
         if (!clients.length) return;
         var col = geoZoneColor(zk);
+        var st = geoZoneStandby(zk);
         var sumLat = 0, sumLng = 0;
         clients.forEach(function(c) {
             var ec = getEffectiveCoords(c);
@@ -3323,23 +3361,26 @@ function initOrRefreshRouteMap() {
             radius: 20000,
             color: col,
             fillColor: col,
-            fillOpacity: 0.07,
-            weight: 2
-        }).addTo(routeMapLayerGroup).bindPopup('Zona · ' + zlab + ' · ref. ~20 km');
+            fillOpacity: st ? 0.03 : 0.07,
+            weight: st ? 1.5 : 2,
+            dashArray: st ? '10 8' : null
+        }).addTo(routeMapLayerGroup).bindPopup('Zona · ' + zlab + (st ? ' · ⏸ Standby' : '') + ' · ref. ~20 km');
         bounds.extend([clat, clng]);
         clients.forEach(function(c) {
             var ec = getEffectiveCoords(c);
             var pinNote = ec.fromVisit ? ' · GPS visita' : '';
             var sm = GEO_ZONE_META[zk] ? GEO_ZONE_META[zk].shortLabel : zk;
+            var sbLine = st ? '<br><span style="opacity:.9;">⏸ Standby — atender en segunda ola al sectorizar</span>' : '';
             L.circleMarker([ec.lat, ec.lng], {
                 radius: (zk === 'PROSPECTO') ? 8 : 5,
                 color: col,
                 fillColor: col,
-                fillOpacity: 0.88,
-                weight: 1
+                fillOpacity: st ? 0.4 : 0.88,
+                weight: st ? 2 : 1,
+                dashArray: st ? '4 3' : null
             }).addTo(routeMapLayerGroup).bindPopup(
                 (zk === 'PROSPECTO' ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '')
-                + '<br><span style="opacity:.85;">Zona: ' + sm + ' · Día agenda: ' + (c.day || '—') + '</span>' + pinNote
+                + '<br><span style="opacity:.85;">Zona: ' + sm + ' · Día agenda: ' + (c.day || '—') + '</span>' + pinNote + sbLine
             );
             bounds.extend([ec.lat, ec.lng]);
         });
