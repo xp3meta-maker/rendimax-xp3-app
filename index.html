@@ -232,7 +232,7 @@
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
                     <div style="width:48px;height:48px;background:linear-gradient(135deg,#FFB300,#FF6B00);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#000;box-shadow:0 6px 20px rgba(255,179,0,.45);" id="usr-avatar">X</div>
-                    <button style="background:var(--dark2);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:100px;cursor:pointer;padding:3px 8px;font-size:9px;" onclick="setHomeLocation()">📍 Fijar Base</button>
+                    <button type="button" title="Base para calcular km hasta cada cliente en la ruta. Si no fijás GPS, se usa Soledad (residencia operativa ORC)." style="background:var(--dark2);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:100px;cursor:pointer;padding:3px 8px;font-size:9px;" onclick="setHomeLocation()">📍 Fijar Base</button>
                 </div>
             </div>
 
@@ -3100,6 +3100,17 @@ function getDistance(lat1, lon1, lat2, lon2) {
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;
 let userHomeLng = localStorage.getItem('userHomeLng') || null;
+/** Centro aproximado Soledad (Atlántico) — base km si el comercial no fija GPS en «Fijar Base». */
+var DEFAULT_BASE_Soledad = { lat: 10.9184, lng: -74.7646 };
+
+function getHomeCoordsForKm() {
+    var la = localStorage.getItem('userHomeLat');
+    var ln = localStorage.getItem('userHomeLng');
+    if (la != null && ln != null && la !== '' && ln !== '' && !isNaN(parseFloat(la)) && !isNaN(parseFloat(ln))) {
+        return { lat: parseFloat(la), lng: parseFloat(ln), label: 'GPS' };
+    }
+    return { lat: DEFAULT_BASE_Soledad.lat, lng: DEFAULT_BASE_Soledad.lng, label: 'Soledad (def.)' };
+}
 
 function setHomeLocation() {
     if (navigator.geolocation) {
@@ -3132,8 +3143,9 @@ function buildRouteList() {
         const iCls   = isProspect ? 'by' : (c.status === 'ACTIVO' ? 'bg' : 'br');
         const dCls   = isProspect ? 'po' : {r:'pr',o:'po',g:'pgr'}[c.p];
         let distTxt = '';
-        if (userHomeLat && userHomeLng && em.lat && em.lng) {
-            let dist = getDistance(userHomeLat, userHomeLng, em.lat, em.lng);
+        var homeKm = getHomeCoordsForKm();
+        if (homeKm.lat && homeKm.lng && em.lat && em.lng) {
+            let dist = getDistance(homeKm.lat, homeKm.lng, em.lat, em.lng);
             if (dist > 50) distTxt = `<span style="color:var(--yellow);font-weight:700;"> ⚠️ Vía a ${Math.round(dist)}km (Peajes)</span>`;
             else distTxt = ` <span style="opacity:0.6;">(Local ${Math.round(dist)}km)</span>`;
         }
