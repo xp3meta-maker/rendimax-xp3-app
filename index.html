@@ -132,6 +132,8 @@
         .search-wrap { position:relative; margin-bottom:14px; }
         .search-wrap input { padding-left:40px; background:var(--dark2); }
         .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:16px; pointer-events:none; }
+        #map-route-leaflet { z-index: 1; }
+        .inp-dark { width:100%; margin-bottom:12px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--dark2); color:var(--t1); font-size:13px; box-sizing:border-box; }
     </style>
     <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -146,9 +148,12 @@
           appId: "1:607175383173:web:380d7658eaf7e4de33b1ec"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        var db = firebase.firestore();
+        window.db = db;
         db.enablePersistence().catch(err => console.warn('Offline persistence error: ', err));
     </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
 
@@ -346,9 +351,15 @@
 
         <!-- ==================== RUTA ==================== -->
         <div id="s-ruta" class="screen">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <h2>Ruta de Hoy</h2>
-                <span class="badge by" id="ruta-day-badge">Hoy</span>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                <div style="flex:1;min-width:0;">
+                    <h2 style="margin:0 0 6px 0;">Ruta de Hoy</h2>
+                    <span class="badge by" id="ruta-day-badge">Hoy</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:min(46%,140px);">
+                    <button type="button" class="btn btn-gh" style="font-size:11px;padding:10px 8px;margin:0;" onclick="showScreen('s-mapa','nb-ruta')">🗺️ Mapa zona</button>
+                    <button type="button" class="btn btn-p" style="font-size:11px;padding:10px 8px;margin:0;" onclick="openProspectForm()">➕ Nuevo cliente</button>
+                </div>
             </div>
             <p class="sub" style="margin-bottom:14px;" id="ruta-subtitle">10 estaciones · Ordenadas por potencial perdido</p>
 
@@ -370,6 +381,77 @@
                 <div style="font-size:36px;margin-bottom:10px;">🔍</div>
                 <p class="sub">Sin clientes con ese criterio.</p>
             </div>
+        </div>
+
+        <!-- ==================== MAPA RUTA (Leaflet) ==================== -->
+        <div id="s-mapa" class="screen">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
+                <h2 style="margin:0;">Mapa de ruta</h2>
+                <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
+            </div>
+            <p class="sub" style="margin-bottom:12px;line-height:1.5;">Círculos de referencia ~20 km por día de visita. Marcadores naranja: prospectos capturados en campo.</p>
+            <div id="map-route-leaflet" style="width:100%;height:52vh;min-height:220px;border-radius:12px;border:1px solid var(--border);margin-bottom:12px;"></div>
+            <button type="button" class="btn btn-p" style="width:100%;font-size:12px;" onclick="initOrRefreshRouteMap()">🔄 Actualizar mapa</button>
+        </div>
+
+        <!-- ==================== NUEVO CLIENTE / PROSPECTO ==================== -->
+        <div id="s-prospecto" class="screen">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
+                <h2 style="margin:0;font-size:17px;">Nuevo cliente / estación</h2>
+                <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
+            </div>
+            <p class="sub" style="margin-bottom:14px;line-height:1.5;">Completa los datos y toma GPS en el lugar. Queda asignado al día de visita que elijas (por defecto: el día de ruta de hoy).</p>
+
+            <div class="card" style="padding:14px;margin-bottom:12px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Razón social / negocio</span>
+                <input type="text" class="inp-dark" id="prospect-company" placeholder="Ej. EDS La Esperanza SAS" autocomplete="organization">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Nombre comercial (si difiere)</span>
+                <input type="text" class="inp-dark" id="prospect-name" placeholder="Opcional — mismo que razón social si vacío" autocomplete="off">
+                <div class="g2" style="margin-bottom:0;">
+                    <div>
+                        <span class="lbl" style="display:block;margin-bottom:8px;">NIT</span>
+                        <input type="text" class="inp-dark" id="prospect-nit" placeholder="NIT" style="margin-bottom:0;">
+                    </div>
+                    <div>
+                        <span class="lbl" style="display:block;margin-bottom:8px;">Ciudad</span>
+                        <input type="text" class="inp-dark" id="prospect-city" placeholder="Ciudad" style="margin-bottom:0;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:14px;margin-bottom:12px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Correo</span>
+                <input type="email" class="inp-dark" id="prospect-email" placeholder="correo@empresa.com" autocomplete="email">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Teléfono</span>
+                <input type="tel" class="inp-dark" id="prospect-phone" placeholder="Ej. 6051234567" autocomplete="tel">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Dirección</span>
+                <input type="text" class="inp-dark" id="prospect-address" placeholder="Dirección o referencia" style="margin-bottom:0;">
+            </div>
+
+            <div class="card" style="padding:14px;margin-bottom:12px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Día de visita (ruta)</span>
+                <select id="prospect-day" class="inp-dark" style="margin-bottom:12px;">
+                    <option value="MON">Lunes</option>
+                    <option value="TUE">Martes</option>
+                    <option value="WED">Miércoles</option>
+                    <option value="THU">Jueves</option>
+                    <option value="FRI">Viernes</option>
+                </select>
+                <span class="lbl" style="display:block;margin-bottom:8px;">Notas</span>
+                <textarea id="prospect-notes" class="inp-dark" rows="2" placeholder="Observaciones (opcional)" style="resize:vertical;min-height:56px;margin-bottom:0;"></textarea>
+            </div>
+
+            <div class="card cy" style="padding:14px;margin-bottom:14px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">Ubicación GPS</span>
+                <p class="sub" style="font-size:11px;margin-bottom:10px;">En el sitio de la estación, pulsa tomar ubicación.</p>
+                <div class="g2" style="margin-bottom:10px;">
+                    <input type="text" class="inp-dark" id="prospect-lat" readonly placeholder="Latitud" style="margin-bottom:0;font-size:12px;">
+                    <input type="text" class="inp-dark" id="prospect-lng" readonly placeholder="Longitud" style="margin-bottom:0;font-size:12px;">
+                </div>
+                <button type="button" class="btn btn-gh" style="width:100%;" onclick="captureProspectGPS()">📍 Tomar ubicación ahora</button>
+            </div>
+
+            <button type="button" class="btn btn-p" style="width:100%;" onclick="submitProspect()">💾 Guardar y abrir ficha</button>
         </div>
 
         <!-- ==================== FICHA 360 ==================== -->
@@ -2469,6 +2551,36 @@ const ROUTE = [
   }
 ];
 
+// Prospectos / estaciones nuevas capturadas en campo (no forman parte del JSON embebido; persisten en localStorage + Firestore).
+var PROSPECTS = [];
+var LS_PROSPECTS = 'rendimax_prospects_v1';
+function loadProspects() {
+    try {
+        PROSPECTS = JSON.parse(localStorage.getItem(LS_PROSPECTS) || '[]');
+        if (!Array.isArray(PROSPECTS)) PROSPECTS = [];
+    } catch (e) { PROSPECTS = []; }
+}
+function saveProspectsLocal() {
+    localStorage.setItem(LS_PROSPECTS, JSON.stringify(PROSPECTS));
+}
+function nextClientNum() {
+    var maxN = 0;
+    ROUTE.forEach(function(c) { if (c.num > maxN) maxN = c.num; });
+    PROSPECTS.forEach(function(c) { if (c.num > maxN) maxN = c.num; });
+    return maxN + 1;
+}
+function allRouteClients() {
+    return ROUTE.concat(PROSPECTS);
+}
+/** Día de ruta MON–FRI; fin de semana se asume lunes para asignación por defecto. */
+function getTodayRouteDayKey() {
+    var keys = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var k = keys[new Date().getDay()];
+    if (k === 'SUN' || k === 'SAT') return 'MON';
+    return k;
+}
+loadProspects();
+
 // Plan semanal derivado de ROUTE (mismo día en campo `day`). Actualizar ROUTE/export_71 para cambiar barrido.
 const DAY_META = {
     MON: { name:'Lunes',     emoji:'🌊' },
@@ -2482,7 +2594,7 @@ function buildWeeklyPlanSnapshot() {
     const keys = ['MON','TUE','WED','THU','FRI'];
     const out = {};
     keys.forEach(function(dayKey) {
-        var list = ROUTE.filter(function(c) { return c.day === dayKey; }).sort(function(a, b) {
+        var list = allRouteClients().filter(function(c) { return c.day === dayKey; }).sort(function(a, b) {
             return (b.hist || 0) - (a.hist || 0);
         });
         var meta = DAY_META[dayKey];
@@ -2545,6 +2657,7 @@ function showScreen(id, navId, isPop = false) {
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
     if (navId) document.getElementById(navId).classList.add('active');
+    if (id === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 200);
 }
 
 // ================================================================
@@ -2652,7 +2765,7 @@ let lastAlerted = null;
 function checkGeofence() {
     if (userLat === null) return;
     let nearest = null, nearDist = Infinity;
-    ROUTE.forEach(c => {
+    allRouteClients().forEach(c => {
         const d = haversine(userLat, userLon, c.lat, c.lng);
         if (d < GEOFENCE_RADIUS_M && d < nearDist) { nearest = c; nearDist = d; }
     });
@@ -2792,48 +2905,55 @@ function setHomeLocation() {
 function buildRouteList() {
     const list = document.getElementById('route-list');
     list.innerHTML = '';
-    let filteredRoute = ROUTE;
-    if(window.routeDayFilter) { filteredRoute = ROUTE.filter(x => x.day === window.routeDayFilter); window.routeDayFilter = null; }
+    let filteredRoute = allRouteClients();
+    if(window.routeDayFilter) { filteredRoute = allRouteClients().filter(x => x.day === window.routeDayFilter); window.routeDayFilter = null; }
     filteredRoute = filteredRoute.slice().sort(function(a, b) {
         var wa = a.routeWave || 1, wb = b.routeWave || 1;
         var oa = a.stopOrder || 0, ob = b.stopOrder || 0;
         if (wa !== wb) return wa - wb;
         return oa - ob;
     });
+    var totalStops = filteredRoute.length;
     filteredRoute.forEach((c, idx) => {
-        const iCls   = c.status === 'ACTIVO' ? 'bg' : 'br';
-        const dCls   = {r:'pr',o:'po',g:'pgr'}[c.p];
+        const listPos = idx + 1;
+        const isProspect = c.prospect === true || c.status === 'PROSPECTO';
+        const iCls   = isProspect ? 'by' : (c.status === 'ACTIVO' ? 'bg' : 'br');
+        const dCls   = isProspect ? 'po' : {r:'pr',o:'po',g:'pgr'}[c.p];
         let distTxt = '';
         if (userHomeLat && userHomeLng && c.lat && c.lng) {
             let dist = getDistance(userHomeLat, userHomeLng, c.lat, c.lng);
             if (dist > 50) distTxt = `<span style="color:var(--yellow);font-weight:700;"> ⚠️ Vía a ${Math.round(dist)}km (Peajes)</span>`;
             else distTxt = ` <span style="opacity:0.6;">(Local ${Math.round(dist)}km)</span>`;
         }
-        const daysTxt = (c.days > 0 ? c.days + ' días sin comprar' : 'Compras regulares') + distTxt;
-    const avt    = '$' + c.avg.toLocaleString('es-CO');
+        const daysTxt = isProspect ? 'Prospecto · nuevo en sistema' + distTxt : ((c.days > 0 ? c.days + ' días sin comprar' : 'Compras regulares') + distTxt);
+        const avt    = isProspect ? '—' : ('$' + c.avg.toLocaleString('es-CO'));
+        const histLine = isProspect
+            ? 'Sin histórico comercial · alta en campo'
+            : ('Histórico 2022-2025: <strong style="color:var(--yellow);">' + c.hist + '</strong>');
         const el     = document.createElement('div');
         el.className = 'card route-card';
         el.dataset.search = (c.name + ' ' + c.company + ' ' + c.city).toLowerCase();
         el.innerHTML =
             '<div style="display:flex;align-items:flex-start;gap:12px;">'
-            + '<div class="nb2">' + (c.stopOrder || c.num) + '</div>'
+            + '<div class="nb2" title="Orden en esta lista">' + listPos + '</div>'
             + '<div style="flex:1;min-width:0;">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px;">'
             + '<h3 style="font-size:12px;line-height:1.2;">' + c.name + '</h3>'
-            + '<span class="badge ' + iCls + '" style="flex-shrink:0;">' + c.status + '</span>'
+            + '<span class="badge ' + iCls + '" style="flex-shrink:0;">' + (isProspect ? 'PROSPECTO' : c.status) + '</span>'
             + '</div>'
             + '<p class="sub" style="font-size:10px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.company + '</p>'
             + '<p class="sub" style="font-size:10px;margin-bottom:4px;">📍 ' + c.city
+            + ' · Parada ' + listPos + (totalStops ? ' de ' + totalStops : '')
             + ((c.routeWave || 1) > 1 ? ' · Turno ' + (c.routeWave || 1) : '')
-            + ' · Parada ' + (c.stopOrder || (idx + 1))
-            + (c.subzone ? ' · ' + c.subzone.substring(0, 40) + (c.subzone.length > 40 ? '…' : '') : '')
+            + (c.stopOrder ? ' · Orden datos ' + c.stopOrder : '')
+            + (c.subzone ? ' · ' + c.subzone.substring(0, 32) + (c.subzone.length > 32 ? '…' : '') : '')
             + (c.phone !== 'N/A' ? ' · 📞 ' + c.phone : '') + '</p>'
             + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">'
             + '<div class="pdot ' + dCls + '"></div>'
             + '<span class="sub" style="font-size:10px;">' + daysTxt + '</span>'
-            + '<span style="margin-left:auto;font-weight:700;color:var(--yellow);font-size:13px;">' + avt + '/mes</span>'
+            + '<span style="margin-left:auto;font-weight:700;color:var(--yellow);font-size:13px;">' + avt + (isProspect ? '' : '/mes') + '</span>'
             + '</div>'
-            + '<p class="sub" style="font-size:10px;margin-bottom:12px;">Histórico 2022-2025: <strong style="color:var(--yellow);">' + c.hist + '</strong></p>'
+            + '<p class="sub" style="font-size:10px;margin-bottom:12px;">' + histLine + '</p>'
             + '<div style="display:flex;gap:8px;">'
             + '<button class="btn btn-p btn-sm" style="flex:1;box-shadow:none;font-size:11px;" onclick="openFichaByNum(' + c.num + ')">🃏 Ficha 360°</button>'
             + '<button class="btn btn-gh btn-go btn-sm" style="flex:1;font-size:11px;" onclick="openMapsFor(' + c.lat + ',' + c.lng + ',\'' + c.name.replace(/'/g,"\\'") + '\')">📍 IR</button>'
@@ -2856,19 +2976,176 @@ function filterRoute(q) {
 }
 
 // ================================================================
+// MAPA LEAFLET + ALTA PROSPECTO EN CAMPO
+// ================================================================
+var routeMapInstance = null;
+var routeMapLayerGroup = null;
+
+function initOrRefreshRouteMap() {
+    var el = document.getElementById('map-route-leaflet');
+    if (!el || typeof L === 'undefined') {
+        if (el) el.innerHTML = '<p class="sub" style="padding:20px;">No se pudo cargar el mapa. Comprueba la conexión.</p>';
+        return;
+    }
+    if (!routeMapInstance) {
+        routeMapInstance = L.map('map-route-leaflet', { scrollWheelZoom: true }).setView([10.39, -75.52], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(routeMapInstance);
+    }
+    if (routeMapLayerGroup) {
+        routeMapInstance.removeLayer(routeMapLayerGroup);
+    }
+    routeMapLayerGroup = L.layerGroup().addTo(routeMapInstance);
+    var dayColors = { MON:'#3b82f6', TUE:'#a855f7', WED:'#22c55e', THU:'#ef4444', FRI:'#eab308' };
+    var keys = ['MON','TUE','WED','THU','FRI'];
+    var bounds = L.latLngBounds([]);
+    keys.forEach(function(dayKey) {
+        var clients = allRouteClients().filter(function(c) {
+            return c.day === dayKey && c.lat != null && c.lng != null && !isNaN(c.lat) && !isNaN(c.lng);
+        });
+        if (!clients.length) return;
+        var sumLat = 0, sumLng = 0;
+        clients.forEach(function(c) { sumLat += c.lat; sumLng += c.lng; });
+        var clat = sumLat / clients.length;
+        var clng = sumLng / clients.length;
+        L.circle([clat, clng], {
+            radius: 20000,
+            color: dayColors[dayKey],
+            fillColor: dayColors[dayKey],
+            fillOpacity: 0.07,
+            weight: 2
+        }).addTo(routeMapLayerGroup).bindPopup('Referencia ~20 km · ' + dayKey);
+        bounds.extend([clat, clng]);
+        clients.forEach(function(c) {
+            var isPr = c.prospect === true || c.status === 'PROSPECTO';
+            var col = isPr ? '#f97316' : dayColors[dayKey];
+            L.circleMarker([c.lat, c.lng], {
+                radius: isPr ? 8 : 5,
+                color: col,
+                fillColor: col,
+                fillOpacity: 0.88,
+                weight: 1
+            }).addTo(routeMapLayerGroup).bindPopup(
+                (isPr ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '') + ' · ' + (c.day || '')
+            );
+            bounds.extend([c.lat, c.lng]);
+        });
+    });
+    if (userLat != null && userLon != null) {
+        L.circleMarker([userLat, userLon], {
+            radius: 7, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 1, weight: 2
+        }).addTo(routeMapLayerGroup).bindPopup('Tu posición (GPS)');
+        bounds.extend([userLat, userLon]);
+    }
+    if (bounds.isValid()) {
+        routeMapInstance.fitBounds(bounds, { padding: [36, 36], maxZoom: 11 });
+    }
+    setTimeout(function() { routeMapInstance.invalidateSize(); }, 250);
+}
+
+function openProspectForm() {
+    var daySel = document.getElementById('prospect-day');
+    if (daySel) daySel.value = getTodayRouteDayKey();
+    var latEl = document.getElementById('prospect-lat');
+    var lngEl = document.getElementById('prospect-lng');
+    if (latEl) latEl.value = '';
+    if (lngEl) lngEl.value = '';
+    showScreen('s-prospecto', 'nb-ruta');
+}
+
+function captureProspectGPS() {
+    if (!navigator.geolocation) {
+        alert('Tu navegador no expone GPS.');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        function(p) {
+            document.getElementById('prospect-lat').value = p.coords.latitude.toFixed(6);
+            document.getElementById('prospect-lng').value = p.coords.longitude.toFixed(6);
+        },
+        function() { alert('Permite ubicación en el navegador y vuelve a intentar.'); },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+}
+
+async function submitProspect() {
+    var company = document.getElementById('prospect-company').value.trim();
+    var nameRaw = document.getElementById('prospect-name').value.trim();
+    var name = nameRaw || company;
+    if (!company) {
+        alert('Ingresá la razón social o nombre del negocio.');
+        return;
+    }
+    var lat = parseFloat(document.getElementById('prospect-lat').value, 10);
+    var lng = parseFloat(document.getElementById('prospect-lng').value, 10);
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        alert('Tomá la ubicación GPS en el sitio de la estación antes de guardar.');
+        return;
+    }
+    var day = document.getElementById('prospect-day').value;
+    var num = nextClientNum();
+    var o = {
+        num: num,
+        name: name,
+        company: company,
+        avg: 0,
+        days: 0,
+        status: 'PROSPECTO',
+        prospect: true,
+        p: 'o',
+        city: document.getElementById('prospect-city').value.trim() || '—',
+        phone: document.getElementById('prospect-phone').value.trim() || 'N/A',
+        hist: 0,
+        lat: lat,
+        lng: lng,
+        address: document.getElementById('prospect-address').value.trim() || 'N/D',
+        email: document.getElementById('prospect-email').value.trim() || 'N/D',
+        nit: document.getElementById('prospect-nit').value.trim() || 'N/D',
+        day: day,
+        aiText: 'Lead / estación potencial registrada en ruta. Completar alta en ERP.',
+        routeWave: 1,
+        stopOrder: 99,
+        routeCluster: 0,
+        subzone: 'Prospecto · campo',
+        routeRadiusKm: 20
+    };
+    var notes = document.getElementById('prospect-notes').value.trim();
+    if (notes) o.notes = notes;
+    PROSPECTS.push(o);
+    saveProspectsLocal();
+    try {
+        if (typeof firebase !== 'undefined' && firebase.firestore && typeof db !== 'undefined') {
+            await db.collection('prospectos').add(Object.assign({}, o, {
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                source: 'xp3-app-costa-norte'
+            }));
+        }
+    } catch (e) {
+        console.warn('Firestore prospectos (opcional):', e);
+    }
+    buildAgenda();
+    buildRouteList();
+    alert('Prospecto guardado y asignado a la ruta del día ' + day + '.');
+    openFichaByNum(num);
+}
+
+// ================================================================
 // FICHA 360°
 // ================================================================
-let currentFicha = ROUTE[0];
+let currentFicha = allRouteClients()[0];
 function openFichaByNum(num) {
-    const c = ROUTE.find(function(x) { return x.num === num; }) || ROUTE[0];
+    const c = allRouteClients().find(function(x) { return x.num === num; }) || allRouteClients()[0];
     openFichaCore(c);
 }
 function openFicha(idx) {
-    const c = ROUTE[idx] || ROUTE[0];
+    const c = allRouteClients()[idx] || allRouteClients()[0];
     openFichaCore(c);
 }
 function openFichaCore(c) {
     currentFicha = c;
+    const isProspect = c.prospect === true || c.status === 'PROSPECTO';
     document.getElementById('ficha-name').textContent       = c.name;
     document.getElementById('ficha-company').textContent    = c.company;
     document.getElementById('ficha-city-tag').textContent   = '📍 ' + c.city;
@@ -2876,12 +3153,21 @@ function openFichaCore(c) {
     document.getElementById('ficha-email').textContent      = c.email || 'N/D';
     document.getElementById('ficha-address').textContent    = c.address || 'N/D';
     document.getElementById('ficha-nit').textContent        = c.nit || 'N/D';
-    document.getElementById('ficha-days').textContent       = c.days > 0 ? c.days + ' días 🔴' : 'Activo ✅';
-    document.getElementById('ficha-status-badge').textContent = c.days > 0 ? 'INACTIVO ' + c.days + ' días' : 'ACTIVO';
-    document.getElementById('ficha-status-badge').className   = 'badge ' + (c.days > 0 ? 'br' : 'bg');
-    document.getElementById('ficha-avg').textContent        = '$' + c.avg.toLocaleString('es-CO') + '/mes';
-    document.getElementById('ficha-current').textContent   = c.status === 'ACTIVO' ? '⬆ Activo' : '$0 COP';
-    document.getElementById('ficha-lost').textContent      = c.hist;
+    if (isProspect) {
+        document.getElementById('ficha-days').textContent = 'Lead en campo · pendiente alta ERP';
+        document.getElementById('ficha-status-badge').textContent = 'PROSPECTO';
+        document.getElementById('ficha-status-badge').className = 'badge by';
+        document.getElementById('ficha-avg').textContent = '—';
+        document.getElementById('ficha-current').textContent = 'Nuevo registro';
+        document.getElementById('ficha-lost').textContent = c.notes || '—';
+    } else {
+        document.getElementById('ficha-days').textContent       = c.days > 0 ? c.days + ' días 🔴' : 'Activo ✅';
+        document.getElementById('ficha-status-badge').textContent = c.days > 0 ? 'INACTIVO ' + c.days + ' días' : 'ACTIVO';
+        document.getElementById('ficha-status-badge').className   = 'badge ' + (c.days > 0 ? 'br' : 'bg');
+        document.getElementById('ficha-avg').textContent        = '$' + c.avg.toLocaleString('es-CO') + '/mes';
+        document.getElementById('ficha-current').textContent   = c.status === 'ACTIVO' ? '⬆ Activo' : '$0 COP';
+        document.getElementById('ficha-lost').textContent      = c.hist;
+    }
     document.getElementById('ficha-ai-text').textContent   = c.aiText || 'Sin análisis disponible.';
     document.getElementById('visit-name').textContent      = c.name;
     document.getElementById('visit-company').textContent   = c.company;
@@ -2966,7 +3252,7 @@ function sendQuote() {
     if (!client || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
     
     let phone = '573000000000';
-    const cObj = ROUTE.find(c => c.name === client);
+    const cObj = allRouteClients().find(c => c.name === client);
     if (cObj && cObj.phone && cObj.phone !== 'N/A') {
         phone = '57' + cObj.phone.replace(/[^0-9]/g, '');
     }
