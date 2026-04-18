@@ -389,8 +389,10 @@
                 <h2 style="margin:0;">Mapa de ruta</h2>
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
-            <p class="sub" style="margin-bottom:12px;line-height:1.5;">Círculos de referencia ~20 km por día de visita. Marcadores naranja: prospectos capturados en campo.</p>
-            <div id="map-route-leaflet" style="width:100%;height:52vh;min-height:220px;border-radius:12px;border:1px solid var(--border);margin-bottom:12px;"></div>
+            <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). El día de visita sigue en la agenda y en cada ficha. Círculos ~20 km por zona.</p>
+            <p class="sub" id="map-drive-estimate" style="font-size:10px;margin-bottom:10px;line-height:1.45;color:var(--t2);">—</p>
+            <div id="map-route-leaflet" style="width:100%;height:48vh;min-height:200px;border-radius:12px;border:1px solid var(--border);margin-bottom:10px;"></div>
+            <p class="sub" id="map-zone-legend" style="font-size:9px;margin-bottom:10px;line-height:1.4;color:var(--t3);">—</p>
             <button type="button" class="btn btn-p" style="width:100%;font-size:12px;" onclick="initOrRefreshRouteMap()">🔄 Actualizar mapa</button>
         </div>
 
@@ -3201,9 +3203,83 @@ function filterRoute(q) {
 
 // ================================================================
 // MAPA LEAFLET + ALTA PROSPECTO EN CAMPO
+// Color en mapa = ZONA geográfica (no día L–V). Día de visita sigue en `day` / agenda.
 // ================================================================
 var routeMapInstance = null;
 var routeMapLayerGroup = null;
+
+function normCityKey(s) {
+    return (s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/** Clasificación por ciudad para colores de mapa (ajustar lista según negocio). */
+function geoZoneKeyFromClient(c) {
+    if (c.prospect === true || c.status === 'PROSPECTO') return 'PROSPECTO';
+    var s = normCityKey(c.city);
+    if (!s || s === '—' || s === 'N/D') return 'ZONA_OTRAS';
+    if (s.includes('BARRANQUILLA') || s.includes('SOLEDAD') || s.includes('MALAMBO') || s.includes('BARANOA') || s.includes('PALMAR DE VARELA')) return 'ZONA_ATL_METRO';
+    if (s.includes('SANTA MARTA')) return 'ZONA_MAG_SM';
+    if (s.includes('CARTAGENA') || s.includes('TURBANA') || s.includes('ARROYOHONDO')) return 'ZONA_BOL_CART';
+    if (s.includes('SINCELEJO')) return 'ZONA_SUCRE_SINCE';
+    if (s.includes('NEPOMUCENO') || s.includes('FUNDACION')) return 'ZONA_BOL_MT';
+    if (s.includes('CIENAGA') || s.includes('SABANALARGA') || s.includes('SANTO TOMAS')) return 'ZONA_MAG_CORREDOR';
+    if (s.includes('SANTA ANA')) return 'ZONA_MAG_CORREDOR';
+    if (s.includes('COSTA') || s.includes('CICUCO') || s.includes('PLATO') || s.includes('MAGANGUE') || s.includes('TALAIGUA')) return 'ZONA_MAG_RIO';
+    if (s.includes('VALLEDUPAR')) return 'ZONA_CESAR';
+    return 'ZONA_OTRAS';
+}
+
+var GEO_ZONE_META = {
+    PROSPECTO: { color: '#ea580c', shortLabel: 'Prospecto' },
+    ZONA_ATL_METRO: { color: '#eab308', shortLabel: 'Atlántico metro (Baq/Soledad)' },
+    ZONA_MAG_SM: { color: '#ef4444', shortLabel: 'Santa Marta' },
+    ZONA_BOL_CART: { color: '#3b82f6', shortLabel: 'Cartagena / Bol. costa' },
+    ZONA_SUCRE_SINCE: { color: '#a855f7', shortLabel: 'Sincelejo / Sucre' },
+    ZONA_BOL_MT: { color: '#22c55e', shortLabel: 'Montes de María' },
+    ZONA_MAG_CORREDOR: { color: '#f59e0b', shortLabel: 'Corredor Mag. sur' },
+    ZONA_MAG_RIO: { color: '#14b8a6', shortLabel: 'Magdalena río/Costa' },
+    ZONA_CESAR: { color: '#8b5cf6', shortLabel: 'Cesar' },
+    ZONA_OTRAS: { color: '#64748b', shortLabel: 'Otras' }
+};
+
+function geoZoneColor(zk) {
+    var m = GEO_ZONE_META[zk];
+    return m ? m.color : '#64748b';
+}
+
+function updateMapDriveAndLegend() {
+    var estEl = document.getElementById('map-drive-estimate');
+    var legEl = document.getElementById('map-zone-legend');
+    var h = getHomeCoordsForKm();
+    var maxH = 0, maxKm = 0;
+    allRouteClients().forEach(function(c) {
+        var ec = getEffectiveCoords(c);
+        if (ec.lat == null || ec.lng == null) return;
+        var km = getDistance(h.lat, h.lng, ec.lat, ec.lng);
+        var hrs = (km * 1.2) / 52;
+        if (hrs > maxH) { maxH = hrs; maxKm = km * 1.2; }
+    });
+    if (estEl) {
+        var baseName = h.label === 'GPS' ? 'tu base (GPS)' : 'Soledad/base';
+        var txt = 'Máx. lejanía estimada desde ' + baseName + ': ~' + Math.round(maxKm) + ' km carretera · ~' + maxH.toFixed(1) + ' h solo ida (orden de magnitud; no sustituye Maps). ';
+        if (maxH >= 3) {
+            txt += 'Por encima de ~3 h solo ida: valorar pernocte; ruta 2 días suele requerir ≥12–14 paradas para rentabilizar vs hotel y tiempo.';
+        } else {
+            txt += 'Por debajo de ~3 h ida: suele armarse en jornada de un día (con tus 7 visitas y traslados).';
+        }
+        estEl.textContent = txt;
+    }
+    if (legEl) {
+        var parts = [];
+        Object.keys(GEO_ZONE_META).forEach(function(k) {
+            if (k === 'PROSPECTO') return;
+            var m = GEO_ZONE_META[k];
+            parts.push('<span style="color:' + m.color + ';">●</span> ' + m.shortLabel);
+        });
+        parts.push('<span style="color:#ea580c;">●</span> Prospecto');
+        legEl.innerHTML = parts.join(' · ');
+    }
+}
 
 function initOrRefreshRouteMap() {
     var el = document.getElementById('map-route-leaflet');
@@ -3222,16 +3298,19 @@ function initOrRefreshRouteMap() {
         routeMapInstance.removeLayer(routeMapLayerGroup);
     }
     routeMapLayerGroup = L.layerGroup().addTo(routeMapInstance);
-    var dayColors = { MON:'#3b82f6', TUE:'#a855f7', WED:'#22c55e', THU:'#ef4444', FRI:'#eab308' };
-    var keys = ['MON','TUE','WED','THU','FRI'];
+    var byZone = {};
+    allRouteClients().forEach(function(c) {
+        var ec = getEffectiveCoords(c);
+        if (ec.lat == null || ec.lng == null || isNaN(ec.lat) || isNaN(ec.lng)) return;
+        var zk = geoZoneKeyFromClient(c);
+        if (!byZone[zk]) byZone[zk] = [];
+        byZone[zk].push(c);
+    });
     var bounds = L.latLngBounds([]);
-    keys.forEach(function(dayKey) {
-        var clients = allRouteClients().filter(function(c) {
-            if (c.day !== dayKey) return false;
-            var ec = getEffectiveCoords(c);
-            return ec.lat != null && ec.lng != null && !isNaN(ec.lat) && !isNaN(ec.lng);
-        });
+    Object.keys(byZone).sort().forEach(function(zk) {
+        var clients = byZone[zk];
         if (!clients.length) return;
+        var col = geoZoneColor(zk);
         var sumLat = 0, sumLng = 0;
         clients.forEach(function(c) {
             var ec = getEffectiveCoords(c);
@@ -3239,27 +3318,28 @@ function initOrRefreshRouteMap() {
         });
         var clat = sumLat / clients.length;
         var clng = sumLng / clients.length;
+        var zlab = (GEO_ZONE_META[zk] && GEO_ZONE_META[zk].shortLabel) ? GEO_ZONE_META[zk].shortLabel : zk;
         L.circle([clat, clng], {
             radius: 20000,
-            color: dayColors[dayKey],
-            fillColor: dayColors[dayKey],
+            color: col,
+            fillColor: col,
             fillOpacity: 0.07,
             weight: 2
-        }).addTo(routeMapLayerGroup).bindPopup('Referencia ~20 km · ' + dayKey);
+        }).addTo(routeMapLayerGroup).bindPopup('Zona · ' + zlab + ' · ref. ~20 km');
         bounds.extend([clat, clng]);
         clients.forEach(function(c) {
             var ec = getEffectiveCoords(c);
-            var isPr = c.prospect === true || c.status === 'PROSPECTO';
-            var col = isPr ? '#f97316' : dayColors[dayKey];
             var pinNote = ec.fromVisit ? ' · GPS visita' : '';
+            var sm = GEO_ZONE_META[zk] ? GEO_ZONE_META[zk].shortLabel : zk;
             L.circleMarker([ec.lat, ec.lng], {
-                radius: isPr ? 8 : 5,
+                radius: (zk === 'PROSPECTO') ? 8 : 5,
                 color: col,
                 fillColor: col,
                 fillOpacity: 0.88,
                 weight: 1
             }).addTo(routeMapLayerGroup).bindPopup(
-                (isPr ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '') + ' · ' + (c.day || '') + pinNote
+                (zk === 'PROSPECTO' ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '')
+                + '<br><span style="opacity:.85;">Zona: ' + sm + ' · Día agenda: ' + (c.day || '—') + '</span>' + pinNote
             );
             bounds.extend([ec.lat, ec.lng]);
         });
@@ -3274,6 +3354,7 @@ function initOrRefreshRouteMap() {
         routeMapInstance.fitBounds(bounds, { padding: [36, 36], maxZoom: 11 });
     }
     setTimeout(function() { routeMapInstance.invalidateSize(); }, 250);
+    updateMapDriveAndLegend();
 }
 
 function openProspectForm() {
