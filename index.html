@@ -3869,14 +3869,50 @@ function filterRoute(q) {
     const t = q.toLowerCase().trim();
     var zm = document.getElementById('route-zero-msg');
     if (zm) zm.style.display = t ? 'none' : '';
-    const cards = document.querySelectorAll('.route-card');
-    let shown = 0;
-    cards.forEach(c => {
-        const match = c.dataset.search.includes(t);
-        c.style.display = match ? '' : 'none';
-        if (match) shown++;
-    });
-    document.getElementById('no-results').style.display = shown === 0 ? 'block' : 'none';
+
+    // Si hay texto buscado, reconstruir la lista ignorando el filtro de día
+    if (t) {
+        const list = document.getElementById('route-list');
+        if (!list) return;
+        // Buscar en TODA la cartera (ROUTE + PROSPECTS)
+        var allClients = (window.ROUTE || []).concat(window.PROSPECTS || []);
+        var matches = allClients.filter(function(c) {
+            var hay = ((c.name || '') + ' ' + (c.company || '') + ' ' + (c.city || '') + ' ' + (c.address || '')).toLowerCase();
+            return hay.includes(t);
+        });
+        // Renderizar resultados temporales sin afectar el día seleccionado
+        list.innerHTML = '';
+        var noR = document.getElementById('no-results');
+        if (matches.length === 0) {
+            if (noR) noR.style.display = 'block';
+            return;
+        }
+        if (noR) noR.style.display = 'none';
+        matches.forEach(function(c) {
+            var patch = getClientPatch(c.num);
+            var phone = _normField((patch && patch.adminPhone) || c.phone);
+            var dayLabel = (window.DAY_META && window.DAY_META[c.day]) ? window.DAY_META[c.day].name : (c.day || '—');
+            var statusLabel = c.status === 'ACTIVO' ? '<span class="badge bg" style="font-size:9px;">ACTIVO</span>' : '<span class="badge by" style="font-size:9px;">INACTIVO</span>';
+            var el = document.createElement('div');
+            el.className = 'card route-card';
+            el.style.cssText = 'padding:12px;margin-bottom:10px;cursor:pointer;';
+            el.dataset.search = ((c.name || '') + ' ' + (c.company || '') + ' ' + (c.city || '')).toLowerCase();
+            el.innerHTML =
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+                + '<span class="lbl" style="flex:1;font-size:13px;">' + (c.name || c.company || '—') + '</span>'
+                + statusLabel + '</div>'
+                + '<div class="sub" style="font-size:11px;color:var(--t2);">'
+                + '📍 ' + (c.city || '—') + ' &nbsp;|&nbsp; 📅 ' + dayLabel
+                + (phone ? ' &nbsp;|&nbsp; 📞 ' + phone : '')
+                + '</div>';
+            el.onclick = function() { openFichaByNum(c.num); };
+            list.appendChild(el);
+        });
+        return;
+    }
+
+    // Sin texto: restaurar vista normal del día seleccionado
+    buildRouteList();
 }
 
 // ================================================================
