@@ -345,8 +345,8 @@
                     <span class="ai-chip">IA Estrategia · ORC 2026</span>
                 </div>
                 <p class="sub" style="font-size:12px;line-height:1.7;">
-                    <strong style="color:var(--t1);">Objetivo de barrido:</strong> Visitar los 71 clientes activos y recuperables en ciclos semanales de 5 días hábiles.<br><br>
-                    <strong style="color:var(--yellow);">Prioridad #1:</strong> EDS Esmeralda (Sincelejo) — 540 días sin comprar. Potencial <strong style="color:var(--t1);">$7.2M</strong> recuperable. Siempre en la ruta del <strong style="color:var(--t1);">Jueves</strong>.
+                    <strong style="color:var(--t1);">Objetivo de barrido:</strong> 71 EDS en ciclos Lun–Vie; en <strong style="color:var(--yellow);">lista y mapa</strong> los clientes en zona <strong>⏸ Standby</strong> van <strong>primero</strong> para recuperación.<br><br>
+                    <strong style="color:var(--yellow);">Prioridad recuperación:</strong> EDS en Standby (Sincelejo, Cesar, interior río, Montes de María, etc.) — ejemplo crítico: <strong style="color:var(--t1);">EDS Esmeralda</strong> (540 días · ~$7.2M hist.) en ruta <strong style="color:var(--t1);">Jueves</strong>. Elegí el día arriba y abrí <strong>Mapa del día</strong> para ver el área.
                 </p>
             </div>
         </div>
@@ -359,13 +359,13 @@
                     <span class="badge by" id="ruta-day-badge">Hoy</span>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:min(46%,140px);">
-                    <button type="button" class="btn btn-gh" style="font-size:11px;padding:10px 8px;margin:0;" onclick="showScreen('s-mapa','nb-ruta')">🗺️ Mapa zona</button>
-                    <button type="button" class="btn btn-p" style="font-size:11px;padding:10px 8px;margin:0;" onclick="openProspectForm()">➕ Nuevo cliente</button>
+                    <button type="button" class="btn btn-p" style="font-size:11px;padding:10px 8px;margin:0;" onclick="openRouteMapForCurrentFilter()">🗺️ Mapa del día</button>
+                    <button type="button" class="btn btn-gh" style="font-size:11px;padding:10px 8px;margin:0;" onclick="openProspectForm()">➕ Nuevo cliente</button>
                 </div>
             </div>
             <p class="sub" style="margin-bottom:10px;" id="ruta-subtitle">—</p>
             <p class="lbl" style="margin-bottom:6px;">Filtrar por día de visita</p>
-            <div id="route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <div id="route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                 <button type="button" class="tag" data-route-day="MON" onclick="setRouteListDay('MON')">Lun</button>
                 <button type="button" class="tag" data-route-day="TUE" onclick="setRouteListDay('TUE')">Mar</button>
                 <button type="button" class="tag" data-route-day="WED" onclick="setRouteListDay('WED')">Mié</button>
@@ -373,6 +373,8 @@
                 <button type="button" class="tag" data-route-day="FRI" onclick="setRouteListDay('FRI')">Vie</button>
                 <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
             </div>
+            <p class="sub" id="ruta-map-hint" style="font-size:10px;margin-bottom:10px;line-height:1.45;">Elegí Lun–Vie o Todos y tocá <strong>Mapa del día</strong>: verás solo esas paradas, el área (~20 km por color) y los pinos. Para recuperar Standby, <strong>no</strong> ocultes Standby en el mapa.</p>
+            <button type="button" class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:12px;padding:12px;" onclick="openRouteMapForCurrentFilter()">🗺️ Ver área en mapa (día seleccionado)</button>
 
             <div class="search-wrap">
                 <span class="search-icon">🔍</span>
@@ -400,7 +402,22 @@
                 <h2 style="margin:0;">Mapa de ruta</h2>
                 <button type="button" class="btn btn-gh btn-sm" onclick="showScreen('s-ruta','nb-ruta')">← Ruta</button>
             </div>
-            <p class="sub" style="margin-bottom:6px;line-height:1.45;font-size:10px;">Marcadores: mismo criterio que la lista en <strong>Ruta</strong> (día Lun–Vie o <strong>Todos</strong>).</p>
+            <div class="card cy" style="padding:10px 12px;margin-bottom:10px;" id="map-route-context-wrap">
+                <p class="sub" style="font-size:11px;line-height:1.5;margin:0;color:var(--t1);" id="map-route-context">—</p>
+            </div>
+            <div class="card" style="padding:10px 12px;margin-bottom:10px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;font-size:11px;">Día de tu ruta (misma cartera que en Ruta)</span>
+                <div id="map-route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="tag" data-route-day="MON" onclick="setRouteListDay('MON')">Lun</button>
+                    <button type="button" class="tag" data-route-day="TUE" onclick="setRouteListDay('TUE')">Mar</button>
+                    <button type="button" class="tag" data-route-day="WED" onclick="setRouteListDay('WED')">Mié</button>
+                    <button type="button" class="tag" data-route-day="THU" onclick="setRouteListDay('THU')">Jue</button>
+                    <button type="button" class="tag" data-route-day="FRI" onclick="setRouteListDay('FRI')">Vie</button>
+                    <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
+                </div>
+                <p class="sub" style="margin:8px 0 0;font-size:10px;line-height:1.45;color:var(--t2);">Al elegir un día, el mapa encuadra esa ruta y la <strong>sombra ámbar</strong> resume la región donde están tus paradas ese día (envolvente ~convexa). Los círculos de color siguen siendo <strong>subzonas ~20 km</strong>.</p>
+            </div>
+            <p class="sub" style="margin-bottom:6px;line-height:1.45;font-size:10px;">Usá los chips de arriba o los de la pantalla <strong>Ruta</strong>: comparten el mismo filtro. Círculos de color ≈ área por zona geográfica.</p>
             <p class="sub" style="margin-bottom:8px;line-height:1.5;">Los colores del mapa son <strong>zonas geográficas</strong> (no el día de la semana). <strong>Barranquilla</strong> se divide en <strong>sur/centro</strong> (ámbar) y <strong>norte</strong> (amarillo claro, eje hacia Santa Marta) según latitud ≥ <span id="baq-cut-lat-label">11.0</span>°. Soledad sigue en metro. El día de visita sigue en la agenda y en cada ficha.</p>
             <p class="sub" style="margin-bottom:8px;line-height:1.45;font-size:10px;color:var(--t2);"><strong>Prioridad comercial (nunca standby):</strong> metro Baq/Soledad, Santa Marta, <strong>Cartagena y costa Bolívar</strong>, y <strong>corredor Magdalena sur</strong> (Ciénaga, Sabanalarga, Santa Ana…). <strong>⏸ Standby:</strong> solo zonas lejanas o de pocas paradas (Sincelejo, Cesar, <em>interior río/Sucre «Costa»</em> —no Cartagena—, Montes de María, otras); <em>siguen en la ruta</em> para sectorizar después.</p>
             <label class="sub" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:10px;line-height:1.3;">
@@ -438,11 +455,16 @@
             </div>
 
             <div class="card" style="padding:14px;margin-bottom:12px;">
-                <span class="lbl" style="display:block;margin-bottom:8px;">Correo</span>
-                <input type="email" class="inp-dark" id="prospect-email" placeholder="correo@empresa.com" autocomplete="email">
-                <span class="lbl" style="display:block;margin-bottom:8px;">Teléfono</span>
+                <span class="lbl" style="display:block;margin-bottom:4px;">👤 Nombre del administrador / encargado</span>
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t2);">Persona que atiende en la estación</p>
+                <input type="text" class="inp-dark" id="prospect-admin-name" placeholder="Ej. Carlos Pérez" autocomplete="off" style="margin-bottom:12px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">📞 Teléfono del administrador</span>
+                <input type="tel" class="inp-dark" id="prospect-admin-phone" placeholder="Ej. 3001234567" autocomplete="tel" style="margin-bottom:12px;">
+                <span class="lbl" style="display:block;margin-bottom:8px;">📞 Teléfono de la estación (central / fijo)</span>
                 <input type="tel" class="inp-dark" id="prospect-phone" placeholder="Ej. 6051234567" autocomplete="tel">
-                <span class="lbl" style="display:block;margin-bottom:8px;">Dirección</span>
+                <span class="lbl" style="display:block;margin-bottom:8px;">📧 Correo electrónico</span>
+                <input type="email" class="inp-dark" id="prospect-email" placeholder="correo@empresa.com" autocomplete="email">
+                <span class="lbl" style="display:block;margin-bottom:8px;">📍 Dirección</span>
                 <input type="text" class="inp-dark" id="prospect-address" placeholder="Dirección o referencia" style="margin-bottom:0;">
             </div>
 
@@ -491,13 +513,43 @@
             </div>
 
             <div class="card" style="padding:12px;margin-bottom:14px;">
-                <span class="lbl" style="display:block;margin-bottom:10px;">Contacto</span>
+                <div style="display:flex;align-items:center;margin-bottom:10px;">
+                    <span class="lbl">Contacto</span>
+                    <button type="button" class="btn btn-gh btn-sm" style="margin-left:auto;font-size:10px;padding:5px 10px;" onclick="toggleFichaEdit()">✏️ Actualizar datos</button>
+                </div>
                 <div style="display:flex;flex-direction:column;gap:7px;">
+                    <div id="ficha-admin-row" style="display:none;flex-direction:row;gap:8px;align-items:center;"><span>👤</span><span class="sub" style="font-size:10px;color:var(--yellow);" id="ficha-admin-name">—</span><span class="badge by" style="font-size:8px;padding:2px 5px;">Admin</span></div>
                     <div style="display:flex;gap:8px;align-items:center;"><span>📞</span><span class="sub" id="ficha-phone">3182910659</span><button class="btn btn-sm" style="margin-left:auto;background:rgba(255,179,0,.15);border:1px solid rgba(255,179,0,.3);color:var(--yellow);font-size:10px;padding:5px 12px;" onclick="callClient()">Llamar</button></div>
                     <div style="display:flex;gap:8px;align-items:center;"><span>📧</span><span class="sub" style="font-size:10px;" id="ficha-email">—</span></div>
                     <div style="display:flex;gap:8px;align-items:center;"><span>📍</span><span class="sub" style="font-size:10px;" id="ficha-address">—</span></div>
                     <div style="display:flex;gap:8px;align-items:center;"><span>🆔</span><span class="sub" style="font-size:10px;">NIT: <span id="ficha-nit">—</span></span></div>
                     <div style="display:flex;gap:8px;align-items:center;"><span>📡</span><span class="sub" style="font-size:10px;" id="ficha-distance">Distancia: calculando GPS...</span></div>
+                </div>
+                <div id="ficha-data-badge" style="margin-top:10px;padding:6px 8px;background:rgba(255,179,0,.06);border-radius:8px;border:1px solid rgba(255,179,0,.2);">—</div>
+            </div>
+
+            <!-- Panel Actualizar datos de campo (colapsable) -->
+            <div id="ficha-edit-panel" class="card" style="display:none;padding:12px;margin-bottom:14px;border:1px solid rgba(255,179,0,.4);background:rgba(255,179,0,.05);">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                    <span style="font-size:16px;">✏️</span>
+                    <span class="lbl" style="color:var(--yellow);">Datos registrados en campo</span>
+                    <button type="button" class="btn btn-gh btn-sm" style="margin-left:auto;font-size:10px;" onclick="toggleFichaEdit()">✕ Cerrar</button>
+                </div>
+                <p class="sub" style="font-size:10px;line-height:1.45;margin-bottom:14px;color:var(--t2);">Completá los datos que faltan en el sistema. Se guardan solo en <strong>este dispositivo</strong> (sin servidor). Al próximo export desde oficina se sincronizarán si los enviás.</p>
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">👤 Nombre del administrador / encargado</label>
+                <input type="text" id="edit-admin-name" placeholder="Ej. Carlos Pérez" autocomplete="off" style="margin-bottom:10px;">
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📞 Teléfono del administrador</label>
+                <input type="tel" id="edit-admin-phone" placeholder="Ej. 3001234567" autocomplete="off" style="margin-bottom:10px;">
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📧 Correo electrónico de la estación</label>
+                <input type="email" id="edit-email" placeholder="Ej. eds@correo.com" autocomplete="off" style="margin-bottom:10px;">
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📍 Dirección (si es distinta a la registrada)</label>
+                <input type="text" id="edit-address" placeholder="Ej. Cra 5 # 12-34, barrio X" autocomplete="off" style="margin-bottom:10px;">
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📝 Notas de campo</label>
+                <input type="text" id="edit-field-notes" placeholder="Ej. Mejor llamar antes del mediodía" autocomplete="off" style="margin-bottom:14px;">
+                <button type="button" class="btn btn-p" style="width:100%;" onclick="saveFichaEdits()">💾 Guardar datos en este dispositivo</button>
+                <p class="sub" id="ficha-edit-saved-msg" style="display:none;text-align:center;color:var(--green);margin-top:10px;font-size:11px;">✅ Datos guardados. Se reflejan en la ficha inmediatamente.</p>
+                <div id="ficha-edit-notes-row" style="display:none;margin-top:12px;padding:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;">
+                    <p class="sub" style="font-size:10px;margin:0;" id="ficha-edit-notes-text">—</p>
                 </div>
             </div>
 
@@ -964,7 +1016,7 @@ const ROUTE = [
   },
   {
     "num": 10,
-    "name": "Coesco Colombia Sas - Eds Alto Prado",
+    "name": "Primax - EDS Coesco Alto Prado",
     "company": "Coesco Colombia Sas - Eds Alto Prado",
     "avg": 50142,
     "days": 0,
@@ -973,25 +1025,25 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 1805130,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 11.0232,
+    "lng": -74.8208,
+    "address": "Barrio Alto Prado, Barranquilla ⚠️ Confirmar dirección exacta en Google Maps",
     "email": "N/D",
     "nit": "N/D",
     "day": "MON",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Ubicación aproximada por barrio — verificar dirección exacta en Maps al visitar.",
     "routeWave": 3,
     "stopOrder": 4,
     "routeCluster": 3,
-    "routeCentroidLat": 10.99902,
-    "routeCentroidLng": -74.80549,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 11.0232,
+    "routeCentroidLng": -74.8208,
+    "subzone": "R20.0km · Barranquilla · Alto Prado",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "pending_field_verify"
   },
   {
     "num": 11,
-    "name": "Coesco Colombia Sas - Eds Boston",
+    "name": "Primax - EDS Coesco Boston",
     "company": "Coesco Colombia Sas - Eds Boston",
     "avg": 26307,
     "days": 0,
@@ -1000,21 +1052,21 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 947040,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 11.0138,
+    "lng": -74.8318,
+    "address": "Barrio Boston, Barranquilla ⚠️ Confirmar dirección exacta en Google Maps",
     "email": "N/D",
     "nit": "N/D",
     "day": "MON",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Ubicación aproximada por barrio — verificar dirección exacta en Maps al visitar.",
     "routeWave": 3,
     "stopOrder": 5,
     "routeCluster": 3,
-    "routeCentroidLat": 10.99902,
-    "routeCentroidLng": -74.80549,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 11.0138,
+    "routeCentroidLng": -74.8318,
+    "subzone": "R20.0km · Barranquilla · Boston",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "pending_field_verify"
   },
   {
     "num": 12,
@@ -1189,19 +1241,19 @@ const ROUTE = [
     "city": "Sabanalarga",
     "phone": "3535110",
     "hist": 355800,
-    "lat": 10.636663,
-    "lng": -74.922997,
-    "address": "CRA 23 38 10",
+    "lat": 10.6371,
+    "lng": -74.9230,
+    "address": "CRA 23 38 10, Sabanalarga, Atlántico",
     "email": "N/D",
     "nit": "N/D",
-    "day": "MON",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
-    "routeWave": 7,
-    "stopOrder": 1,
-    "routeCluster": 7,
-    "routeCentroidLat": 10.63666,
-    "routeCentroidLng": -74.923,
-    "subzone": "R20.0km · Sabanalarga",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 5. Circuito Atlántico Interior. Prioridad recuperación — 400 días sin comprar. (EDS San Francisco, Sabanalarga)",
+    "routeWave": 1,
+    "stopOrder": 5,
+    "routeCluster": 27,
+    "routeCentroidLat": 10.6387,
+    "routeCentroidLng": -74.9273,
+    "subzone": "Ruta Sabanalarga · Sabanalarga",
     "routeRadiusKm": 20.0,
     "geoSource": "nominatim"
   },
@@ -1216,19 +1268,19 @@ const ROUTE = [
     "city": "Sabanalarga",
     "phone": "3535110",
     "hist": 324900,
-    "lat": 10.636663,
-    "lng": -74.922997,
-    "address": "CRA 23 38 10",
+    "lat": 10.6358,
+    "lng": -74.9248,
+    "address": "CRA 23 38 10, Sabanalarga, Atlántico",
     "email": "N/D",
     "nit": "N/D",
-    "day": "MON",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
-    "routeWave": 7,
-    "stopOrder": 2,
-    "routeCluster": 7,
-    "routeCentroidLat": 10.63666,
-    "routeCentroidLng": -74.923,
-    "subzone": "R20.0km · Sabanalarga",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 6. Circuito Atlántico Interior. Prioridad recuperación — 400 días sin comprar.",
+    "routeWave": 1,
+    "stopOrder": 6,
+    "routeCluster": 27,
+    "routeCentroidLat": 10.6387,
+    "routeCentroidLng": -74.9273,
+    "subzone": "Ruta Sabanalarga · Sabanalarga",
     "routeRadiusKm": 20.0,
     "geoSource": "nominatim"
   },
@@ -1569,17 +1621,17 @@ const ROUTE = [
     "hist": 1506230,
     "lat": 10.753156,
     "lng": -74.759601,
-    "address": "CL 13    11B-07",
+    "address": "CL 13 11B-07, Santo Tomás, Atlántico",
     "email": "N/D",
     "nit": "N/D",
-    "day": "TUE",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
-    "routeWave": 4,
-    "stopOrder": 1,
-    "routeCluster": 12,
-    "routeCentroidLat": 10.89688,
-    "routeCentroidLng": -74.77817,
-    "subzone": "R20.0km · Santo Tomás · Soledad",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 2. Circuito Atlántico Interior: Malambo → Santo Tomás → Palmar de Varela → Sabanalarga → Baranoa → Galapa. Prioridad recuperación.",
+    "routeWave": 1,
+    "stopOrder": 2,
+    "routeCluster": 27,
+    "routeCentroidLat": 10.753156,
+    "routeCentroidLng": -74.759601,
+    "subzone": "Ruta Sabanalarga · Santo Tomás",
     "routeRadiusKm": 20.0,
     "geoSource": "nominatim"
   },
@@ -2449,34 +2501,34 @@ const ROUTE = [
   },
   {
     "num": 65,
-    "name": "Coesco Colombia Sas - Eds Sabanalarga",
+    "name": "Primax - EDS Coesco Sabanalarga",
     "company": "Coesco Colombia Sas - Eds Sabanalarga",
     "avg": 72707,
     "days": 0,
     "status": "ACTIVO",
     "p": "g",
-    "city": "Barranquilla",
+    "city": "Sabanalarga",
     "phone": "7198803",
     "hist": 2617440,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 10.6387443,
+    "lng": -74.9273462,
+    "address": "Cl. 27 #23-25, Sabanalarga, Atlántico",
     "email": "N/D",
     "nit": "N/D",
-    "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 4. Prioridad anclaje del circuito — estación activa Coesco/Primax. Coordenadas exactas Google Maps.",
     "routeWave": 1,
     "stopOrder": 4,
-    "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCluster": 27,
+    "routeCentroidLat": 10.6387,
+    "routeCentroidLng": -74.9273,
+    "subzone": "Ruta Sabanalarga · Sabanalarga",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "maps_exact"
   },
   {
     "num": 66,
-    "name": "Coesco Colombia Sas - Eds El Bosque",
+    "name": "Primax - EDS Coesco El Bosque",
     "company": "Coesco Colombia Sas - Eds El Bosque",
     "avg": 58032,
     "days": 0,
@@ -2485,25 +2537,25 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 2089140,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 10.9726,
+    "lng": -74.8327,
+    "address": "Diagonal, Barrio El Bosque, Barranquilla (Primax — frente a Timon S.A.)",
     "email": "N/D",
     "nit": "N/D",
     "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Estación Primax en Barrio El Bosque. Coordenadas corregidas — verificar pin exacto con GPS en primera visita.",
     "routeWave": 1,
     "stopOrder": 5,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 10.9726,
+    "routeCentroidLng": -74.8327,
+    "subzone": "R20.0km · Barranquilla · El Bosque",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "campo_aprox"
   },
   {
     "num": 67,
-    "name": "Coesco Colombia Sas - Eds Puente Pumarejo",
+    "name": "Primax - EDS Coesco Puente Pumarejo",
     "company": "Coesco Colombia Sas - Eds Puente Pumarejo",
     "avg": 38250,
     "days": 0,
@@ -2512,25 +2564,25 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 1377000,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 10.9912,
+    "lng": -74.7868,
+    "address": "Sector Puente Pumarejo, Barranquilla ⚠️ Confirmar dirección exacta en Google Maps",
     "email": "N/D",
     "nit": "N/D",
     "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Ubicación aproximada zona Puente Pumarejo — verificar dirección exacta en Maps al visitar.",
     "routeWave": 1,
     "stopOrder": 6,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 10.9912,
+    "routeCentroidLng": -74.7868,
+    "subzone": "R20.0km · Barranquilla · Puente Pumarejo",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "pending_field_verify"
   },
   {
     "num": 68,
-    "name": "Coesco Colombia Sas - Eds El Amparo",
+    "name": "Primax - EDS Coesco El Amparo",
     "company": "Coesco Colombia Sas - Eds El Amparo",
     "avg": 32360,
     "days": 0,
@@ -2539,52 +2591,52 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 1164960,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 10.9628,
+    "lng": -74.8421,
+    "address": "Barrio El Amparo, Barranquilla ⚠️ Confirmar dirección exacta en Google Maps",
     "email": "N/D",
     "nit": "N/D",
     "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Ubicación aproximada barrio El Amparo — verificar dirección exacta en Maps al visitar.",
     "routeWave": 1,
     "stopOrder": 7,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 10.9628,
+    "routeCentroidLng": -74.8421,
+    "subzone": "R20.0km · Barranquilla · El Amparo",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "pending_field_verify"
   },
   {
     "num": 69,
-    "name": "Coesco Colombia Sas - San Benito",
+    "name": "Primax - EDS Coesco San Benito",
     "company": "Coesco Colombia Sas - San Benito",
     "avg": 22325,
     "days": 0,
     "status": "ACTIVO",
     "p": "g",
-    "city": "Barranquilla",
-    "phone": "7198803",
+    "city": "Santo Tomás",
+    "phone": "3222695511",
     "hist": 803700,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 10.7548,
+    "lng": -74.7582,
+    "address": "Calle 13 #11-47, Santo Tomás, Atlántico",
     "email": "N/D",
     "nit": "N/D",
-    "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 3. Estación Primax/Coesco en Santo Tomás — activa. Coordenadas corregidas desde Google Maps (Calle 13 #11-47, junto a Servicentro San Benito Ltda).",
     "routeWave": 1,
-    "stopOrder": 8,
-    "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "stopOrder": 3,
+    "routeCluster": 27,
+    "routeCentroidLat": 10.7548,
+    "routeCentroidLng": -74.7582,
+    "subzone": "Ruta Sabanalarga · Santo Tomás",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "maps_exact"
   },
   {
     "num": 70,
-    "name": "Coesco Colombia Sas - Eds Prado",
+    "name": "Primax - EDS Coesco Prado",
     "company": "Coesco Colombia Sas - Eds Prado",
     "avg": 22313,
     "days": 0,
@@ -2593,25 +2645,25 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 803280,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 11.0118,
+    "lng": -74.8228,
+    "address": "Cl. 76 con Cra. 52, Barrio Prado, Barranquilla (Primax — entre Cra. 52 y 53)",
     "email": "N/D",
     "nit": "N/D",
     "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Estación Primax en Barrio Prado, Barranquilla. Coordenadas corregidas desde Google Maps — confirmar pin exacto al iniciar primera visita.",
     "routeWave": 1,
     "stopOrder": 9,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 11.0118,
+    "routeCentroidLng": -74.8228,
+    "subzone": "R20.0km · Barranquilla · Prado",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "campo_aprox"
   },
   {
     "num": 71,
-    "name": "Coesco Colombia Sas - Lualcor",
+    "name": "Primax - EDS Coesco Lualcor",
     "company": "Coesco Colombia Sas - Lualcor",
     "avg": 12123,
     "days": 0,
@@ -2620,21 +2672,102 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "7198803",
     "hist": 436440,
-    "lat": 11.011719,
-    "lng": -74.828476,
-    "address": "CL 51 B  75 171",
+    "lat": 11.0052,
+    "lng": -74.8263,
+    "address": "Barranquilla (Lualcor) ⚠️ Buscar 'Primax EDS Coesco Lualcor' en Google Maps para confirmar dirección",
     "email": "N/D",
     "nit": "N/D",
     "day": "FRI",
-    "aiText": "Análisis IA: Mantener volumen mensual.",
+    "aiText": "Análisis IA: Mantener volumen mensual. Ubicación aproximada zona central Barranquilla — buscar en Maps 'Primax Coesco Lualcor' para obtener dirección exacta.",
     "routeWave": 1,
     "stopOrder": 10,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "R20.0km · Barranquilla",
+    "routeCentroidLat": 11.0052,
+    "routeCentroidLng": -74.8263,
+    "subzone": "R20.0km · Barranquilla · Lualcor",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim"
+    "geoSource": "pending_field_verify"
+  },
+  {
+    "num": 74,
+    "name": "Primax - EDS Coesco La Once",
+    "company": "Coesco Colombia SAS - EDS La Once",
+    "avg": 0,
+    "days": 400,
+    "status": "INACTIVO",
+    "p": "o",
+    "city": "Santa Marta",
+    "phone": "018000913776",
+    "hist": 0,
+    "lat": 11.2451224,
+    "lng": -74.2027976,
+    "address": "Cl. 11 #12-60, Comuna 4, Santa Marta, Magdalena",
+    "email": "N/D",
+    "nit": "N/D",
+    "day": "MON",
+    "aiText": "Primera visita comercial. Estación Primax operada por Coesco en Santa Marta (Cl. 11 #12-60, Comuna 4). Sin historial XP3 — oportunidad de apertura. Abierta 24h. Coordenadas exactas de Google Maps.",
+    "routeWave": 4,
+    "stopOrder": 5,
+    "routeCluster": 4,
+    "routeCentroidLat": 11.2451,
+    "routeCentroidLng": -74.2028,
+    "subzone": "R20.0km · Santa Marta · La Once",
+    "routeRadiusKm": 20.0,
+    "geoSource": "maps_exact"
+  },
+  {
+    "num": 73,
+    "name": "Primax - EDS Coesco Juan Mina",
+    "company": "Coesco Colombia SAS - EDS Juan Mina",
+    "avg": 0,
+    "days": 400,
+    "status": "INACTIVO",
+    "p": "o",
+    "city": "Barranquilla",
+    "phone": "N/A",
+    "hist": 0,
+    "lat": 10.9595053,
+    "lng": -74.8884955,
+    "address": "VIA 11 #13-53, Juan Mina, Barranquilla, Atlántico",
+    "email": "N/D",
+    "nit": "N/D",
+    "day": "FRI",
+    "aiText": "Primera visita comercial registrada. Estación Primax operada por Coesco en Juan Mina, Barranquilla. Zona occidental (~15 km del centro, vía Cordialidad). Sin historial XP3 — oportunidad de apertura. Coordenadas exactas de Google Maps.",
+    "routeWave": 1,
+    "stopOrder": 11,
+    "routeCluster": 26,
+    "routeCentroidLat": 10.9595,
+    "routeCentroidLng": -74.8885,
+    "subzone": "R20.0km · Barranquilla · Juan Mina",
+    "routeRadiusKm": 20.0,
+    "geoSource": "maps_exact"
+  },
+  {
+    "num": 72,
+    "name": "Primax - EDS Coesco Malambo",
+    "company": "Coesco Colombia SAS - EDS Malambo",
+    "avg": 0,
+    "days": 400,
+    "status": "INACTIVO",
+    "p": "o",
+    "city": "Malambo",
+    "phone": "N/A",
+    "hist": 0,
+    "lat": 10.844,
+    "lng": -74.786,
+    "address": "Cl. 5 #1H - 247, Malambo, Atlántico",
+    "email": "N/D",
+    "nit": "N/D",
+    "day": "WED",
+    "aiText": "Ruta Sabanalarga · Parada 1. Primera parada del circuito Atlántico Interior (Malambo → Santo Tomás → Sabanalarga → Baranoa → Galapa). Estación Primax/Coesco — primera visita comercial.",
+    "routeWave": 1,
+    "stopOrder": 1,
+    "routeCluster": 27,
+    "routeCentroidLat": 10.844,
+    "routeCentroidLng": -74.786,
+    "subzone": "Ruta Sabanalarga · Malambo",
+    "routeRadiusKm": 20.0,
+    "geoSource": "campo"
   }
 ];
 
@@ -3492,6 +3625,12 @@ function setRouteListDay(dk) {
     }
 }
 
+/** Abre el mapa con el mismo filtro de día que la lista (área + pinos de ese día). */
+function openRouteMapForCurrentFilter() {
+    ensureRouteListDayFilterInit();
+    showScreen('s-mapa', 'nb-ruta');
+}
+
 function getClientsForRouteListView() {
     ensureRouteListDayFilterInit();
     var all = allRouteClients();
@@ -3501,9 +3640,7 @@ function getClientsForRouteListView() {
 
 function updateRouteDayChipsUI() {
     ensureRouteListDayFilterInit();
-    var wrap = document.getElementById('route-day-chips');
-    if (!wrap) return;
-    wrap.querySelectorAll('.tag[data-route-day]').forEach(function(btn) {
+    document.querySelectorAll('#route-day-chips .tag[data-route-day], #map-route-day-chips .tag[data-route-day]').forEach(function(btn) {
         var on = btn.getAttribute('data-route-day') === routeListDayFilter;
         btn.classList.toggle('sel', on);
     });
@@ -3516,10 +3653,16 @@ function refreshRutaScreenHeader(numStops) {
     var title = document.getElementById('ruta-screen-title');
     var badge = document.getElementById('ruta-day-badge');
     var sub = document.getElementById('ruta-subtitle');
+    var sbN = 0;
+    getClientsForRouteListView().forEach(function(c) {
+        if (typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(c)) sbN++;
+    });
     if (title) title.textContent = dk === 'ALL' ? 'Cartera completa' : ('Ruta · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
     if (badge) badge.textContent = dk === 'ALL' ? 'Sin filtro por día' : ('Día · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
     if (sub) {
-        sub.textContent = numStops + ' estaciones · ' + (dk === 'ALL' ? 'orden por ola/parada' : 'solo ' + dayName + ' · orden por ola/parada');
+        sub.textContent =
+            numStops + ' estaciones · ' + (dk === 'ALL' ? 'orden: Standby primero' : 'solo ' + dayName + ' · Standby primero')
+            + (sbN > 0 ? ' · ⏸ ' + sbN + ' Standby' : '');
     }
 }
 
@@ -3530,6 +3673,12 @@ function buildRouteList() {
     ensureRouteListDayFilterInit();
     let filteredRoute = getClientsForRouteListView();
     filteredRoute = filteredRoute.slice().sort(function(a, b) {
+        var sa = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(a) ? 0 : 1;
+        var sb = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(b) ? 0 : 1;
+        if (sa !== sb) return sa - sb;
+        var ca = (a.days || 0) > 400 ? 0 : 1;
+        var cb = (b.days || 0) > 400 ? 0 : 1;
+        if (ca !== cb) return ca - cb;
         var wa = a.routeWave || 1, wb = b.routeWave || 1;
         var oa = a.stopOrder || 0, ob = b.stopOrder || 0;
         if (wa !== wb) return wa - wb;
@@ -3752,6 +3901,81 @@ function updateMapDriveAndLegend() {
     }
 }
 
+function updateMapRouteContextBanner() {
+    ensureRouteListDayFilterInit();
+    var dk = routeListDayFilter;
+    var clients = getClientsForRouteListView();
+    var n = clients.length;
+    var dayL = dk === 'ALL' ? 'Toda la cartera' : (DAY_META[dk] ? DAY_META[dk].name : dk);
+    var sb = 0;
+    clients.forEach(function(c) {
+        if (clientStandbyFromBusinessZone(c)) sb++;
+    });
+    var el = document.getElementById('map-route-context');
+    if (el) {
+        var shadowLine = dk === 'ALL'
+            ? ' Sin sombra única: elegí <strong>Lun–Vie</strong> para ver el área de ese día.'
+            : ' Sombra <strong>ámbar</strong> = región de trabajo aproximada para ese día.';
+        el.innerHTML =
+            '<strong>' + dayL + ':</strong> ' + n + ' paradas en este mapa'
+            + (sb > 0 ? ' · <span style="color:var(--yellow);">' + sb + ' en zona Standby</span> (prioridad recuperación)' : '')
+            + '.' + shadowLine;
+    }
+}
+
+/** Producto cruzado (lng,lat como x,y) para casco convexo. */
+function _crossHull(o, a, b) {
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+}
+/** Casco convexo monotone chain; entrada/salida [lng,lat]. */
+function convexHullLngLat(points) {
+    var n = points.length;
+    if (n <= 1) return points.slice();
+    var pts = points.slice().sort(function(a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    var lower = [];
+    var i;
+    for (i = 0; i < n; i++) {
+        while (lower.length >= 2 && _crossHull(lower[lower.length - 2], lower[lower.length - 1], pts[i]) <= 0) lower.pop();
+        lower.push(pts[i]);
+    }
+    var upper = [];
+    for (i = n - 1; i >= 0; i--) {
+        while (upper.length >= 2 && _crossHull(upper[upper.length - 2], upper[upper.length - 1], pts[i]) <= 0) upper.pop();
+        upper.push(pts[i]);
+    }
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
+}
+/** LatLng[] para polígono “área del día”; null si no aplica. */
+function latLngsForDayWorkAreaShadow(clients, hideStandby) {
+    var pts = [];
+    clients.forEach(function(c) {
+        if (hideStandby && clientStandbyFromBusinessZone(c)) return;
+        var ec = getEffectiveCoords(c);
+        if (ec.lat == null || ec.lng == null || isNaN(ec.lat) || isNaN(ec.lng)) return;
+        pts.push([ec.lat, ec.lng]);
+    });
+    if (pts.length === 0) return null;
+    if (pts.length === 1) {
+        var p = pts[0];
+        var d = 0.045;
+        return [[p[0] - d, p[1] - d], [p[0] - d, p[1] + d], [p[0] + d, p[1] + d], [p[0] + d, p[1] - d]];
+    }
+    var lnglat = pts.map(function(p) { return [p[1], p[0]]; });
+    var hull = convexHullLngLat(lnglat);
+    if (hull.length < 3) {
+        var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+        pts.forEach(function(p) {
+            minLat = Math.min(minLat, p[0]); maxLat = Math.max(maxLat, p[0]);
+            minLng = Math.min(minLng, p[1]); maxLng = Math.max(maxLng, p[1]);
+        });
+        var pad = 0.04;
+        return [[minLat - pad, minLng - pad], [minLat - pad, maxLng + pad], [maxLat + pad, maxLng + pad], [maxLat + pad, minLng - pad]];
+    }
+    return hull.map(function(xy) { return [xy[1], xy[0]]; });
+}
+
 function initOrRefreshRouteMap() {
     var el = document.getElementById('map-route-leaflet');
     if (!el || typeof L === 'undefined') {
@@ -3771,6 +3995,25 @@ function initOrRefreshRouteMap() {
     routeMapLayerGroup = L.layerGroup().addTo(routeMapInstance);
     var hideSbEl = document.getElementById('map-hide-standby');
     var hideStandby = hideSbEl && hideSbEl.checked;
+    ensureRouteListDayFilterInit();
+    var clientsForDay = getClientsForRouteListView();
+    var bounds = L.latLngBounds([]);
+    if (routeListDayFilter && routeListDayFilter !== 'ALL') {
+        var shadowLL = latLngsForDayWorkAreaShadow(clientsForDay, hideStandby);
+        if (shadowLL && shadowLL.length >= 3) {
+            var dayNameShadow = DAY_META[routeListDayFilter] ? DAY_META[routeListDayFilter].name : routeListDayFilter;
+            L.polygon(shadowLL, {
+                fillColor: '#f59e0b',
+                fillOpacity: 0.22,
+                color: '#b45309',
+                weight: 2,
+                opacity: 0.92
+            }).addTo(routeMapLayerGroup).bindPopup(
+                '<strong>Área del día · ' + dayNameShadow + '</strong><br><span style="opacity:.9;">Región donde caen tus paradas ese día (casco convexo aprox.). Usá los chips Lun–Vie para cambiar de jornada.</span>'
+            );
+            shadowLL.forEach(function(ll) { bounds.extend(ll); });
+        }
+    }
     var byZone = {};
     getClientsForRouteListView().forEach(function(c) {
         var ec = getEffectiveCoords(c);
@@ -3780,7 +4023,6 @@ function initOrRefreshRouteMap() {
         if (!byZone[zk]) byZone[zk] = [];
         byZone[zk].push(c);
     });
-    var bounds = L.latLngBounds([]);
     Object.keys(byZone).sort().forEach(function(zk) {
         var clients = byZone[zk];
         if (!clients.length) return;
@@ -3835,6 +4077,8 @@ function initOrRefreshRouteMap() {
         routeMapInstance.fitBounds(bounds, { padding: [36, 36], maxZoom: 11 });
     }
     setTimeout(function() { routeMapInstance.invalidateSize(); }, 250);
+    updateRouteDayChipsUI();
+    updateMapRouteContextBanner();
     updateMapDriveAndLegend();
 }
 
@@ -3909,11 +4153,18 @@ async function submitProspect() {
     if (notes) o.notes = notes;
     PROSPECTS.push(o);
     saveProspectsLocal();
+    var adminName  = (document.getElementById('prospect-admin-name')  || {}).value || '';
+    var adminPhone = (document.getElementById('prospect-admin-phone') || {}).value || '';
+    if (adminName.trim() || adminPhone.trim()) {
+        setClientPatch(num, { adminName: adminName.trim(), adminPhone: adminPhone.trim() });
+    }
     try {
         if (typeof firebase !== 'undefined' && firebase.firestore && typeof db !== 'undefined') {
             await db.collection('prospectos').add(Object.assign({}, o, {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                source: 'xp3-app-costa-norte'
+                source: 'xp3-app-costa-norte',
+                adminName: adminName.trim() || null,
+                adminPhone: adminPhone.trim() || null
             }));
         }
     } catch (e) {
@@ -3921,8 +4172,164 @@ async function submitProspect() {
     }
     buildAgenda();
     buildRouteList();
-    alert('Prospecto guardado y asignado a la ruta del día ' + day + '.');
+    document.getElementById('prospect-company').value    = '';
+    document.getElementById('prospect-name').value       = '';
+    document.getElementById('prospect-nit').value        = '';
+    document.getElementById('prospect-city').value       = '';
+    document.getElementById('prospect-admin-name').value  = '';
+    document.getElementById('prospect-admin-phone').value = '';
+    document.getElementById('prospect-phone').value      = '';
+    document.getElementById('prospect-email').value      = '';
+    document.getElementById('prospect-address').value    = '';
+    document.getElementById('prospect-notes').value      = '';
+    document.getElementById('prospect-lat').value        = '';
+    document.getElementById('prospect-lng').value        = '';
+    alert('Prospecto guardado y asignado a la ruta del ' + (DAY_META[day] ? DAY_META[day].name : day) + '.');
     openFichaByNum(num);
+}
+
+// ================================================================
+// PARCHES DE DATOS DE CAMPO (localStorage)
+// Permite al vendedor agregar/corregir datos faltantes desde la ficha.
+// Clave: 'xp3_patches_v1' → objeto { [num]: {adminName, adminPhone, email, address, notes} }
+// ================================================================
+var _clientPatches = null;
+
+function _loadPatches() {
+    if (_clientPatches) return _clientPatches;
+    try {
+        var raw = localStorage.getItem('xp3_patches_v1');
+        _clientPatches = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        _clientPatches = {};
+    }
+    return _clientPatches;
+}
+
+function _savePatches() {
+    try { localStorage.setItem('xp3_patches_v1', JSON.stringify(_clientPatches)); } catch (e) {}
+}
+
+function getClientPatch(num) {
+    return (_loadPatches())[String(num)] || {};
+}
+
+function setClientPatch(num, data) {
+    _loadPatches();
+    _clientPatches[String(num)] = Object.assign(_clientPatches[String(num)] || {}, data);
+    _savePatches();
+}
+
+function toggleFichaEdit() {
+    var panel = document.getElementById('ficha-edit-panel');
+    if (!panel) return;
+    var open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    if (!open && currentFicha) {
+        var p = getClientPatch(currentFicha.num);
+        document.getElementById('edit-admin-name').value  = p.adminName  || '';
+        document.getElementById('edit-admin-phone').value = p.adminPhone || '';
+        document.getElementById('edit-email').value       = p.email      || '';
+        document.getElementById('edit-address').value     = p.address    || '';
+        document.getElementById('edit-field-notes').value = p.notes      || '';
+        document.getElementById('ficha-edit-saved-msg').style.display = 'none';
+        var notesRow = document.getElementById('ficha-edit-notes-row');
+        var notesText = document.getElementById('ficha-edit-notes-text');
+        if (notesRow && notesText) {
+            if (p.notes) {
+                notesRow.style.display = 'block';
+                notesText.textContent = '📝 Nota guardada: ' + p.notes;
+            } else {
+                notesRow.style.display = 'none';
+            }
+        }
+    }
+}
+
+function saveFichaEdits() {
+    if (!currentFicha) return;
+    var patch = {
+        adminName:  (document.getElementById('edit-admin-name').value  || '').trim(),
+        adminPhone: (document.getElementById('edit-admin-phone').value || '').trim(),
+        email:      (document.getElementById('edit-email').value       || '').trim(),
+        address:    (document.getElementById('edit-address').value     || '').trim(),
+        notes:      (document.getElementById('edit-field-notes').value || '').trim()
+    };
+    setClientPatch(currentFicha.num, patch);
+    var msg = document.getElementById('ficha-edit-saved-msg');
+    if (msg) { msg.style.display = 'block'; setTimeout(function() { msg.style.display = 'none'; }, 3500); }
+    var notesRow = document.getElementById('ficha-edit-notes-row');
+    var notesText = document.getElementById('ficha-edit-notes-text');
+    if (notesRow && notesText) {
+        if (patch.notes) {
+            notesRow.style.display = 'block';
+            notesText.textContent = '📝 Nota guardada: ' + patch.notes;
+        } else {
+            notesRow.style.display = 'none';
+        }
+    }
+    _applyPatchToFichaUI(currentFicha, patch);
+}
+
+/** Normaliza valores vacíos/nulos del ERP: "NULL", "N/A", "N/D", "—", "" → null */
+function _normField(v) {
+    if (!v) return null;
+    var s = String(v).trim();
+    if (!s || s === 'N/A' || s === 'N/D' || s === 'NULL' || s === 'null' || s === '—' || s === '-') return null;
+    return s;
+}
+
+function _applyPatchToFichaUI(c, patch) {
+    var adminRow = document.getElementById('ficha-admin-row');
+    var adminNameEl = document.getElementById('ficha-admin-name');
+    if (patch.adminName) {
+        if (adminRow) adminRow.style.display = 'flex';
+        if (adminNameEl) adminNameEl.textContent = patch.adminName;
+    } else {
+        if (adminRow) adminRow.style.display = 'none';
+    }
+    var phoneEl = document.getElementById('ficha-phone');
+    if (phoneEl) {
+        var phoneRaw = patch.adminPhone || c.phone;
+        var phoneVal = _normField(phoneRaw);
+        phoneEl.textContent = phoneVal || '— Sin teléfono registrado';
+        phoneEl.style.color = patch.adminPhone ? 'var(--yellow)' : (phoneVal ? '' : 'var(--t3)');
+    }
+    var emailEl = document.getElementById('ficha-email');
+    if (emailEl) {
+        var emailVal = _normField(patch.email || c.email);
+        emailEl.textContent = emailVal || '— Sin correo registrado';
+        emailEl.style.color = patch.email ? 'var(--yellow)' : (emailVal ? '' : 'var(--t3)');
+    }
+    var addrEl = document.getElementById('ficha-address');
+    if (addrEl) {
+        var addrVal = _normField(patch.address || c.address);
+        addrEl.textContent = addrVal || '— Sin dirección registrada';
+        addrEl.style.color = patch.address ? 'var(--yellow)' : (addrVal ? '' : 'var(--t3)');
+    }
+    var nitEl = document.getElementById('ficha-nit');
+    if (nitEl) {
+        var nitVal = _normField(c.nit);
+        nitEl.textContent = nitVal || '—';
+        nitEl.style.color = nitVal ? '' : 'var(--t3)';
+    }
+    _updateFichaDataBadge(c, patch);
+}
+
+function _updateFichaDataBadge(c, patch) {
+    var badge = document.getElementById('ficha-data-badge');
+    if (!badge) return;
+    var missing = [];
+    if (!_normField(patch.adminName))  missing.push('admin');
+    if (!_normField(patch.adminPhone || c.phone)) missing.push('tel');
+    if (!_normField(patch.email || c.email))  missing.push('email');
+    if (!_normField(patch.address || c.address)) missing.push('dirección');
+    if (!_normField(c.nit)) missing.push('NIT');
+    if (missing.length === 0) {
+        badge.innerHTML = '<span style="color:var(--green);font-size:10px;">✅ Datos completos</span>';
+    } else {
+        badge.innerHTML = '<span style="color:var(--yellow);font-size:10px;">⚠️ Faltan: <strong>' + missing.join(', ') + '</strong> — usá ✏️ Actualizar datos</span>';
+    }
 }
 
 // ================================================================
@@ -3942,11 +4349,14 @@ function openFichaCore(c) {
     const isProspect = c.prospect === true || c.status === 'PROSPECTO';
     document.getElementById('ficha-name').textContent       = c.name;
     document.getElementById('ficha-company').textContent    = c.company;
-    document.getElementById('ficha-city-tag').textContent   = '📍 ' + c.city;
-    document.getElementById('ficha-phone').textContent      = c.phone;
-    document.getElementById('ficha-email').textContent      = c.email || 'N/D';
-    document.getElementById('ficha-address').textContent    = c.address || 'N/D';
+    var cityDisplay = c.city;
+    if (cityDisplay === 'Costa') cityDisplay = 'Zona Costa (Sincelejo/Sucre — sin ciudad exacta en ERP)';
+    document.getElementById('ficha-city-tag').textContent   = '📍 ' + cityDisplay;
     document.getElementById('ficha-nit').textContent        = c.nit || 'N/D';
+    var editPanel = document.getElementById('ficha-edit-panel');
+    if (editPanel) editPanel.style.display = 'none';
+    var patch = getClientPatch(c.num);
+    _applyPatchToFichaUI(c, patch);
     if (isProspect) {
         document.getElementById('ficha-days').textContent = 'Lead en campo · pendiente alta ERP';
         document.getElementById('ficha-status-badge').textContent = 'PROSPECTO';
@@ -3978,8 +4388,14 @@ function openFichaCore(c) {
         } else if (gs === 'nominatim_city') {
             fb.style.display = 'block';
             fbt.textContent = 'Coordenadas por centro urbano (no hubo dirección exacta en mapa). Contrastá con la dirección de la ficha o usá búsqueda por dirección.';
-        } else if (gs === 'nominatim') {
+        } else if (gs === 'nominatim' || gs === 'maps_exact') {
             fb.style.display = 'none';
+        } else if (gs === 'pending_field_verify') {
+            fb.style.display = 'block';
+            fbt.textContent = '⚠️ Ubicación aproximada por barrio — la dirección exacta de esta EDS no está en el ERP. Antes de ir, buscá el nombre en Google Maps (ej. "Primax Coesco ' + (c.name || '').replace('Primax - EDS Coesco ','') + '") para confirmar la dirección. Luego usá «Buscar por dirección» o iniciá visita para fijar el GPS real.';
+        } else if (gs === 'campo_aprox') {
+            fb.style.display = 'block';
+            fbt.textContent = '📍 Coordenadas corregidas manualmente (aproximadas). Verificá que el pin lleva al lugar correcto cuando llegues al sitio. Si hay desvío, usá «Buscar por dirección» o iniciá la visita para fijar el GPS real.';
         } else {
             fb.style.display = 'block';
             fbt.textContent = 'Comprobá en terreno que el pin coincide con la estación. Si no, usá búsqueda por dirección o pedí actualización de coordenadas en oficina.';
@@ -3997,10 +4413,13 @@ function openFichaCore(c) {
 }
 
 function callClient() {
-    if (currentFicha && currentFicha.phone && currentFicha.phone !== 'N/A') {
-        window.location.href = 'tel:' + currentFicha.phone;
+    if (!currentFicha) return;
+    var patch = getClientPatch(currentFicha.num);
+    var phone = _normField((patch.adminPhone && patch.adminPhone.trim()) || currentFicha.phone);
+    if (phone) {
+        window.location.href = 'tel:' + phone.replace(/\s/g, '');
     } else {
-        alert('Sin teléfono registrado para este cliente.');
+        alert('Sin teléfono registrado. Usá ✏️ Actualizar datos para agregar el número del administrador.');
     }
 }
 
