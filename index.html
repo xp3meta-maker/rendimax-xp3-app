@@ -214,6 +214,17 @@
         <span id="gps-indicator" class="gps-pill gps-off"><span class="gpsdot"></span>GPS</span>
     </div>
 
+    <div id="cap-reminder-banner" style="display:none;margin:6px 12px 0;padding:10px 12px;background:rgba(168,85,247,.2);border:1px solid rgba(168,85,247,.5);border-radius:12px;font-size:11px;line-height:1.45;color:var(--t1);">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:20px;">🎓</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;" id="cap-reminder-banner-title">Recordatorio · capacitación</div>
+                <div class="sub" id="cap-reminder-banner-body" style="margin-top:2px;font-size:11px;">—</div>
+            </div>
+            <button type="button" class="btn btn-gh btn-sm" style="flex-shrink:0;padding:4px 10px;font-size:10px;" onclick="dismissCapReminderBanner()">OK</button>
+        </div>
+    </div>
+
     <!-- GPS Alert Toast (only fires when TRULY near an EDS) -->
     <div id="gps-t">
         <span style="font-size:22px;">📍</span>
@@ -337,6 +348,30 @@
 
             <div class="slbl" id="weekly-plan-slbl">Semana en calendario · Barrido Costa Norte</div>
             <div id="weekly-plan-list"></div>
+
+            <div class="slbl" style="margin-top:6px;">Capacitaciones</div>
+            <p class="sub" style="font-size:10px;margin-bottom:8px;line-height:1.45;">Filtrá la vista y agendá capacitaciones con día, hora y estación. Recordatorio en esta app <strong>1 o 2 días antes</strong> (banner arriba).</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+                <button type="button" class="tag active" id="agenda-cap-filter-orc" onclick="setAgendaCapView('orc')">📋 Solo ORC / ruta</button>
+                <button type="button" class="tag" id="agenda-cap-filter-cap" onclick="setAgendaCapView('cap')">🎓 Capacitaciones</button>
+            </div>
+            <div id="agenda-cap-panel" class="card" style="display:none;padding:12px;margin-bottom:14px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.07);">
+                <div class="lbl" style="margin-bottom:8px;color:#ddd6fe;">Nueva capacitación</div>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Día</label>
+                <input type="date" id="cap-date" class="form-input" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Hora</label>
+                <input type="time" id="cap-time" class="form-input" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Estación / lugar / tema</label>
+                <input type="text" id="cap-station" class="form-input" placeholder="Ej. EDS Boston — capacitación mix aditivos" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Avisarme</label>
+                <select id="cap-remind-days" class="form-input" style="width:100%;margin-bottom:10px;padding:8px;box-sizing:border-box;">
+                    <option value="1">1 día antes</option>
+                    <option value="2">2 días antes</option>
+                    <option value="1,2">1 y 2 días antes</option>
+                </select>
+                <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveCapacitacionEvent()">💾 Guardar en mi calendario</button>
+                <div id="cap-list-wrap" class="sub" style="font-size:11px;margin-top:12px;line-height:1.5;">—</div>
+            </div>
 
             <div class="ai-box">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -512,6 +547,10 @@
 
         <!-- ==================== FICHA 360 ==================== -->
         <div id="s-ficha" class="screen">
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button type="button" class="btn btn-gh btn-sm" style="flex:1;font-size:11px;padding:10px 8px;" onclick="showScreen('s-home','nb-home')">🏠 Inicio</button>
+                <button type="button" class="btn btn-gh btn-sm" style="flex:1;font-size:11px;padding:10px 8px;" onclick="showScreen('s-ruta','nb-ruta')">📍 Ruta</button>
+            </div>
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
                 <div style="width:54px;height:54px;background:rgba(255,179,0,.12);border:1px solid rgba(255,179,0,.35);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🏢</div>
                 <div>
@@ -662,6 +701,10 @@
 
         <!-- ==================== VISITA ==================== -->
         <div id="s-registro" class="screen">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button type="button" class="btn btn-gh btn-sm" style="flex:1;font-size:11px;padding:10px 8px;" onclick="showScreen('s-home','nb-home')">🏠 Inicio</button>
+                <button type="button" class="btn btn-gh btn-sm" style="flex:1;font-size:11px;padding:10px 8px;" onclick="showScreen('s-ruta','nb-ruta')">📍 Ruta</button>
+            </div>
             <h2 style="margin-bottom:4px;">Registrar Visita</h2>
             <p class="sub" style="margin-bottom:18px;">Modo offline · Sincroniza al reconectar</p>
 
@@ -671,6 +714,26 @@
             </div>
             <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:-8px 0 8px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">La primera vez que visites a un cliente se guarda el GPS como referencia. Las visitas siguientes no sobrescriben ese pin automáticamente.</p>
             <button type="button" class="btn btn-gh btn-sm" style="width:100%;font-size:11px;margin-bottom:14px;" onclick="overwriteVisitAnchorFromGps()">🔄 Actualizar ubicación GPS (solo si el pin guardado está mal)</button>
+
+            <div class="card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(255,179,0,.4);background:rgba(255,179,0,.06);">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span style="font-size:16px;">✏️</span>
+                    <span class="lbl" style="color:var(--yellow);">Datos del cliente (en esta visita)</span>
+                </div>
+                <p class="sub" style="font-size:10px;line-height:1.45;margin-bottom:10px;color:var(--t2);">Mismo guardado que en la ficha · <strong>este dispositivo</strong>. Corregí teléfono, correo o dirección sin salir de la visita.</p>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">👤 Encargado / administrador</label>
+                <input type="text" id="visit-edit-admin-name" placeholder="Nombre" autocomplete="off" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">📞 Teléfono</label>
+                <input type="tel" id="visit-edit-admin-phone" placeholder="Ej. 300…" autocomplete="off" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">📧 Correo</label>
+                <input type="email" id="visit-edit-email" placeholder="correo@…" autocomplete="off" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">📍 Dirección</label>
+                <input type="text" id="visit-edit-address" placeholder="Dirección corregida" autocomplete="off" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">📝 Notas de campo</label>
+                <input type="text" id="visit-edit-notes" placeholder="Ej. Mejor llamar antes del mediodía" autocomplete="off" style="width:100%;margin-bottom:10px;padding:8px;box-sizing:border-box;">
+                <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveVisitClientEditsFromPanel()">💾 Guardar datos del cliente</button>
+                <p class="sub" id="visit-client-edit-msg" style="display:none;text-align:center;color:var(--green);margin-top:8px;font-size:11px;">✅ Guardado. Se verá igual en la ficha 360°.</p>
+            </div>
 
             <div class="g2" style="margin-bottom:18px;">
                 <div class="kpi"><div class="kl">Hora llegada</div><div class="kv" style="font-size:20px;margin-top:3px;" id="visit-time">--:--</div></div>
@@ -947,23 +1010,23 @@ const ROUTE = [
     "status": "INACTIVO",
     "p": "g",
     "city": "Cartagena",
-    "phone": "N/A",
+    "phone": "3108393864",
     "hist": 0,
-    "lat": 10.426557,
-    "lng": -75.544167,
-    "address": "CR 56 1 364",
-    "email": "N/D",
-    "nit": "N/D",
+    "lat": 10.386276,
+    "lng": -75.501846,
+    "address": "Vía El Bosque, Cra. 56 #1-364, km 3, Mamonal, Cartagena de Indias, Bolívar",
+    "email": "nautica@combured.co",
+    "nit": "900675169",
     "day": "MON",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
+    "aiText": "EDS Nautica Combured — Terpel (Mamonal). Dirección según Google Maps / Combured; pin aproximado Vía Mamonal (OSM fuel Ceballos) — afinar en visita si hace falta. 24h · 4.4★.",
     "routeWave": 2,
     "stopOrder": 4,
     "routeCluster": 2,
-    "routeCentroidLat": 10.40952,
-    "routeCentroidLng": -75.52577,
-    "subzone": "R20.0km · Cartagena",
+    "routeCentroidLat": 10.386276,
+    "routeCentroidLng": -75.501846,
+    "subzone": "Cartagena · Mamonal · EDS Nautica (Combured · Terpel)",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim_city"
+    "geoSource": "nominatim_fuel_via_mamonal"
   },
   {
     "num": 7,
@@ -974,12 +1037,12 @@ const ROUTE = [
     "status": "INACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "N/A",
+    "phone": "3112596600",
     "hist": 2921220,
     "lat": 10.99075,
     "lng": -74.78105,
     "address": "Cl. 40 #22-67, Sur Oriente, Barranquilla, Atlántico",
-    "email": "N/D",
+    "email": "luchin55@gmail.com",
     "nit": "19221222",
     "day": "MON",
     "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
@@ -1055,13 +1118,13 @@ const ROUTE = [
     "status": "ACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "018000913776",
+    "phone": "3213405208",
     "hist": 1805130,
     "lat": 11.0018182,
     "lng": -74.8077905,
     "address": "Cra. 51B #75-171, Nte. Centro Histórico, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "FRI",
     "aiText": "Ruta Centro Occidente · Estación activa Primax/Coesco Alto Prado. Cra. 51B #75-171, Norte Centro Histórico. Abierta 24h. Coordenadas exactas Google Maps (4.2★ 37 opiniones).",
     "routeWave": 1,
@@ -1082,13 +1145,13 @@ const ROUTE = [
     "status": "ACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "018000913776",
+    "phone": "3232295792",
     "hist": 947040,
     "lat": 10.9876894,
     "lng": -74.8081419,
     "address": "Cra. 43 #66-35, Nte. Centro Histórico, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "esdbostong@coescocolombia.com",
+    "nit": "901300741",
     "day": "FRI",
     "aiText": "Ruta Centro Occidente · Estación activa Primax/Coesco Boston. Cra. 43 #66-35, Norte Centro Histórico. Abierta 24h — 4.6★ Maps (78 opiniones). Coordenadas exactas Google Maps.",
     "routeWave": 1,
@@ -2243,21 +2306,21 @@ const ROUTE = [
     "status": "INACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "3042020",
+    "phone": "3045966404",
     "hist": 163320,
     "lat": 10.9900142,
     "lng": -74.7981218,
     "address": "Cra. 45 #58-21, Nte. Centro Histórico, Barranquilla, Atlántico",
-    "email": "N/D",
+    "email": "900112104@metrocombustible.co",
     "nit": "900112104",
-    "day": "THU",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
+    "day": "TUE",
+    "aiText": "Ruta Barranquilla Norte (ORC) · Metropolitana EDS Montelibano — Cra. 45 #58-21, Nte. Centro Histórico.",
     "routeWave": 1,
     "stopOrder": 3,
     "routeCluster": 23,
     "routeCentroidLat": 10.93275,
     "routeCentroidLng": -74.78173,
-    "subzone": "METROPOLITANA – CENTRO – ORIENTE · Boston · Cra. 45 con Cl. 58",
+    "subzone": "Barranquilla NORTE · Nte. Centro Histórico · Montelibano",
     "routeRadiusKm": 20.0,
     "geoSource": "nominatim_street"
   },
@@ -2465,15 +2528,15 @@ const ROUTE = [
     "lng": -74.790752,
     "address": "Cl. 53 #44-10, Nte. Centro Histórico, Barranquilla, Atlántico",
     "email": "jerardincogollocasiani@gmail.com",
-    "nit": "N/D",
+    "nit": "1140908364",
     "day": "FRI",
-    "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
+    "aiText": "Ruta Metropolitana Centro-Occidente (ORC) — EDS Cogollo, Cl. 53 #44-10, Nte. Centro Histórico.",
     "routeWave": 1,
     "stopOrder": 1,
     "routeCluster": 26,
     "routeCentroidLat": 11.0067,
     "routeCentroidLng": -74.82473,
-    "subzone": "METROPOLITANA – CENTRO – ORIENTE · Nte. Centro Histórico",
+    "subzone": "Centro Occidente · Cl. 53 #44-10 (Cogollo)",
     "routeRadiusKm": 20.0,
     "geoSource": "maps_exact"
   },
@@ -2513,12 +2576,12 @@ const ROUTE = [
     "status": "INACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "3704219",
+    "phone": "3154486213",
     "hist": 2081100,
     "lat": 10.9839539,
     "lng": -74.781674,
     "address": "Cl. 40 #44-39, Of. 6 H, Nte. Centro Histórico, Barranquilla, Atlántico",
-    "email": "N/D",
+    "email": "Edspuertocolombia@credisegurosdelacosta.com",
     "nit": "900021337",
     "day": "FRI",
     "aiText": "Análisis IA: Ruta prioritaria de recuperación.",
@@ -2594,13 +2657,13 @@ const ROUTE = [
     "status": "ACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "018000913776",
+    "phone": "7198803",
     "hist": 1377000,
     "lat": 10.9875,
     "lng": -74.7835,
     "address": "Cra. 8b #5-153, Sur Oriente, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "THU",
     "aiText": "Ruta Centro Oriente · Parada 1 (única por ahora). EDS activa Primax/Coesco Puente Pumarejo. Cra. 8b #5-153, Sur Oriente — extremo este de Barranquilla, pegada al río Magdalena. Dirección confirmada Google Maps.",
     "routeWave": 1,
@@ -2675,13 +2738,13 @@ const ROUTE = [
     "status": "ACTIVO",
     "p": "g",
     "city": "Barranquilla",
-    "phone": "7198803",
+    "phone": "3213405208",
     "hist": 803280,
     "lat": 11.0118,
     "lng": -74.8228,
     "address": "Cl. 76 con Cra. 52, Barrio Prado, Barranquilla (Primax — entre Cra. 52 y 53)",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "FRI",
     "aiText": "Ruta Centro Occidente · Estación activa Primax/Coesco Prado. Cl. 76 con Cra. 52, Barrio Prado. Coordenadas corregidas Google Maps.",
     "routeWave": 1,
@@ -2692,33 +2755,6 @@ const ROUTE = [
     "subzone": "Centro Occidente · Prado",
     "routeRadiusKm": 20.0,
     "geoSource": "campo_aprox"
-  },
-  {
-    "num": 71,
-    "name": "Primax - EDS Coesco Lualcor",
-    "company": "Coesco Colombia Sas - Lualcor",
-    "avg": 12123,
-    "days": 0,
-    "status": "ACTIVO",
-    "p": "g",
-    "city": "Barranquilla",
-    "phone": "7198803",
-    "hist": 436440,
-    "lat": 11.0052,
-    "lng": -74.8263,
-    "address": "Barranquilla (Lualcor) ⚠️ Buscar 'Primax EDS Coesco Lualcor' en Google Maps para confirmar dirección",
-    "email": "N/D",
-    "nit": "N/D",
-    "day": "FRI",
-    "aiText": "Ruta Centro Occidente · Estación activa Primax/Coesco Lualcor. Ubicación aproximada zona central — buscar en Maps 'Primax EDS Coesco Lualcor Barranquilla' para confirmar dirección exacta antes de visitar.",
-    "routeWave": 1,
-    "stopOrder": 11,
-    "routeCluster": 26,
-    "routeCentroidLat": 11.0052,
-    "routeCentroidLng": -74.8263,
-    "subzone": "Centro Occidente · Lualcor",
-    "routeRadiusKm": 20.0,
-    "geoSource": "pending_field_verify"
   },
   {
     "num": 74,
@@ -2783,13 +2819,13 @@ const ROUTE = [
     "status": "INACTIVO",
     "p": "o",
     "city": "Barranquilla",
-    "phone": "N/A",
+    "phone": "3213405208",
     "hist": 0,
     "lat": 10.9780433,
     "lng": -74.8576698,
     "address": "Cl. 110 #34-69, Suroccidente, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "FRI",
     "aiText": "Ruta Centro Occidente · Primera visita comercial. Estación Primax/Coesco La Pradera, Suroccidente (Cl. 110 #34-69). Abierta 24h — 4.2★ Maps (213 opiniones). Sin historial XP3 — oportunidad de apertura. Coordenadas exactas Google Maps.",
     "routeWave": 1,
@@ -2842,8 +2878,8 @@ const ROUTE = [
     "lat": 10.9768,
     "lng": -74.7956,
     "address": "Cl. 38 #N°24-09, Sur Orient, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "THU",
     "aiText": "Ruta Centro Oriente · Parada 2. EDS Primax/Coesco Palmitas — Sur Oriente de Barranquilla (Cl. 38 #24-09), zona oriental cerca al río Magdalena. Abierta 24h — 4.5★ Maps (86 opiniones). Sin historial XP3 — primera visita comercial. ⚠️ Coordenadas aproximadas — confirmar pin exacto en visita.",
     "routeWave": 1,
@@ -2869,8 +2905,8 @@ const ROUTE = [
     "lat": 10.9595053,
     "lng": -74.8884955,
     "address": "VIA 11 #13-53, Juan Mina, Barranquilla, Atlántico",
-    "email": "N/D",
-    "nit": "N/D",
+    "email": "notificaciones@coescocolombia.com",
+    "nit": "901300741",
     "day": "FRI",
     "aiText": "Ruta Centro Occidente · Primera visita comercial. Estación Primax/Coesco Juan Mina, vía Cordialidad (~15 km del centro). Sin historial XP3 — oportunidad de apertura. Coordenadas exactas Google Maps.",
     "routeWave": 1,
@@ -2920,21 +2956,21 @@ const ROUTE = [
     "city": "Barranquilla",
     "phone": "3114290384",
     "hist": 0,
-    "lat": 11.016257,
-    "lng": -74.832726,
-    "address": "Cra. 53 #82-86, Ed. Ocean Tower, Of. 305, Localidad Riomar, Barranquilla, Atlántico",
+    "lat": 11.0068164,
+    "lng": -74.8165092,
+    "address": "Cra. 53 #82-86, Ed. Ocean Tower Business Center, Of. 305, Nte. Centro Histórico, Barranquilla, Atlántico",
     "email": "radicacion@comercialavanada.com",
     "nit": "900962785",
-    "day": "FRI",
-    "aiText": "Alta en cartera ORC — oficina Ocean Tower (Riomar). Confirmar pin exacto en primera visita.",
+    "day": "TUE",
+    "aiText": "Ruta Barranquilla Norte (ORC) — Edificio Ocean Tower Business Center, Of. 305. Pin Google Maps (11.0068164, -74.8165092); Plus code 254P+PC. Conmutador edificio (601) 5879530.",
     "routeWave": 1,
     "stopOrder": 50,
     "routeCluster": 26,
-    "routeCentroidLat": 11.0067,
-    "routeCentroidLng": -74.82473,
-    "subzone": "Barranquilla NORTE · Riomar · Ocean Tower",
+    "routeCentroidLat": 11.0068164,
+    "routeCentroidLng": -74.8165092,
+    "subzone": "Barranquilla NORTE · Ocean Tower · Nte. Centro Histórico",
     "routeRadiusKm": 20.0,
-    "geoSource": "nominatim_street"
+    "geoSource": "google_maps_place"
   }
 ];
 
@@ -3120,6 +3156,203 @@ function bumpAgendaVisitCountForDate(d) {
     } catch (e) {}
 }
 
+var XP3_CAP_EVENTS_KEY = 'xp3_capacitaciones_v1';
+var XP3_CAP_VIEW_KEY = 'xp3_agenda_cap_view_v1';
+var XP3_CAP_BANNER_DISMISS_KEY = 'xp3_cap_banner_dismiss_v1';
+
+function getCapacitacionEvents() {
+    try {
+        var a = JSON.parse(localStorage.getItem(XP3_CAP_EVENTS_KEY) || '[]');
+        return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+}
+function setCapacitacionEvents(arr) {
+    try { localStorage.setItem(XP3_CAP_EVENTS_KEY, JSON.stringify(arr)); } catch (e) {}
+}
+function _parseLocalDateYMD(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    var p = iso.split('-');
+    return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10), 0, 0, 0, 0);
+}
+function _calendarDaysDiff(fromDate, toDate) {
+    var u = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate()).getTime();
+    var v = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate()).getTime();
+    return Math.round((v - u) / 86400000);
+}
+function countCapEventsOnDateKey(dateKey) {
+    return getCapacitacionEvents().filter(function(ev) { return ev.dateISO === dateKey; }).length;
+}
+function getAgendaCapView() {
+    try {
+        var s = sessionStorage.getItem(XP3_CAP_VIEW_KEY);
+        return s === 'cap' ? 'cap' : 'orc';
+    } catch (e) { return 'orc'; }
+}
+function setAgendaCapView(mode) {
+    sessionStorage.setItem(XP3_CAP_VIEW_KEY, mode === 'cap' ? 'cap' : 'orc');
+    var o = document.getElementById('agenda-cap-filter-orc');
+    var c = document.getElementById('agenda-cap-filter-cap');
+    var p = document.getElementById('agenda-cap-panel');
+    if (o) o.classList.toggle('active', mode !== 'cap');
+    if (c) c.classList.toggle('active', mode === 'cap');
+    if (p) p.style.display = mode === 'cap' ? 'block' : 'none';
+    renderCapacitacionesListInAgenda();
+}
+function renderCapacitacionesListInAgenda() {
+    var wrap = document.getElementById('cap-list-wrap');
+    if (!wrap) return;
+    var list = getCapacitacionEvents().slice().sort(function(a, b) {
+        var ta = (a.dateISO || '') + (a.timeHM || '');
+        var tb = (b.dateISO || '') + (b.timeHM || '');
+        return ta.localeCompare(tb);
+    });
+    if (!list.length) {
+        wrap.innerHTML = '<span style="opacity:.85;">No hay capacitaciones guardadas. Elegí día y hora arriba y tocá Guardar.</span>';
+        return;
+    }
+    var html = '<div style="font-weight:700;margin-bottom:6px;color:#e9d5ff;">Próximas</div>';
+    list.forEach(function(ev) {
+        var t = (ev.timeHM || '--:--').replace(':', '∶');
+        html += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
+            + '<div style="flex:1;min-width:0;"><strong>' + escapeHtml(ev.dateISO || '') + '</strong> · ' + escapeHtml(t)
+            + '<div style="opacity:.9;margin-top:2px;">' + escapeHtml(ev.station || '—') + '</div>'
+            + '<div style="font-size:9px;opacity:.75;margin-top:2px;">Aviso: ' + escapeHtml(ev.advance === '2' ? '2 días antes' : (ev.advance === '1,2' ? '1 y 2 días antes' : '1 día antes')) + '</div></div>'
+            + '<button type="button" class="btn btn-gh btn-sm" style="padding:4px 8px;font-size:9px;flex-shrink:0;" data-cap-id="' + String(ev.id).replace(/"/g, '') + '" onclick="deleteCapacitacionEvent(this.getAttribute(\'data-cap-id\'))">✕</button>'
+            + '</div>';
+    });
+    wrap.innerHTML = html;
+}
+function deleteCapacitacionEvent(id) {
+    if (!id || !confirm('¿Quitar esta capacitación del calendario?')) return;
+    var next = getCapacitacionEvents().filter(function(ev) { return ev.id !== id; });
+    setCapacitacionEvents(next);
+    renderCapacitacionesListInAgenda();
+    buildAgenda();
+}
+function saveCapacitacionEvent() {
+    var d = (document.getElementById('cap-date') || {}).value;
+    var t = (document.getElementById('cap-time') || {}).value;
+    var st = (document.getElementById('cap-station') || {}).value.trim();
+    var adv = (document.getElementById('cap-remind-days') || {}).value || '1';
+    if (!d) { alert('Elegí el día de la capacitación.'); return; }
+    if (!t) { alert('Elegí la hora.'); return; }
+    if (!st) { alert('Indicá estación, lugar o tema.'); return; }
+    var ev = {
+        id: 'cap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        dateISO: d,
+        timeHM: t,
+        station: st,
+        advance: adv,
+        createdAtMs: Date.now()
+    };
+    var arr = getCapacitacionEvents();
+    arr.push(ev);
+    setCapacitacionEvents(arr);
+    renderCapacitacionesListInAgenda();
+    buildAgenda();
+    alert('Capacitación guardada. Te avisaremos ' + (adv === '1,2' ? '1 y 2 días antes' : (adv === '2' ? '2 días antes' : '1 día antes')) + '.');
+}
+function dismissCapReminderBanner() {
+    try {
+        var keys = window._capBannerKeysPending;
+        if (keys && keys.length) {
+            var dismiss = {};
+            try { dismiss = JSON.parse(sessionStorage.getItem(XP3_CAP_BANNER_DISMISS_KEY) || '{}'); } catch (e0) { dismiss = {}; }
+            if (typeof dismiss !== 'object' || !dismiss) dismiss = {};
+            keys.forEach(function(k) { dismiss[k] = 1; });
+            sessionStorage.setItem(XP3_CAP_BANNER_DISMISS_KEY, JSON.stringify(dismiss));
+        }
+    } catch (e1) {}
+    window._capBannerKeysPending = null;
+    var b = document.getElementById('cap-reminder-banner');
+    if (b) b.style.display = 'none';
+}
+function pollCapacitacionReminders() {
+    var ls = document.getElementById('login-screen');
+    if (ls && ls.style.display !== 'none') return;
+    var ban0 = document.getElementById('cap-reminder-banner');
+    if (ban0 && ban0.style.display === 'block') return;
+    var list = getCapacitacionEvents();
+    if (!list.length) return;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var dismiss = {};
+    try {
+        dismiss = JSON.parse(sessionStorage.getItem(XP3_CAP_BANNER_DISMISS_KEY) || '{}');
+        if (typeof dismiss !== 'object' || !dismiss) dismiss = {};
+    } catch (e0) { dismiss = {}; }
+    var parts = [];
+    list.forEach(function(ev) {
+        var ed = _parseLocalDateYMD(ev.dateISO);
+        if (!ed) return;
+        var diff = _calendarDaysDiff(today, ed);
+        var adv = String(ev.advance || '1');
+        var want1 = adv.indexOf('1') >= 0;
+        var want2 = adv.indexOf('2') >= 0;
+        if (want2 && diff === 2) {
+            var k2 = ev.id + '_d2_' + ev.dateISO;
+            if (!dismiss[k2]) {
+                parts.push({ k: k2, html: 'En <strong>2 días</strong> (' + escapeHtml(ev.dateISO) + ' · ' + escapeHtml(ev.timeHM || '') + '): ' + escapeHtml(ev.station || '') + '.' });
+            }
+        }
+        if (want1 && diff === 1) {
+            var k1 = ev.id + '_d1_' + ev.dateISO;
+            if (!dismiss[k1]) {
+                parts.push({ k: k1, html: '<strong>Mañana</strong> (' + escapeHtml(ev.dateISO) + ' · ' + escapeHtml(ev.timeHM || '') + '): ' + escapeHtml(ev.station || '') + '.' });
+            }
+        }
+    });
+    if (!parts.length) return;
+    window._capBannerKeysPending = parts.map(function(p) { return p.k; });
+    var ban = document.getElementById('cap-reminder-banner');
+    var bt = document.getElementById('cap-reminder-banner-title');
+    var bb = document.getElementById('cap-reminder-banner-body');
+    if (bt) bt.textContent = parts.length > 1 ? '🎓 Recordatorios · capacitaciones' : '🎓 Recordatorio · capacitación';
+    if (bb) bb.innerHTML = parts.map(function(p) { return '<div style="margin-top:5px;">' + p.html + '</div>'; }).join('');
+    if (ban) ban.style.display = 'block';
+}
+
+function _syncFichaEditInputsFromPatch(patch) {
+    function s(id, v) { var e = document.getElementById(id); if (e) e.value = v != null ? String(v) : ''; }
+    s('edit-admin-name', patch.adminName);
+    s('edit-admin-phone', patch.adminPhone);
+    s('edit-email', patch.email);
+    s('edit-address', patch.address);
+    s('edit-field-notes', patch.notes);
+}
+function hydrateVisitClientEditPanel() {
+    if (!currentFicha || currentFicha.num == null) return;
+    var p = getClientPatch(currentFicha.num);
+    function s(id, v) { var e = document.getElementById(id); if (e) e.value = v != null ? String(v) : ''; }
+    s('visit-edit-admin-name', p.adminName || '');
+    s('visit-edit-admin-phone', p.adminPhone || _normField(currentFicha.phone) || '');
+    s('visit-edit-email', p.email || _normField(currentFicha.email) || '');
+    s('visit-edit-address', p.address || _normField(currentFicha.address) || '');
+    s('visit-edit-notes', p.notes || '');
+    var m = document.getElementById('visit-client-edit-msg');
+    if (m) m.style.display = 'none';
+}
+function saveVisitClientEditsFromPanel() {
+    if (!currentFicha || currentFicha.num == null) return;
+    var patch = {
+        adminName: (document.getElementById('visit-edit-admin-name').value || '').trim(),
+        adminPhone: (document.getElementById('visit-edit-admin-phone').value || '').trim(),
+        email: (document.getElementById('visit-edit-email').value || '').trim(),
+        address: (document.getElementById('visit-edit-address').value || '').trim(),
+        notes: (document.getElementById('visit-edit-notes').value || '').trim()
+    };
+    setClientPatch(currentFicha.num, patch);
+    var merged = getClientPatch(currentFicha.num);
+    _syncFichaEditInputsFromPatch(merged);
+    _applyPatchToFichaUI(currentFicha, merged);
+    populateFichaAdditiveBlock(currentFicha, merged);
+    var m = document.getElementById('visit-client-edit-msg');
+    if (m) {
+        m.style.display = 'block';
+        setTimeout(function() { if (m) m.style.display = 'none'; }, 4000);
+    }
+}
+
 function startOfWeekMonday(d) {
     var x = new Date(d);
     x.setHours(12, 0, 0, 0);
@@ -3287,31 +3520,86 @@ function getTodayRouteEntry(dateObj) {
 }
 
 /**
- * Lista de todas las rutas operativas (nombres únicos).
- * Basado en el campo routeName del calendario + detección automática desde clientes con day asignado.
+ * Orden fijo del selector «Todas las rutas» (nombres canónicos = routeName del calendario ORC mayo 2026).
+ * No se mezclan primeros segmentos de subzone del ERP (evita duplicados tipo Barranquilla NORTE / Norte, Ruta Cartagena / Cartagena, R20.0km…).
  */
-function getAllRouteNames() {
+var ORC_CANONICAL_ROUTE_ORDER = [
+    'Ruta Barranquilla Sur',
+    'Barranquilla Norte',
+    'Ruta Sabanalarga',
+    'Cartagena',
+    'Santa Marta',
+    'Metropolitana Centro-Oriente',
+    'Metropolitana Centro-Occidente'
+];
+function getOrcRouteNamesFromCalendarOnly() {
     var set = new Set();
     Object.values(ROUTE_CALENDAR_MAY_2026).forEach(function(e) {
-        if (e.routeName) set.add(e.routeName);
+        if (e && e.type === 'route' && e.routeName) set.add(e.routeName);
     });
-    var fromClients = new Set();
-    allRouteClients().forEach(function(c) {
-        if (c.subzone) fromClients.add(c.subzone.split(' · ')[0]);
+    var out = [];
+    ORC_CANONICAL_ROUTE_ORDER.forEach(function(name) {
+        if (set.has(name)) out.push(name);
     });
-    fromClients.forEach(function(r) { set.add(r); });
-    return Array.from(set).sort();
+    set.forEach(function(name) {
+        if (ORC_CANONICAL_ROUTE_ORDER.indexOf(name) === -1) out.push(name);
+    });
+    return out;
+}
+/**
+ * Lista para el desplegable «Todas las rutas» — solo rutas del cronograma ORC (sin ruido de subzonas).
+ */
+function getAllRouteNames() {
+    return getOrcRouteNamesFromCalendarOnly();
 }
 
+/** Normaliza nombre de ruta ORC para comparar (guiones Unicode, espacios). */
+function normOrcRouteKey(s) {
+    return String(s || '')
+        .toLowerCase()
+        .replace(/\u2013/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+/** Claves contra las que se compara el calendario: `orcRouteName` (si existe) + primer segmento de subzone. */
+function getClientRouteKeysForMatch(c) {
+    var keys = [];
+    if (c.orcRouteName && String(c.orcRouteName).trim())
+        keys.push(normOrcRouteKey(c.orcRouteName));
+    keys.push(normOrcRouteKey((c.subzone || '').split(' · ')[0].trim()));
+    return keys.filter(Boolean);
+}
+function clientMatchesOrcRouteName(want, k) {
+    if (!k) return false;
+    if (k === want) return true;
+    if (want === 'barranquilla norte' && k.indexOf('barranquilla norte') !== -1) return true;
+    if (want === 'ruta barranquilla sur' && k.indexOf('barranquilla sur') !== -1) return true;
+    if (want === 'metropolitana centro-occidente') {
+        if (k.indexOf('centro occidente') !== -1) return true;
+        if (k.indexOf('metropolitana') !== -1 && k.indexOf('occidente') !== -1) return true;
+    }
+    if (want === 'metropolitana centro-oriente') {
+        if (k.indexOf('centro oriente') !== -1) return true;
+        if (k.indexOf('metropolitana') !== -1 && k.indexOf('oriente') !== -1) return true;
+    }
+    if (want === 'cartagena' && k.indexOf('cartagena') !== -1) return true;
+    if (want === 'santa marta' && k.indexOf('santa marta') !== -1) return true;
+    if (want === 'ruta sabanalarga' && k.indexOf('sabanalarga') !== -1) return true;
+    return false;
+}
 /**
- * Clientes de una ruta específica (por nombre de ruta).
- * Matchea contra subzone (primer segmento antes de ·) o routeName custom si existe.
+ * Clientes de una ruta específica (por nombre de ruta del calendario ORC).
+ * Igualdad normalizada + alias cuando el ERP y el cronograma usan nombres distintos.
  */
 function getClientsForRoute(routeName) {
+    var want = normOrcRouteKey(routeName);
     return allRouteClients().filter(function(c) {
         if (!c.day) return false;
-        var rn = (c.subzone || '').split(' · ')[0].trim();
-        return rn && rn.toLowerCase() === routeName.toLowerCase();
+        var keys = getClientRouteKeysForMatch(c);
+        for (var i = 0; i < keys.length; i++) {
+            if (clientMatchesOrcRouteName(want, keys[i])) return true;
+        }
+        return false;
     });
 }
 /** Índice hábil 1…N dentro del mes de `d`, o null si no es hábil. Alineado con `generar_calendario_orc.py`. */
@@ -3639,6 +3927,7 @@ function showScreen(id, navId, isPop = false) {
         calcPrefillClientNum = null;
         populateCalcClientSelect(pre);
     }
+    if (id === 's-home' || id === 's-agenda') pollCapacitacionReminders();
     schedulePersistUi();
 }
 
@@ -3863,6 +4152,7 @@ function updateClock() {
 }
 setInterval(updateClock, 30000);
 updateClock();
+setInterval(pollCapacitacionReminders, 45 * 60 * 1000);
 
 // ================================================================
 // AUTH
@@ -3916,6 +4206,7 @@ function doLogout() {
 function postLogin() {
     console.log('Post Login sequence started');
     buildAgenda();
+    pollCapacitacionReminders();
     updateHomeVentasMeta();
     startGPS();
     const n = new Date();
@@ -4001,6 +4292,7 @@ function onVisitScreenOpened() {
         return;
     }
     var num = currentFicha.num;
+    hydrateVisitClientEditPanel();
     var vtEl = document.getElementById('visit-time');
     var te = document.getElementById('timer');
     try {
@@ -4142,8 +4434,9 @@ function buildAgenda() {
             var orcStrip = orcEtiquetaOperativa(d);
             el.setAttribute('title', 'ORC: ' + orcStrip.etiqueta + (orcStrip.nota ? ' · ' + orcStrip.nota : ''));
             var wletters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            var capN = countCapEventsOnDateKey(agendaDateKeyLocal(d));
             el.innerHTML =
-                '<div class="wday-num">' + d.getDate() + '</div><div class="wday-name">'
+                '<div class="wday-num">' + d.getDate() + (capN ? '<span style="font-size:8px;margin-left:2px;vertical-align:top;">🎓</span>' : '') + '</div><div class="wday-name">'
                 + wletters[d.getDay()]
                 + '</div>';
             (function (dCopy) {
@@ -4250,6 +4543,12 @@ function buildAgenda() {
             planDiv.appendChild(el);
         }
     }
+    setAgendaCapView(getAgendaCapView());
+    renderCapacitacionesListInAgenda();
+    try {
+        var cdIn = document.getElementById('cap-date');
+        if (cdIn && !cdIn.value) cdIn.value = agendaDateKeyLocal(sel);
+    } catch (eCap) {}
 }
 
 // ================================================================
@@ -4359,11 +4658,17 @@ function populateRouteSelector() {
         opt.textContent = r;
         sel.appendChild(opt);
     });
-    if (routeViewSelectedRoute && routes.includes(routeViewSelectedRoute)) {
+    if (routeViewSelectedRoute && routes.indexOf(routeViewSelectedRoute) >= 0) {
         sel.value = routeViewSelectedRoute;
-    } else if (routes.length > 0) {
-        sel.value = routes[0];
-        routeViewSelectedRoute = routes[0];
+    } else {
+        var te = getTodayRouteEntry(new Date());
+        if (te && te.routeName && routes.indexOf(te.routeName) >= 0) {
+            sel.value = te.routeName;
+            routeViewSelectedRoute = te.routeName;
+        } else if (routes.length > 0) {
+            sel.value = routes[0];
+            routeViewSelectedRoute = routes[0];
+        }
     }
 }
 
@@ -5101,6 +5406,8 @@ function saveFichaEdits() {
     }
     _applyPatchToFichaUI(currentFicha, patch);
     populateFichaAdditiveBlock(currentFicha, patch);
+    var regSc = document.getElementById('s-registro');
+    if (regSc && regSc.classList.contains('active')) hydrateVisitClientEditPanel();
 }
 
 /** Normaliza valores vacíos/nulos del ERP: "NULL", "N/A", "N/D", "—", "" → null */
