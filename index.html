@@ -239,7 +239,7 @@
                 </div>
             </div>
 
-            <div class="card cy" style="display:flex;align-items:center;gap:18px;margin-bottom:10px;">
+            <div class="card cy" style="display:flex;align-items:center;gap:18px;margin-bottom:10px;" id="home-route-today-card">
                 <div class="ring-w">
                     <svg width="76" height="76" viewBox="0 0 76 76">
                         <circle class="rbg" cx="38" cy="38" r="34"/>
@@ -248,12 +248,11 @@
                     <div class="rtext"><span style="font-size:17px;font-weight:800;color:var(--yellow);" id="home-perc-text">0%</span><span style="font-size:8px;color:var(--t3);">META</span></div>
                 </div>
                 <div style="flex:1;">
-                    <p class="lbl" style="margin-bottom:4px;">Meta del Día</p>
-                    <h3 style="font-size:16px;margin-bottom:4px;" id="home-visits-text">0 visitas hoy</h3>
-                    <p class="sub" id="today-banner-sub">Cargando ruta de hoy...</p>
-                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-                        <span class="badge by">En progreso</span>
-                        <span class="badge bg">Ruta activa</span>
+                    <p class="lbl" style="margin-bottom:4px;" id="home-route-label">Meta del Día</p>
+                    <h3 style="font-size:16px;margin-bottom:4px;" id="home-route-title">Cargando ruta...</h3>
+                    <p class="sub" id="home-route-subtitle">Verificando cronograma...</p>
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;" id="home-route-badges">
+                        <span class="badge by">Cargando</span>
                     </div>
                 </div>
             </div>
@@ -364,17 +363,34 @@
                 </div>
             </div>
             <p class="sub" style="margin-bottom:10px;" id="ruta-subtitle">—</p>
-            <p class="lbl" style="margin-bottom:6px;">Filtrar por día de visita</p>
-            <div id="route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                <button type="button" class="tag" data-route-day="MON" onclick="setRouteListDay('MON')">Lun</button>
-                <button type="button" class="tag" data-route-day="TUE" onclick="setRouteListDay('TUE')">Mar</button>
-                <button type="button" class="tag" data-route-day="WED" onclick="setRouteListDay('WED')">Mié</button>
-                <button type="button" class="tag" data-route-day="THU" onclick="setRouteListDay('THU')">Jue</button>
-                <button type="button" class="tag" data-route-day="FRI" onclick="setRouteListDay('FRI')">Vie</button>
-                <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
+            
+            <p class="lbl" style="margin-bottom:6px;">Modo de vista</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                <button type="button" class="tag active" id="route-mode-today" onclick="setRouteMode('today')">📍 Ruta de hoy</button>
+                <button type="button" class="tag" id="route-mode-all" onclick="setRouteMode('all')">🗂️ Todas las rutas</button>
+                <button type="button" class="tag" id="route-mode-search" onclick="setRouteMode('search')">🔍 Buscar cliente</button>
             </div>
-            <p class="sub" id="ruta-map-hint" style="font-size:10px;margin-bottom:10px;line-height:1.45;">Elegí Lun–Vie o Todos y tocá <strong>Mapa del día</strong>: verás solo esas paradas, el área (~20 km por color) y los pinos. Para recuperar Standby, <strong>no</strong> ocultes Standby en el mapa.</p>
-            <button type="button" class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:12px;padding:12px;" onclick="openRouteMapForCurrentFilter()">🗺️ Ver área en mapa (día seleccionado)</button>
+            
+            <div id="route-selector-container" style="display:none;margin-bottom:12px;">
+                <p class="lbl" style="margin-bottom:6px;">Seleccionar ruta</p>
+                <select id="route-selector-current-route" class="form-input" style="width:100%;padding:10px;font-size:13px;background:var(--dark2);border:1px solid var(--border);color:var(--t1);border-radius:8px;" onchange="buildRouteList()">
+                    <option value="">— Elegir ruta —</option>
+                </select>
+            </div>
+            
+            <div id="route-day-filter-container" style="display:none;">
+                <p class="lbl" style="margin-bottom:6px;">Filtrar por día de visita (opcional)</p>
+                <div id="route-day-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                    <button type="button" class="tag" data-route-day="MON" onclick="setRouteListDay('MON')">Lun</button>
+                    <button type="button" class="tag" data-route-day="TUE" onclick="setRouteListDay('TUE')">Mar</button>
+                    <button type="button" class="tag" data-route-day="WED" onclick="setRouteListDay('WED')">Mié</button>
+                    <button type="button" class="tag" data-route-day="THU" onclick="setRouteListDay('THU')">Jue</button>
+                    <button type="button" class="tag" data-route-day="FRI" onclick="setRouteListDay('FRI')">Vie</button>
+                    <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
+                </div>
+            </div>
+            
+            <button type="button" class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:12px;padding:12px;" onclick="openRouteMapForCurrentFilter()">🗺️ Ver área en mapa</button>
 
             <div class="search-wrap">
                 <span class="search-icon">🔍</span>
@@ -3066,6 +3082,39 @@ var ORC_FESTIVOS_CO_2026 = new Set([
 ]);
 // </auto:orc_festivos_co>
 
+/**
+ * Calendario operativo mayo 2026 — ruta asignada por fecha.
+ * Fuente: Plan de Trabajo Mayo 2026 (cronograma visual usuario).
+ * Estructura: { fecha: { type, label, dayKey?, routeName? } }
+ */
+var ROUTE_CALENDAR_MAY_2026 = {
+    '2026-05-01': { type: 'festivo', label: 'Festivo' },
+    '2026-05-04': { type: 'admin', label: 'Día administrativo' },
+    '2026-05-05': { type: 'route', label: 'Barranquilla Sur', dayKey: 'MON', routeName: 'Ruta Barranquilla Sur' },
+    '2026-05-06': { type: 'route', label: 'Sabanalarga', dayKey: 'WED', routeName: 'Ruta Sabanalarga' },
+    '2026-05-07': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'THU', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-05-08': { type: 'route', label: 'Metropolitana Centro-Occidente', dayKey: 'FRI', routeName: 'Metropolitana Centro-Occidente' },
+    '2026-05-09': { type: 'capacita', label: 'Apoyo / Capacitaciones' },
+    '2026-05-11': { type: 'route', label: 'Barranquilla Sur', dayKey: 'MON', routeName: 'Ruta Barranquilla Sur' },
+    '2026-05-12': { type: 'route', label: 'Barranquilla Norte', dayKey: 'TUE', routeName: 'Barranquilla Norte' },
+    '2026-05-13': { type: 'route', label: 'Cartagena', dayKey: 'WED', routeName: 'Cartagena' },
+    '2026-05-14': { type: 'route', label: 'Cartagena', dayKey: 'THU', routeName: 'Cartagena' },
+    '2026-05-15': { type: 'route', label: 'Cartagena', dayKey: 'FRI', routeName: 'Cartagena' },
+    '2026-05-16': { type: 'capacita', label: 'Apoyo / Capacitaciones' },
+    '2026-05-18': { type: 'festivo', label: 'Festivo' },
+    '2026-05-19': { type: 'route', label: 'Barranquilla Norte', dayKey: 'TUE', routeName: 'Barranquilla Norte' },
+    '2026-05-20': { type: 'route', label: 'Santa Marta', dayKey: 'WED', routeName: 'Santa Marta' },
+    '2026-05-21': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'THU', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-05-22': { type: 'route', label: 'Metropolitana Centro-Occidente', dayKey: 'FRI', routeName: 'Metropolitana Centro-Occidente' },
+    '2026-05-23': { type: 'capacita', label: 'Apoyo / Capacitaciones' },
+    '2026-05-25': { type: 'route', label: 'Barranquilla Sur', dayKey: 'MON', routeName: 'Ruta Barranquilla Sur' },
+    '2026-05-26': { type: 'route', label: 'Barranquilla Norte', dayKey: 'TUE', routeName: 'Barranquilla Norte' },
+    '2026-05-27': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'WED', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-05-28': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'THU', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-05-29': { type: 'route', label: 'Metropolitana Centro-Occidente', dayKey: 'FRI', routeName: 'Metropolitana Centro-Occidente' },
+    '2026-05-30': { type: 'cierre', label: 'Cierre mes' }
+};
+
 function orcDateKeyISO(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
@@ -3076,6 +3125,44 @@ function orcPyWeekday(d) {
 function orcEsHabilCol(d) {
     if (orcPyWeekday(d) >= 5) return false;
     return !ORC_FESTIVOS_CO_2026.has(orcDateKeyISO(d));
+}
+
+/**
+ * Obtener la ruta asignada para una fecha.
+ * Retorna { type, label, dayKey?, routeName? } o null si no hay entrada.
+ */
+function getTodayRouteEntry(dateObj) {
+    var k = orcDateKeyISO(dateObj || new Date());
+    return ROUTE_CALENDAR_MAY_2026[k] || null;
+}
+
+/**
+ * Lista de todas las rutas operativas (nombres únicos).
+ * Basado en el campo routeName del calendario + detección automática desde clientes con day asignado.
+ */
+function getAllRouteNames() {
+    var set = new Set();
+    Object.values(ROUTE_CALENDAR_MAY_2026).forEach(function(e) {
+        if (e.routeName) set.add(e.routeName);
+    });
+    var fromClients = new Set();
+    allRouteClients().forEach(function(c) {
+        if (c.subzone) fromClients.add(c.subzone.split(' · ')[0]);
+    });
+    fromClients.forEach(function(r) { set.add(r); });
+    return Array.from(set).sort();
+}
+
+/**
+ * Clientes de una ruta específica (por nombre de ruta).
+ * Matchea contra subzone (primer segmento antes de ·) o routeName custom si existe.
+ */
+function getClientsForRoute(routeName) {
+    return allRouteClients().filter(function(c) {
+        if (!c.day) return false;
+        var rn = (c.subzone || '').split(' · ')[0].trim();
+        return rn && rn.toLowerCase() === routeName.toLowerCase();
+    });
 }
 /** Índice hábil 1…N dentro del mes de `d`, o null si no es hábil. Alineado con `generar_calendario_orc.py`. */
 function orcIndiceHabilMes(d) {
@@ -3195,6 +3282,102 @@ function updateHomeVentasMeta() {
         sub.textContent = lines.join(' ');
     }
     if (bar) bar.style.width = pct + '%';
+    
+    updateHomeTodayRouteCard();
+}
+
+function updateHomeTodayRouteCard() {
+    var entry = getTodayRouteEntry(new Date());
+    var labelEl = document.getElementById('home-route-label');
+    var titleEl = document.getElementById('home-route-title');
+    var subtitleEl = document.getElementById('home-route-subtitle');
+    var badgesEl = document.getElementById('home-route-badges');
+    var cardEl = document.getElementById('home-route-today-card');
+    
+    if (!entry) {
+        if (labelEl) labelEl.textContent = 'Hoy';
+        if (titleEl) titleEl.textContent = 'Sin ruta asignada';
+        if (subtitleEl) subtitleEl.textContent = 'Revisá el cronograma en Agenda o consultá con gerencia.';
+        if (badgesEl) badgesEl.innerHTML = '<span class="badge" style="background:rgba(255,255,255,.1);color:var(--t3);">Día libre / Stand-by</span>';
+        return;
+    }
+    
+    if (entry.type === 'festivo') {
+        if (labelEl) labelEl.textContent = 'Hoy';
+        if (titleEl) titleEl.textContent = '🎉 Festivo';
+        if (subtitleEl) subtitleEl.textContent = 'Día no hábil · Sin actividad comercial.';
+        if (badgesEl) badgesEl.innerHTML = '<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green);">Festivo Colombia</span>';
+        if (cardEl) cardEl.className = 'card cg';
+        return;
+    }
+    
+    if (entry.type === 'admin') {
+        if (labelEl) labelEl.textContent = 'Hoy';
+        if (titleEl) titleEl.textContent = '📋 Día administrativo';
+        if (subtitleEl) subtitleEl.textContent = 'Cierre mes anterior / Organización / Viáticos en trámite.';
+        if (badgesEl) badgesEl.innerHTML = '<span class="badge" style="background:rgba(59,130,246,.15);color:var(--blue);">Admin</span>';
+        if (cardEl) cardEl.className = 'card cb';
+        return;
+    }
+    
+    if (entry.type === 'capacita') {
+        if (labelEl) labelEl.textContent = 'Hoy';
+        if (titleEl) titleEl.textContent = '📚 Apoyo / Capacitaciones';
+        if (subtitleEl) subtitleEl.textContent = 'Día de capacitación interna o soporte operativo.';
+        if (badgesEl) badgesEl.innerHTML = '<span class="badge" style="background:rgba(255,179,0,.15);color:var(--yellow);">Capacitación</span>';
+        if (cardEl) cardEl.className = 'card cy';
+        return;
+    }
+    
+    if (entry.type === 'cierre') {
+        if (labelEl) labelEl.textContent = 'Hoy';
+        if (titleEl) titleEl.textContent = '🏁 Cierre de mes';
+        if (subtitleEl) subtitleEl.textContent = 'Consolidación de métricas y pendientes del mes.';
+        if (badgesEl) badgesEl.innerHTML = '<span class="badge" style="background:rgba(239,68,68,.15);color:var(--red);">Cierre</span>';
+        if (cardEl) cardEl.className = 'card cr';
+        return;
+    }
+    
+    if (entry.type === 'route') {
+        var routeClients = getClientsForRoute(entry.routeName || entry.label);
+        var numClients = routeClients.length;
+        var numActive = routeClients.filter(function(c) { return c.status !== 'INACTIVO'; }).length;
+        
+        if (labelEl) labelEl.textContent = 'Hoy te toca';
+        if (titleEl) titleEl.textContent = '📍 ' + (entry.routeName || entry.label);
+        if (subtitleEl) {
+            if (numClients === 0) {
+                subtitleEl.textContent = 'Ruta en construcción · Aún no hay clientes asignados.';
+            } else {
+                subtitleEl.textContent = numClients + ' EDS en tu ruta · ' + numActive + ' activas · Tap para ver detalles.';
+            }
+        }
+        if (badgesEl) {
+            var html = '<span class="badge by">Ruta activa</span>';
+            if (numClients === 0) {
+                html += '<span class="badge" style="background:rgba(239,68,68,.15);color:var(--red);">⚠️ Sin clientes</span>';
+            }
+            badgesEl.innerHTML = html;
+        }
+        if (cardEl) {
+            cardEl.className = 'card cy';
+            cardEl.style.cursor = 'pointer';
+            cardEl.onclick = function() {
+                showScreen('s-ruta', 'nb-ruta');
+                setTimeout(function() {
+                    var sel = document.getElementById('route-selector-current-route');
+                    if (sel) sel.value = entry.routeName || entry.label;
+                    buildRouteList();
+                }, 100);
+            };
+        }
+        return;
+    }
+    
+    if (labelEl) labelEl.textContent = 'Hoy';
+    if (titleEl) titleEl.textContent = 'Sin ruta';
+    if (subtitleEl) subtitleEl.textContent = 'Tipo de entrada no reconocido.';
+    if (badgesEl) badgesEl.innerHTML = '';
 }
 
 function loadAdminVentasMesField() {
@@ -3272,18 +3455,26 @@ window.addEventListener('popstate', (e) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('s-home').classList.add('active');
     }
+    schedulePersistUi();
 });
 
 function showScreen(id, navId, isPop = false) {
     if (!isPop) {
-        history.pushState({ id, navId }, '', '?s=' + id);
+        var qs = '?s=' + encodeURIComponent(id);
+        if (currentFicha && currentFicha.num != null && (id === 's-ficha' || id === 's-registro')) {
+            qs += '&ficha=' + encodeURIComponent(String(currentFicha.num));
+        }
+        var pathB = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
+        history.pushState({ id, navId }, '', pathB + qs);
     }
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
     if (navId) document.getElementById(navId).classList.add('active');
     if (id === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 200);
-    if (id === 's-ruta') buildRouteList();
+    if (id === 's-ruta') {
+        setRouteMode('today');
+    }
     if (id === 's-agenda') buildAgenda();
     if (id === 's-registro') onVisitScreenOpened();
     if (id === 's-home') updateHomeVentasMeta();
@@ -3293,7 +3484,103 @@ function showScreen(id, navId, isPop = false) {
         calcPrefillClientNum = null;
         populateCalcClientSelect(pre);
     }
+    schedulePersistUi();
 }
+
+/** Estado de UI para volver de Maps / segundo plano (WebView suele recargar la página). */
+var XP3_UI_RESTORE_KEY = 'xp3_ui_restore_v1';
+var XP3_VISIT_TIMER_KEY = 'xp3_visit_timer_v1';
+var _persistUiT = null;
+function schedulePersistUi() {
+    clearTimeout(_persistUiT);
+    _persistUiT = setTimeout(persistUiState, 200);
+}
+function defaultNavIdForScreen(screenId) {
+    var m = { 's-home': 'nb-home', 's-agenda': 'nb-agenda', 's-ruta': 'nb-ruta', 's-mapa': 'nb-ruta', 's-prospecto': 'nb-ruta', 's-ficha': 'nb-ruta', 's-calc': 'nb-calc', 's-registro': 'nb-ruta', 's-admin': 'nb-admin' };
+    return m[screenId] || 'nb-home';
+}
+function persistUiState() {
+    try {
+        var act = document.querySelector('.screen.active');
+        var nab = document.querySelector('.nb.active');
+        var si = document.getElementById('search-input');
+        ensureRouteListDayFilterInit();
+        var scr = act ? act.id : 's-home';
+        var fichaRestore = null;
+        if ((scr === 's-ficha' || scr === 's-registro') && currentFicha && currentFicha.num != null) {
+            fichaRestore = currentFicha.num;
+        }
+        var obj = {
+            ts: Date.now(),
+            screenId: scr,
+            navId: nab ? nab.id : 'nb-home',
+            fichaNum: fichaRestore,
+            searchQ: si ? si.value : '',
+            routeDayFilter: routeListDayFilter || 'ALL'
+        };
+        localStorage.setItem(XP3_UI_RESTORE_KEY, JSON.stringify(obj));
+    } catch (e) {}
+}
+function tryRestoreUiFromStorageOrUrl() {
+    try {
+        var params = new URLSearchParams(window.location.search || '');
+        var sid = params.get('s');
+        var fichaParam = params.get('ficha');
+        if (sid && document.getElementById(sid)) {
+            var navU = defaultNavIdForScreen(sid);
+            showScreen(sid, navU, true);
+            if (fichaParam) {
+                var n = parseInt(fichaParam, 10);
+                if (!isNaN(n)) {
+                    setTimeout(function() {
+                        openFichaByNum(n, true);
+                        if (sid === 's-registro') showScreen('s-registro', 'nb-ruta', true);
+                    }, 40);
+                }
+            }
+            return true;
+        }
+        var raw = localStorage.getItem(XP3_UI_RESTORE_KEY);
+        if (!raw) return false;
+        var o = JSON.parse(raw);
+        if (!o || !o.screenId || !document.getElementById(o.screenId)) return false;
+        if (Date.now() - (o.ts || 0) > 1000 * 60 * 60 * 48) {
+            localStorage.removeItem(XP3_UI_RESTORE_KEY);
+            return false;
+        }
+        var nav = o.navId && document.getElementById(o.navId) ? o.navId : defaultNavIdForScreen(o.screenId);
+        if (o.routeDayFilter && /^(MON|TUE|WED|THU|FRI|ALL)$/.test(o.routeDayFilter)) {
+            routeListDayFilter = o.routeDayFilter;
+            try { sessionStorage.setItem('xp3_route_list_day_v1', o.routeDayFilter); } catch (e2) {}
+            updateRouteDayChipsUI();
+        }
+        if (o.fichaNum != null && (o.screenId === 's-ficha' || o.screenId === 's-registro')) {
+            openFichaByNum(o.fichaNum, true);
+            if (o.screenId === 's-registro') {
+                showScreen('s-registro', 'nb-ruta', true);
+            } else {
+                showScreen('s-ficha', 'nb-ruta', true);
+            }
+        } else {
+            showScreen(o.screenId, nav, true);
+        }
+        var qs = '?s=' + encodeURIComponent(o.screenId);
+        if (o.fichaNum != null) qs += '&ficha=' + encodeURIComponent(String(o.fichaNum));
+        var pathBase = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
+        history.replaceState({ id: o.screenId, navId: nav }, '', pathBase + qs);
+        if (o.searchQ && document.getElementById('search-input')) {
+            document.getElementById('search-input').value = o.searchQ;
+            setTimeout(function() { filterRoute(o.searchQ); }, 70);
+        }
+        if (o.screenId === 's-mapa') setTimeout(function() { initOrRefreshRouteMap(); }, 220);
+        schedulePersistUi();
+        return true;
+    } catch (e) { return false; }
+}
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') persistUiState();
+});
+window.addEventListener('pagehide', persistUiState);
 
 // ================================================================
 // CLOCK
@@ -3363,7 +3650,9 @@ function postLogin() {
     const n = new Date();
     document.getElementById('admin-date').textContent =
         n.toLocaleDateString('es-CO', {day:'numeric',month:'short',year:'numeric'}) + ' · En vivo';
-    showScreen('s-home', 'nb-home');
+    if (!tryRestoreUiFromStorageOrUrl()) {
+        showScreen('s-home', 'nb-home');
+    }
 }
 
 // ================================================================
@@ -3434,14 +3723,33 @@ function onVisitScreenOpened() {
     visitSessionGps = null;
     var el = document.getElementById('visit-gps-capture');
     if (el) el.textContent = 'Comprobando si ya hay ubicación guardada...';
-    timerSecs = 0;
-    var te = document.getElementById('timer');
-    if (te) te.textContent = '00:00';
     if (!currentFicha || currentFicha.num == null) {
         if (el) el.textContent = 'Sin cliente en contexto.';
         return;
     }
     var num = currentFicha.num;
+    var vtEl = document.getElementById('visit-time');
+    var te = document.getElementById('timer');
+    try {
+        var tj = JSON.parse(localStorage.getItem(XP3_VISIT_TIMER_KEY) || 'null');
+        if (tj && tj.num === num && tj.startedAtMs) {
+            if (tj.arrivalHM && vtEl) vtEl.textContent = tj.arrivalHM;
+        } else {
+            var now = new Date();
+            var hm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            if (vtEl) vtEl.textContent = hm;
+            localStorage.setItem(XP3_VISIT_TIMER_KEY, JSON.stringify({ num: num, startedAtMs: Date.now(), arrivalHM: hm }));
+        }
+        if (te) {
+            var tj2 = JSON.parse(localStorage.getItem(XP3_VISIT_TIMER_KEY) || 'null');
+            if (tj2 && tj2.startedAtMs) {
+                var secs = Math.max(0, Math.floor((Date.now() - tj2.startedAtMs) / 1000));
+                te.textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+            } else te.textContent = '00:00';
+        }
+    } catch (e) {
+        if (te) te.textContent = '00:00';
+    }
     var existing = VISIT_ANCHORS[num];
     if (existing && typeof existing.lat === 'number' && typeof existing.lng === 'number') {
         visitSessionGps = {
@@ -3709,6 +4017,8 @@ function setHomeLocation() {
 
 /** MON|TUE|…|FRI|ALL — lista + mapa filtran por `day` en ROUTE (ALL = sin filtro). */
 var routeListDayFilter = null;
+var routeViewMode = 'today';
+var routeViewSelectedRoute = null;
 
 function ensureRouteListDayFilterInit() {
     if (routeListDayFilter != null && routeListDayFilter !== '') return;
@@ -3718,6 +4028,69 @@ function ensureRouteListDayFilterInit() {
         else routeListDayFilter = getTodayRouteDayKey();
     } catch (e) {
         routeListDayFilter = getTodayRouteDayKey();
+    }
+}
+
+function setRouteMode(mode) {
+    if (!['today', 'all', 'search'].includes(mode)) return;
+    routeViewMode = mode;
+    
+    var modeToday = document.getElementById('route-mode-today');
+    var modeAll = document.getElementById('route-mode-all');
+    var modeSearch = document.getElementById('route-mode-search');
+    var selectorContainer = document.getElementById('route-selector-container');
+    var dayFilterContainer = document.getElementById('route-day-filter-container');
+    var searchWrap = document.querySelector('#s-ruta .search-wrap');
+    
+    if (modeToday) modeToday.classList.toggle('active', mode === 'today');
+    if (modeAll) modeAll.classList.toggle('active', mode === 'all');
+    if (modeSearch) modeSearch.classList.toggle('active', mode === 'search');
+    
+    if (mode === 'today') {
+        if (selectorContainer) selectorContainer.style.display = 'none';
+        if (dayFilterContainer) dayFilterContainer.style.display = 'none';
+        if (searchWrap) searchWrap.style.display = 'none';
+        var entry = getTodayRouteEntry(new Date());
+        if (entry && entry.type === 'route' && entry.routeName) {
+            routeViewSelectedRoute = entry.routeName;
+        } else {
+            routeViewSelectedRoute = null;
+        }
+    } else if (mode === 'all') {
+        if (selectorContainer) selectorContainer.style.display = 'block';
+        if (dayFilterContainer) dayFilterContainer.style.display = 'none';
+        if (searchWrap) searchWrap.style.display = 'none';
+        populateRouteSelector();
+    } else if (mode === 'search') {
+        if (selectorContainer) selectorContainer.style.display = 'none';
+        if (dayFilterContainer) dayFilterContainer.style.display = 'block';
+        if (searchWrap) searchWrap.style.display = 'flex';
+        var si = document.getElementById('search-input');
+        if (si) {
+            si.value = '';
+            si.focus();
+        }
+    }
+    
+    buildRouteList();
+}
+
+function populateRouteSelector() {
+    var sel = document.getElementById('route-selector-current-route');
+    if (!sel) return;
+    var routes = getAllRouteNames();
+    sel.innerHTML = '<option value="">— Elegir ruta —</option>';
+    routes.forEach(function(r) {
+        var opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        sel.appendChild(opt);
+    });
+    if (routeViewSelectedRoute && routes.includes(routeViewSelectedRoute)) {
+        sel.value = routeViewSelectedRoute;
+    } else if (routes.length > 0) {
+        sel.value = routes[0];
+        routeViewSelectedRoute = routes[0];
     }
 }
 
@@ -3741,9 +4114,22 @@ function openRouteMapForCurrentFilter() {
 
 function getClientsForRouteListView() {
     ensureRouteListDayFilterInit();
-    var all = allRouteClients();
-    if (!routeListDayFilter || routeListDayFilter === 'ALL') return all.slice();
-    return all.filter(function(x) { return x.day === routeListDayFilter; });
+    var all = allRouteClients().filter(function(c) { return c.day; });
+    
+    if (routeViewMode === 'today') {
+        if (!routeViewSelectedRoute) return [];
+        return getClientsForRoute(routeViewSelectedRoute);
+    } else if (routeViewMode === 'all') {
+        var selRoute = document.getElementById('route-selector-current-route');
+        var rn = selRoute ? selRoute.value : '';
+        if (!rn) return [];
+        return getClientsForRoute(rn);
+    } else if (routeViewMode === 'search') {
+        if (!routeListDayFilter || routeListDayFilter === 'ALL') return all.slice();
+        return all.filter(function(x) { return x.day === routeListDayFilter; });
+    }
+    
+    return all.slice();
 }
 
 function updateRouteDayChipsUI() {
@@ -3756,21 +4142,46 @@ function updateRouteDayChipsUI() {
 
 function refreshRutaScreenHeader(numStops) {
     ensureRouteListDayFilterInit();
-    var dk = routeListDayFilter;
-    var dayName = dk === 'ALL' ? 'todos los días' : (DAY_META[dk] ? DAY_META[dk].name : dk);
     var title = document.getElementById('ruta-screen-title');
     var badge = document.getElementById('ruta-day-badge');
     var sub = document.getElementById('ruta-subtitle');
-    var sbN = 0;
-    getClientsForRouteListView().forEach(function(c) {
-        if (typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(c)) sbN++;
-    });
-    if (title) title.textContent = dk === 'ALL' ? 'Cartera completa' : ('Ruta · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
-    if (badge) badge.textContent = dk === 'ALL' ? 'Sin filtro por día' : ('Día · ' + (DAY_META[dk] ? DAY_META[dk].name : dk));
-    if (sub) {
-        sub.textContent =
-            numStops + ' estaciones · ' + (dk === 'ALL' ? 'orden: Standby primero' : 'solo ' + dayName + ' · Standby primero')
-            + (sbN > 0 ? ' · ⏸ ' + sbN + ' Standby' : '');
+    
+    var clients = getClientsForRouteListView();
+    var numActive = clients.filter(function(c) { return c.status !== 'INACTIVO'; }).length;
+    var numHistoricos = clients.filter(function(c) { return (c.hist || 0) > 0; }).length;
+    var numNuevos = clients.length - numHistoricos;
+    
+    if (routeViewMode === 'today') {
+        var entry = getTodayRouteEntry(new Date());
+        if (title) title.textContent = entry && entry.routeName ? ('📍 ' + entry.routeName) : 'Ruta de hoy';
+        if (badge) badge.textContent = entry && entry.label ? entry.label : 'Hoy';
+        if (sub) {
+            if (numStops === 0) {
+                sub.textContent = 'Ruta en construcción · Aún no hay clientes asignados.';
+            } else {
+                sub.textContent = numStops + ' EDS en tu ruta · ' + numActive + ' activas · ' + numHistoricos + ' históricos + ' + numNuevos + ' nuevos';
+            }
+        }
+    } else if (routeViewMode === 'all') {
+        var selRoute = document.getElementById('route-selector-current-route');
+        var rn = selRoute ? selRoute.value : '';
+        if (title) title.textContent = rn ? ('🗂️ ' + rn) : 'Todas las rutas';
+        if (badge) badge.textContent = 'Vista: Ruta completa';
+        if (sub) {
+            if (numStops === 0) {
+                sub.textContent = 'Sin clientes en esta ruta. Elegí otra ruta del selector.';
+            } else {
+                sub.textContent = numStops + ' EDS · ' + numActive + ' activas · ' + numHistoricos + ' históricos + ' + numNuevos + ' nuevos · Umbral de crecimiento: 8 clientes';
+            }
+        }
+    } else if (routeViewMode === 'search') {
+        var dk = routeListDayFilter;
+        var dayName = dk === 'ALL' ? 'todos los días' : (DAY_META[dk] ? DAY_META[dk].name : dk);
+        if (title) title.textContent = '🔍 Buscar cliente';
+        if (badge) badge.textContent = dk === 'ALL' ? 'Todos los días' : dayName;
+        if (sub) {
+            sub.textContent = numStops + ' clientes encontrados · Filtrá por día o buscá por nombre en el campo de búsqueda.';
+        }
     }
 }
 
@@ -4488,15 +4899,15 @@ function _updateFichaDataBadge(c, patch) {
 // FICHA 360°
 // ================================================================
 let currentFicha = allRouteClients()[0];
-function openFichaByNum(num) {
+function openFichaByNum(num, quietHistory) {
     const c = allRouteClients().find(function(x) { return x.num === num; }) || allRouteClients()[0];
-    openFichaCore(c);
+    openFichaCore(c, quietHistory);
 }
 function openFicha(idx) {
     const c = allRouteClients()[idx] || allRouteClients()[0];
     openFichaCore(c);
 }
-function openFichaCore(c) {
+function openFichaCore(c, quietHistory) {
     currentFicha = c;
     const isProspect = c.prospect === true || c.status === 'PROSPECTO';
     document.getElementById('ficha-name').textContent       = c.name;
@@ -4561,7 +4972,7 @@ function openFichaCore(c) {
         }
     }
     updateFichaDistance();
-    showScreen('s-ficha','nb-ficha');
+    showScreen('s-ficha', 'nb-ficha', !!quietHistory);
 }
 
 function callClient() {
@@ -4596,10 +5007,12 @@ function openCurrentMapsAddress() {
         alert('No hay dirección ni ciudad para buscar. Usá GPS o completá datos en oficina.');
         return;
     }
+    persistUiState();
     window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank');
 }
 
 function openMapsFor(lat, lng, name) {
+    persistUiState();
     window.open('https://maps.google.com/?q=' + lat + ',' + lng + '&label=' + encodeURIComponent(name), '_blank');
 }
 
@@ -4795,6 +5208,7 @@ async function saveVisitToFirebase() {
         await db.collection('visitas').add(payload);
 
         alert('✅ Visita registrada correctamente y sincronizada (Offline-first)');
+        try { localStorage.removeItem(XP3_VISIT_TIMER_KEY); } catch (e) {}
         
         setTimeout(() => {
             btn.textContent = '📤 Guardar y Sincronizar';
@@ -4822,15 +5236,19 @@ function clearCalc() {
 }
 
 // ================================================================
-// TIMER
+// TIMER visita (reloj de pared en localStorage: sobrevive recarga / volver de Maps)
 // ================================================================
-let timerSecs = 0;
-setInterval(() => {
-    if (document.getElementById('s-registro').classList.contains('active')) {
-        timerSecs++;
-        const el = document.getElementById('timer');
-        if (el) el.textContent = String(Math.floor(timerSecs/60)).padStart(2,'0') + ':' + String(timerSecs%60).padStart(2,'0');
-    }
+setInterval(function() {
+    var reg = document.getElementById('s-registro');
+    if (!reg || !reg.classList.contains('active')) return;
+    var el = document.getElementById('timer');
+    if (!el) return;
+    try {
+        var tj = JSON.parse(localStorage.getItem(XP3_VISIT_TIMER_KEY) || 'null');
+        if (!tj || !tj.startedAtMs) { el.textContent = '00:00'; return; }
+        var secs = Math.max(0, Math.floor((Date.now() - tj.startedAtMs) / 1000));
+        el.textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+    } catch (e) {}
 }, 1000);
 
 // Set visit time on open
