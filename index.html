@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thin...png">
     <title>Rendimax XP3 · App Comercial Costa Norte</title>
     <meta name="description" content="App comercial Rendimax XP3 · Regional Costa Norte · ORC 2026">
+    <meta name="xp3-build" content="2026-04-21-rutas-cap-visita">
     <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,10 +351,15 @@
             <div id="weekly-plan-list"></div>
 
             <div class="slbl" style="margin-top:6px;">Capacitaciones</div>
-            <p class="sub" style="font-size:10px;margin-bottom:8px;line-height:1.45;">Filtrá la vista y agendá capacitaciones con día, hora y estación. Recordatorio en esta app <strong>1 o 2 días antes</strong> (banner arriba).</p>
+            <p class="sub" style="font-size:10px;margin-bottom:8px;line-height:1.45;">En la franja de fechas, los días con evento muestran <strong>🎓</strong>. La lista de próximas capacitaciones queda <strong>siempre visible</strong> aquí; el formulario se abre con el botón morado.</p>
+            <div id="agenda-cap-list-outer" class="card" style="padding:12px;margin-bottom:10px;border:1px solid rgba(168,85,247,.35);background:rgba(168,85,247,.05);">
+                <div class="lbl" style="margin-bottom:6px;color:#ddd6fe;">Próximas capacitaciones</div>
+                <div id="cap-list-wrap" class="sub" style="font-size:11px;margin-top:4px;line-height:1.5;">—</div>
+                <button type="button" class="btn btn-p btn-sm" style="width:100%;margin-top:10px;box-shadow:none;" onclick="openAgendaCapForm()">📅 Agendar o editar (fecha, hora, aviso)</button>
+            </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
                 <button type="button" class="tag active" id="agenda-cap-filter-orc" onclick="setAgendaCapView('orc')">📋 Solo ORC / ruta</button>
-                <button type="button" class="tag" id="agenda-cap-filter-cap" onclick="setAgendaCapView('cap')">🎓 Capacitaciones</button>
+                <button type="button" class="tag" id="agenda-cap-filter-cap" onclick="setAgendaCapView('cap')">🎓 Formulario agenda</button>
             </div>
             <div id="agenda-cap-panel" class="card" style="display:none;padding:12px;margin-bottom:14px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.07);">
                 <div class="lbl" style="margin-bottom:8px;color:#ddd6fe;">Nueva capacitación</div>
@@ -370,7 +376,6 @@
                     <option value="1,2">1 y 2 días antes</option>
                 </select>
                 <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveCapacitacionEvent()">💾 Guardar en mi calendario</button>
-                <div id="cap-list-wrap" class="sub" style="font-size:11px;margin-top:12px;line-height:1.5;">—</div>
             </div>
 
             <div class="ai-box">
@@ -712,15 +717,13 @@
                 <div><h3 style="font-size:15px;" id="visit-name">EDS Esmeralda</h3><p class="sub" style="font-size:11px;margin-top:2px;" id="visit-company">CONSTRUCTORA LA ESMERALDA SAS</p></div>
                 <div style="text-align:right;"><span class="badge by">📍 GPS</span><p class="sub" style="font-size:10px;margin-top:4px;" id="visit-dist">Verificando...</p></div>
             </div>
-            <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:-8px 0 8px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">La primera vez que visites a un cliente se guarda el GPS como referencia. Las visitas siguientes no sobrescriben ese pin automáticamente.</p>
-            <button type="button" class="btn btn-gh btn-sm" style="width:100%;font-size:11px;margin-bottom:14px;" onclick="overwriteVisitAnchorFromGps()">🔄 Actualizar ubicación GPS (solo si el pin guardado está mal)</button>
 
-            <div class="card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(255,179,0,.4);background:rgba(255,179,0,.06);">
+            <div id="visit-client-data-section" class="card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(255,179,0,.4);background:rgba(255,179,0,.06);">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                     <span style="font-size:16px;">✏️</span>
-                    <span class="lbl" style="color:var(--yellow);">Datos del cliente (en esta visita)</span>
+                    <span class="lbl" style="color:var(--yellow);">Actualizar datos desde la visita</span>
                 </div>
-                <p class="sub" style="font-size:10px;line-height:1.45;margin-bottom:10px;color:var(--t2);">Mismo guardado que en la ficha · <strong>este dispositivo</strong>. Corregí teléfono, correo o dirección sin salir de la visita.</p>
+                <p class="sub" style="font-size:10px;line-height:1.45;margin-bottom:10px;color:var(--t2);">Mismo guardado que en la ficha 360° · <strong>este dispositivo</strong>. Teléfono, correo, dirección y notas de campo.</p>
                 <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">👤 Encargado / administrador</label>
                 <input type="text" id="visit-edit-admin-name" placeholder="Nombre" autocomplete="off" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;">
                 <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">📞 Teléfono</label>
@@ -734,6 +737,9 @@
                 <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveVisitClientEditsFromPanel()">💾 Guardar datos del cliente</button>
                 <p class="sub" id="visit-client-edit-msg" style="display:none;text-align:center;color:var(--green);margin-top:8px;font-size:11px;">✅ Guardado. Se verá igual en la ficha 360°.</p>
             </div>
+
+            <p class="sub" id="visit-gps-capture" style="font-size:11px;line-height:1.45;margin:0 0 8px 0;padding:10px 12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;">La primera vez que visites a un cliente se guarda el GPS como referencia. Las visitas siguientes no sobrescriben ese pin automáticamente.</p>
+            <button type="button" class="btn btn-gh btn-sm" style="width:100%;font-size:11px;margin-bottom:14px;" onclick="overwriteVisitAnchorFromGps()">🔄 Actualizar ubicación GPS (solo si el pin guardado está mal)</button>
 
             <div class="g2" style="margin-bottom:18px;">
                 <div class="kpi"><div class="kl">Hora llegada</div><div class="kv" style="font-size:20px;margin-top:3px;" id="visit-time">--:--</div></div>
@@ -3198,6 +3204,22 @@ function setAgendaCapView(mode) {
     if (p) p.style.display = mode === 'cap' ? 'block' : 'none';
     renderCapacitacionesListInAgenda();
 }
+/** Abre el formulario de capacitación y posiciona foco (desde botón visible en Agenda). */
+function openAgendaCapForm() {
+    setAgendaCapView('cap');
+    try {
+        var sel = getAgendaSelectedDate();
+        var cd = document.getElementById('cap-date');
+        if (cd && !cd.value) cd.value = agendaDateKeyLocal(sel);
+    } catch (e0) {}
+    var ct = document.getElementById('cap-time');
+    if (ct) {
+        try { ct.focus(); } catch (e1) {}
+    } else {
+        var cd2 = document.getElementById('cap-date');
+        if (cd2) try { cd2.focus(); } catch (e2) {}
+    }
+}
 function renderCapacitacionesListInAgenda() {
     var wrap = document.getElementById('cap-list-wrap');
     if (!wrap) return;
@@ -3535,16 +3557,15 @@ var ORC_CANONICAL_ROUTE_ORDER = [
 function getOrcRouteNamesFromCalendarOnly() {
     var set = new Set();
     Object.values(ROUTE_CALENDAR_MAY_2026).forEach(function(e) {
-        if (e && e.type === 'route' && e.routeName) set.add(e.routeName);
+        if (e && e.type === 'route' && e.routeName) {
+            var rn = String(e.routeName).trim();
+            if (rn) set.add(rn);
+        }
     });
-    var out = [];
-    ORC_CANONICAL_ROUTE_ORDER.forEach(function(name) {
-        if (set.has(name)) out.push(name);
+    /** Solo el orden canónico fijo; nunca se agregan subzonas del ERP (R20.0km, Barranquilla NORTE, etc.). */
+    return ORC_CANONICAL_ROUTE_ORDER.filter(function(name) {
+        return set.has(name);
     });
-    set.forEach(function(name) {
-        if (ORC_CANONICAL_ROUTE_ORDER.indexOf(name) === -1) out.push(name);
-    });
-    return out;
 }
 /**
  * Lista para el desplegable «Todas las rutas» — solo rutas del cronograma ORC (sin ruido de subzonas).
@@ -4293,6 +4314,14 @@ function onVisitScreenOpened() {
     }
     var num = currentFicha.num;
     hydrateVisitClientEditPanel();
+    setTimeout(function() {
+        var sec = document.getElementById('visit-client-data-section');
+        if (sec) {
+            try {
+                sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (eScroll) {}
+        }
+    }, 280);
     var vtEl = document.getElementById('visit-time');
     var te = document.getElementById('timer');
     try {
@@ -4650,7 +4679,16 @@ function setRouteMode(mode) {
 function populateRouteSelector() {
     var sel = document.getElementById('route-selector-current-route');
     if (!sel) return;
-    var routes = getAllRouteNames();
+    var routes = getAllRouteNames().filter(function(r) {
+        return r && String(r).trim();
+    });
+    var seen = {};
+    routes = routes.filter(function(r) {
+        var k = String(r).trim();
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+    });
     sel.innerHTML = '<option value="">— Elegir ruta —</option>';
     routes.forEach(function(r) {
         var opt = document.createElement('option');
