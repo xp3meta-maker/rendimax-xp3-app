@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thin...png">
     <title>Rendimax XP3 · App Comercial Costa Norte</title>
     <meta name="description" content="App comercial Rendimax XP3 · Regional Costa Norte · ORC 2026">
-    <meta name="xp3-build" content="2026-04-21-rutas-cap-visita">
+    <meta name="xp3-build" content="2026-04-21-ruta-reassign-orden">
     <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -429,6 +429,11 @@
                     <button type="button" class="tag" data-route-day="ALL" onclick="setRouteListDay('ALL')">Todos</button>
                 </div>
             </div>
+
+            <div id="route-order-reset-wrap" style="display:none;margin-bottom:10px;">
+                <button type="button" class="btn btn-gh btn-sm" style="width:100%;font-size:11px;padding:10px;" onclick="clearManualVisitOrderForContext()">↺ Restaurar orden de visita (como export ERP)</button>
+                <p class="sub" style="font-size:9px;margin:6px 0 0;line-height:1.4;opacity:.9;">Usá ↑ ↓ en cada tarjeta para el orden del día. Solo este dispositivo.</p>
+            </div>
             
             <button type="button" class="btn btn-gh" style="width:100%;font-size:12px;margin-bottom:12px;padding:12px;" onclick="openRouteMapForCurrentFilter()">🗺️ Ver área en mapa</button>
 
@@ -586,6 +591,26 @@
                     <div style="display:flex;gap:8px;align-items:center;"><span>📡</span><span class="sub" style="font-size:10px;" id="ficha-distance">Distancia: calculando GPS...</span></div>
                 </div>
                 <div id="ficha-data-badge" style="margin-top:10px;padding:6px 8px;background:rgba(255,179,0,.06);border-radius:8px;border:1px solid rgba(255,179,0,.2);">—</div>
+            </div>
+
+            <div id="ficha-route-reassign-card" class="card" style="padding:12px;margin-bottom:14px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.06);">
+                <div class="lbl" style="margin-bottom:6px;color:#bfdbfe;">Ruta y día (solo este dispositivo)</div>
+                <p class="sub" style="font-size:10px;line-height:1.45;margin-bottom:8px;color:var(--t2);">Mover a otra ruta ORC (ej. Oriente → Occidente): queda filtrado y ordenado como el resto de esa ruta. Oficina puede volver a exportar ROUTE para fijarlo en base central.</p>
+                <p class="sub" id="ficha-route-effective" style="font-size:11px;margin:0 0 10px;line-height:1.45;color:var(--t1);">—</p>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Ruta canónica</label>
+                <select id="ficha-route-reassign-sel" class="form-input" style="width:100%;margin-bottom:8px;padding:8px;box-sizing:border-box;font-size:12px;background:var(--dark2);border:1px solid var(--border);color:var(--t1);border-radius:8px;"></select>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:2px;">Día de visita</label>
+                <select id="ficha-route-reassign-day" class="form-input" style="width:100%;margin-bottom:10px;padding:8px;box-sizing:border-box;font-size:12px;background:var(--dark2);border:1px solid var(--border);color:var(--t1);border-radius:8px;">
+                    <option value="MON">Lunes</option>
+                    <option value="TUE">Martes</option>
+                    <option value="WED">Miércoles</option>
+                    <option value="THU">Jueves</option>
+                    <option value="FRI">Viernes</option>
+                </select>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-p btn-sm" style="flex:1;min-width:120px;box-shadow:none;" onclick="applyFichaRouteReassign()">Aplicar ruta y día</button>
+                    <button type="button" class="btn btn-gh btn-sm" style="flex:1;min-width:120px;" onclick="clearFichaRouteReassign()">Quitar override</button>
+                </div>
             </div>
 
             <!-- Panel Actualizar datos de campo (colapsable) -->
@@ -3590,6 +3615,19 @@ function getClientRouteKeysForMatch(c) {
     keys.push(normOrcRouteKey((c.subzone || '').split(' · ')[0].trim()));
     return keys.filter(Boolean);
 }
+/** Cliente efectivo para filtro de ruta y día (parches locales del comercial). */
+function getClientForRoutingLogic(c) {
+    if (!c) return c;
+    var p = getClientPatch(c.num);
+    var o = Object.assign({}, c);
+    if (p.orcRouteAssign && String(p.orcRouteAssign).trim()) {
+        o.orcRouteName = String(p.orcRouteAssign).trim();
+    }
+    if (p.dayAssign && /^(MON|TUE|WED|THU|FRI)$/.test(p.dayAssign)) {
+        o.day = p.dayAssign;
+    }
+    return o;
+}
 function clientMatchesOrcRouteName(want, k) {
     if (!k) return false;
     if (k === want) return true;
@@ -3615,8 +3653,9 @@ function clientMatchesOrcRouteName(want, k) {
 function getClientsForRoute(routeName) {
     var want = normOrcRouteKey(routeName);
     return allRouteClients().filter(function(c) {
-        if (!c.day) return false;
-        var keys = getClientRouteKeysForMatch(c);
+        var oc = getClientForRoutingLogic(c);
+        if (!oc.day) return false;
+        var keys = getClientRouteKeysForMatch(oc);
         for (var i = 0; i < keys.length; i++) {
             if (clientMatchesOrcRouteName(want, keys[i])) return true;
         }
@@ -3861,7 +3900,9 @@ function buildWeeklyPlanSnapshot() {
     const keys = ['MON','TUE','WED','THU','FRI'];
     const out = {};
     keys.forEach(function(dayKey) {
-        var list = allRouteClients().filter(function(c) { return c.day === dayKey; }).sort(function(a, b) {
+        var list = allRouteClients().filter(function(c) {
+            return getClientForRoutingLogic(c).day === dayKey;
+        }).sort(function(a, b) {
             return (b.hist || 0) - (a.hist || 0);
         });
         var meta = DAY_META[dayKey];
@@ -4038,8 +4079,104 @@ function sortRouteClientsForDisplay(arr) {
     });
 }
 
+var XP3_VISIT_ORDER_KEY = 'xp3_visit_order_v1';
+function loadVisitOrderMap() {
+    try {
+        return JSON.parse(localStorage.getItem(XP3_VISIT_ORDER_KEY) || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+function saveVisitOrderMap(m) {
+    try { localStorage.setItem(XP3_VISIT_ORDER_KEY, JSON.stringify(m)); } catch (e) {}
+}
+function loadVisitOrderArray(routeName) {
+    if (!routeName) return [];
+    var m = loadVisitOrderMap();
+    var o = m[routeName];
+    return Array.isArray(o) ? o.slice() : [];
+}
+function setVisitOrderArray(routeName, nums) {
+    var m = loadVisitOrderMap();
+    m[routeName] = nums;
+    saveVisitOrderMap(m);
+}
+function syncVisitOrderNums(orderNums, currentNums) {
+    var set = {};
+    currentNums.forEach(function(n) { set[String(n)] = true; });
+    var out = [];
+    orderNums.forEach(function(n) {
+        if (set[String(n)]) out.push(n);
+    });
+    currentNums.forEach(function(n) {
+        if (out.indexOf(n) < 0) out.push(n);
+    });
+    return out;
+}
+function mergeManualVisitOrder(routeName, sortedArr) {
+    if (!routeName || !sortedArr || !sortedArr.length) return sortedArr;
+    var cur = loadVisitOrderArray(routeName);
+    if (!cur.length) return sortedArr;
+    var nums = sortedArr.map(function(x) { return x.num; });
+    cur = syncVisitOrderNums(cur, nums);
+    if (!cur.length) return sortedArr;
+    var byNum = {};
+    sortedArr.forEach(function(c) { byNum[String(c.num)] = c; });
+    var out = [];
+    cur.forEach(function(n) {
+        var c = byNum[String(n)];
+        if (c) out.push(c);
+    });
+    return out;
+}
+function getCurrentRouteContextName() {
+    if (routeViewMode === 'today' && routeViewSelectedRoute) return routeViewSelectedRoute;
+    if (routeViewMode === 'all') {
+        var sel = document.getElementById('route-selector-current-route');
+        return sel && sel.value ? sel.value : '';
+    }
+    return '';
+}
+function shiftVisitOrder(clientNum, delta) {
+    var ctx = getCurrentRouteContextName();
+    if (!ctx) {
+        alert('Elegí «Ruta de hoy» o «Todas las rutas» y una ruta en el selector para reordenar paradas.');
+        return;
+    }
+    var base = sortRouteClientsForDisplay(getClientsForRouteListView());
+    var nums = base.map(function(x) { return x.num; });
+    if (!nums.length) return;
+    var cur = loadVisitOrderArray(ctx);
+    if (!cur.length) cur = nums.slice();
+    else cur = syncVisitOrderNums(cur, nums);
+    var i = cur.indexOf(clientNum);
+    if (i < 0) return;
+    var j = i + delta;
+    if (j < 0 || j >= cur.length) return;
+    var t = cur[i];
+    cur[i] = cur[j];
+    cur[j] = t;
+    setVisitOrderArray(ctx, cur);
+    buildRouteList();
+}
+function clearManualVisitOrderForContext() {
+    var ctx = getCurrentRouteContextName();
+    if (!ctx) return;
+    if (!confirm('¿Volver al orden por datos del export (turno / parada)?')) return;
+    var m = loadVisitOrderMap();
+    delete m[ctx];
+    saveVisitOrderMap(m);
+    buildRouteList();
+}
+
 function getSortedRouteClientsForListView() {
-    return sortRouteClientsForDisplay(getClientsForRouteListView());
+    var raw = getClientsForRouteListView();
+    var sorted = sortRouteClientsForDisplay(raw);
+    var ctx = getCurrentRouteContextName();
+    if ((routeViewMode === 'today' || routeViewMode === 'all') && ctx) {
+        return mergeManualVisitOrder(ctx, sorted);
+    }
+    return sorted;
 }
 
 function getNextClientInRouteAfterNum(num) {
@@ -4730,7 +4867,9 @@ function openRouteMapForCurrentFilter() {
 
 function getClientsForRouteListView() {
     ensureRouteListDayFilterInit();
-    var all = allRouteClients().filter(function(c) { return c.day; });
+    var all = allRouteClients().filter(function(c) {
+        return !!getClientForRoutingLogic(c).day;
+    });
     
     if (routeViewMode === 'today') {
         if (!routeViewSelectedRoute) return [];
@@ -4742,7 +4881,9 @@ function getClientsForRouteListView() {
         return getClientsForRoute(rn);
     } else if (routeViewMode === 'search') {
         if (!routeListDayFilter || routeListDayFilter === 'ALL') return all.slice();
-        return all.filter(function(x) { return x.day === routeListDayFilter; });
+        return all.filter(function(x) {
+            return getClientForRoutingLogic(x).day === routeListDayFilter;
+        });
     }
     
     return all.slice();
@@ -4798,6 +4939,11 @@ function refreshRutaScreenHeader(numStops) {
         if (sub) {
             sub.textContent = numStops + ' clientes encontrados · Filtrá por día o buscá por nombre en el campo de búsqueda.';
         }
+    }
+    var rw = document.getElementById('route-order-reset-wrap');
+    if (rw) {
+        var showRw = (routeViewMode === 'today' || routeViewMode === 'all') && !!getCurrentRouteContextName();
+        rw.style.display = showRw ? 'block' : 'none';
     }
 }
 
@@ -4862,9 +5008,13 @@ function buildRouteList() {
             + '<span style="margin-left:auto;font-weight:700;color:var(--yellow);font-size:13px;">' + avt + (isProspect ? '' : '/mes') + '</span>'
             + '</div>'
             + '<p class="sub" style="font-size:10px;margin-bottom:12px;">' + histLine + '</p>'
-            + '<div style="display:flex;gap:8px;">'
-            + '<button class="btn btn-p btn-sm" style="flex:1;box-shadow:none;font-size:11px;" onclick="openFichaByNum(' + c.num + ')">🃏 Ficha 360°</button>'
-            + '<button class="btn btn-gh btn-go btn-sm" style="flex:1;font-size:11px;" onclick="openMapsFor(' + em.lat + ',' + em.lng + ',\'' + c.name.replace(/'/g,"\\'") + '\')">📍 IR</button>'
+            + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+            + '<div style="display:flex;gap:4px;flex-shrink:0;">'
+            + '<button type="button" class="btn btn-gh btn-sm" style="padding:6px 8px;font-size:11px;margin:0;min-width:36px;" title="Subir en orden de visita" onclick="event.stopPropagation();shiftVisitOrder(' + c.num + ',-1)">↑</button>'
+            + '<button type="button" class="btn btn-gh btn-sm" style="padding:6px 8px;font-size:11px;margin:0;min-width:36px;" title="Bajar en orden de visita" onclick="event.stopPropagation();shiftVisitOrder(' + c.num + ',1)">↓</button>'
+            + '</div>'
+            + '<button class="btn btn-p btn-sm" style="flex:1;box-shadow:none;font-size:11px;min-width:0;" onclick="openFichaByNum(' + c.num + ')">🃏 Ficha 360°</button>'
+            + '<button class="btn btn-gh btn-go btn-sm" style="flex:1;font-size:11px;min-width:0;" onclick="openMapsFor(' + em.lat + ',' + em.lng + ',\'' + c.name.replace(/'/g,"\\'") + '\')">📍 IR</button>'
             + '</div>'
             + '</div></div>';
         list.appendChild(el);
@@ -5230,7 +5380,7 @@ function initOrRefreshRouteMap() {
                 dashArray: stPin ? '4 3' : null
             }).addTo(routeMapLayerGroup).bindPopup(
                 (zk === 'PROSPECTO' ? '🆕 ' : '') + (c.name || '') + '<br>' + (c.city || '')
-                + '<br><span style="opacity:.85;">Mapa: ' + sm + ' · Negocio: ' + bizLab + ' · Día: ' + (c.day || '—') + '</span>' + pinNote + sbLine
+                + '<br><span style="opacity:.85;">Mapa: ' + sm + ' · Negocio: ' + bizLab + ' · Día: ' + (getClientForRoutingLogic(c).day || '—') + '</span>' + pinNote + sbLine
             );
             bounds.extend([ec.lat, ec.lng]);
         });
@@ -5509,6 +5659,80 @@ function _updateFichaDataBadge(c, patch) {
     }
 }
 
+function inferCanonicalRouteForClient(c) {
+    if (!c) return '';
+    var p = getClientPatch(c.num);
+    if (p.orcRouteAssign && String(p.orcRouteAssign).trim()) return String(p.orcRouteAssign).trim();
+    var routes = getAllRouteNames();
+    if (!routes.length) routes = ORC_CANONICAL_ROUTE_ORDER.slice();
+    for (var i = 0; i < routes.length; i++) {
+        var want = normOrcRouteKey(routes[i]);
+        var keys = getClientRouteKeysForMatch(c);
+        for (var j = 0; j < keys.length; j++) {
+            if (clientMatchesOrcRouteName(want, keys[j])) return routes[i];
+        }
+    }
+    return routes[0] || '';
+}
+function populateFichaRouteReassignWidgets(c) {
+    var sel = document.getElementById('ficha-route-reassign-sel');
+    var dayEl = document.getElementById('ficha-route-reassign-day');
+    if (!sel || !dayEl || !c) return;
+    var routes = getAllRouteNames();
+    if (!routes.length) routes = ORC_CANONICAL_ROUTE_ORDER.slice();
+    sel.innerHTML = '';
+    routes.forEach(function(rn) {
+        var opt = document.createElement('option');
+        opt.value = rn;
+        opt.textContent = rn;
+        sel.appendChild(opt);
+    });
+    var pick = inferCanonicalRouteForClient(c);
+    if (routes.indexOf(pick) >= 0) sel.value = pick;
+    var p = getClientPatch(c.num);
+    var d0 = (p.dayAssign && /^(MON|TUE|WED|THU|FRI)$/.test(p.dayAssign))
+        ? p.dayAssign
+        : (c.day && /^(MON|TUE|WED|THU|FRI)$/.test(c.day) ? c.day : 'MON');
+    dayEl.value = d0;
+}
+function refreshFichaRouteEffectiveLine() {
+    var el = document.getElementById('ficha-route-effective');
+    if (!el || !currentFicha) return;
+    var oc = getClientForRoutingLogic(currentFicha);
+    var rk = getClientRouteKeysForMatch(oc);
+    var dn = (DAY_META[oc.day] && DAY_META[oc.day].name) ? DAY_META[oc.day].name : (oc.day || '—');
+    var p = getClientPatch(currentFicha.num);
+    var hasO = !!(p.orcRouteAssign && String(p.orcRouteAssign).trim())
+        || !!(p.dayAssign && /^(MON|TUE|WED|THU|FRI)$/.test(p.dayAssign));
+    el.innerHTML = '📌 <strong>Efectivo en app:</strong> día <strong>' + escapeHtml(dn) + '</strong>'
+        + (hasO ? ' <span style="color:var(--yellow);">· override local</span>' : '')
+        + '<br><span style="opacity:.85;font-size:10px;">Coincidencia ruta: ' + escapeHtml((rk.join(' · ') || '—')) + '</span>';
+}
+function applyFichaRouteReassign() {
+    if (!currentFicha) return;
+    var rs = document.getElementById('ficha-route-reassign-sel');
+    var ds = document.getElementById('ficha-route-reassign-day');
+    var rn = rs ? rs.value : '';
+    var dk = ds ? ds.value : '';
+    if (!rn) { alert('Elegí una ruta.'); return; }
+    if (!/^(MON|TUE|WED|THU|FRI)$/.test(dk)) { alert('Elegí un día válido.'); return; }
+    setClientPatch(currentFicha.num, { orcRouteAssign: rn, dayAssign: dk });
+    refreshFichaRouteEffectiveLine();
+    buildRouteList();
+    if (typeof buildAgenda === 'function') buildAgenda();
+    updateFichaNextStopHint(currentFicha);
+    alert('Listo. Este EDS queda en «' + rn + '» los ' + (DAY_META[dk] ? DAY_META[dk].name : dk) + ' en esta app.');
+}
+function clearFichaRouteReassign() {
+    if (!currentFicha) return;
+    setClientPatch(currentFicha.num, { orcRouteAssign: '', dayAssign: '' });
+    populateFichaRouteReassignWidgets(currentFicha);
+    refreshFichaRouteEffectiveLine();
+    buildRouteList();
+    if (typeof buildAgenda === 'function') buildAgenda();
+    updateFichaNextStopHint(currentFicha);
+}
+
 // ================================================================
 // FICHA 360°
 // ================================================================
@@ -5585,6 +5809,16 @@ function openFichaCore(c, quietHistory) {
             if ((fbt.textContent || '').indexOf('iniciar una visita') === -1) {
                 fbt.textContent = (fbt.textContent || '') + extra;
             }
+        }
+    }
+    var rcard = document.getElementById('ficha-route-reassign-card');
+    if (rcard) {
+        if (isProspect) {
+            rcard.style.display = 'none';
+        } else {
+            rcard.style.display = 'block';
+            populateFichaRouteReassignWidgets(c);
+            refreshFichaRouteEffectiveLine();
         }
     }
     updateFichaDistance();
