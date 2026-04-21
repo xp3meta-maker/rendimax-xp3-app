@@ -561,7 +561,11 @@
                 <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📍 Dirección (si es distinta a la registrada)</label>
                 <input type="text" id="edit-address" placeholder="Ej. Cra 5 # 12-34, barrio X" autocomplete="off" style="margin-bottom:10px;">
                 <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">📝 Notas de campo</label>
-                <input type="text" id="edit-field-notes" placeholder="Ej. Mejor llamar antes del mediodía" autocomplete="off" style="margin-bottom:14px;">
+                <input type="text" id="edit-field-notes" placeholder="Ej. Mejor llamar antes del mediodía" autocomplete="off" style="margin-bottom:10px;">
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">🧪 Referencias de aditivo que compraban (histórico)</label>
+                <textarea id="edit-additive-refs" class="inp-dark" rows="2" placeholder="Ej. XP3 Gas 20 ml + XP3 Motos 6 ml · antes Terpel / otra marca" style="resize:vertical;min-height:48px;margin-bottom:10px;width:100%;box-sizing:border-box;"></textarea>
+                <label class="sub" style="display:block;margin-bottom:4px;font-size:11px;">⏱ Rotación / uso aproximado</label>
+                <input type="text" id="edit-rotation-hint" placeholder="Ej. ~25 días por drum Gas · motos cada 40 días" autocomplete="off" style="margin-bottom:14px;">
                 <button type="button" class="btn btn-p" style="width:100%;" onclick="saveFichaEdits()">💾 Guardar datos en este dispositivo</button>
                 <p class="sub" id="ficha-edit-saved-msg" style="display:none;text-align:center;color:var(--green);margin-top:10px;font-size:11px;">✅ Datos guardados. Se reflejan en la ficha inmediatamente.</p>
                 <div id="ficha-edit-notes-row" style="display:none;margin-top:12px;padding:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;">
@@ -577,6 +581,11 @@
                 <div class="mrow" style="border:none;padding-bottom:0;"><span class="sub">Días sin comprar</span><span style="font-weight:700;color:var(--red);" id="ficha-days">—</span></div>
             </div>
 
+            <div class="slbl">Histórico de aditivos y rotación</div>
+            <div class="card cy" id="ficha-additive-card" style="padding:12px;">
+                <div id="ficha-additive-body" class="sub" style="font-size:11px;line-height:1.55;margin:0;">—</div>
+            </div>
+
             <div class="ai-box">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
                     <span style="font-size:20px;">🤖</span>
@@ -588,10 +597,16 @@
             </div>
 
             <div class="slbl">Historial de Visitas</div>
-            <div class="card">
+            <div class="card" id="ficha-visit-hist-card">
                 <div class="hist-i"><div class="hdot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">12 Feb 2026</div><div class="sub" style="font-size:11px;margin-top:2px;">Encargado no disponible. Dejó tarjeta.</div></div></div>
                 <div class="hist-i"><div class="hdot" style="background:var(--yellow);box-shadow:0 0 6px var(--yellow);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">15 Ene 2026</div><div class="sub" style="font-size:11px;margin-top:2px;">Reunión con gerente. Menciona competencia.</div></div></div>
                 <div class="hist-i" style="border-bottom:none;"><div class="hdot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div><div><div style="font-weight:600;font-size:12px;color:var(--t1);">08 Nov 2025</div><div class="sub" style="font-size:11px;margin-top:2px;">Primera reactivación. Receptivo. Pide cotización.</div></div></div>
+                <p class="sub" style="font-size:10px;margin-top:10px;line-height:1.45;color:var(--t2);">Las visitas nuevas quedan en <strong>Firebase</strong> (Registrar visita). Próxima versión: listado en vivo aquí.</p>
+            </div>
+
+            <div id="ficha-next-stop" class="card" style="padding:10px 12px;margin-bottom:10px;display:none;border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.06);">
+                <p class="lbl" style="margin-bottom:4px;">Siguiente en tu ruta</p>
+                <p class="sub" id="ficha-next-stop-text" style="margin:0;font-size:12px;color:var(--t1);">—</p>
             </div>
 
             <div class="g2" style="margin-bottom:10px;">
@@ -675,8 +690,8 @@
                 <input type="number" placeholder="XP3 Motos 6ml" min="0">
             </div>
 
-            <div class="slbl">Comentario</div>
-            <textarea id="comment" placeholder="Describe qué pasó... (escribe 'precio' o 'competencia' para activar IA Co-Pilot)"></textarea>
+            <div class="slbl">Observaciones <span style="color:var(--red);">*</span> obligatorias</div>
+            <textarea id="comment" required minlength="10" placeholder="Obligatorio antes de guardar: qué pasó, acuerdos, objeciones, próximo paso… (mín. 10 caracteres)"></textarea>
 
             <div id="ai-sug" style="display:none;margin-top:14px;" class="ai-box">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="font-size:18px;">💡</span><span class="ai-chip">Respuesta IA · XP3</span></div>
@@ -3459,6 +3474,11 @@ window.addEventListener('popstate', (e) => {
 });
 
 function showScreen(id, navId, isPop = false) {
+    var prevActive = document.querySelector('.screen.active');
+    if (prevActive && prevActive.id === 's-registro' && id !== 's-registro') {
+        if (!assertCanLeaveVisitScreen(id)) return;
+        visitCompletionState.openedVisit = false;
+    }
     if (!isPop) {
         var qs = '?s=' + encodeURIComponent(id);
         if (currentFicha && currentFicha.num != null && (id === 's-ficha' || id === 's-registro')) {
@@ -3490,7 +3510,115 @@ function showScreen(id, navId, isPop = false) {
 /** Estado de UI para volver de Maps / segundo plano (WebView suele recargar la página). */
 var XP3_UI_RESTORE_KEY = 'xp3_ui_restore_v1';
 var XP3_VISIT_TIMER_KEY = 'xp3_visit_timer_v1';
+var MIN_VISIT_OBS_CHARS = 10;
+/** Salir de Registrar visita sin guardar: aviso (obligatorio registrar con observaciones). */
+var visitCompletionState = { openedVisit: false, savedThisSession: false };
 var _persistUiT = null;
+
+function visitSyncedStopsStorageKey() {
+    return 'xp3_route_visit_done_' + orcDateKeyISO(new Date());
+}
+function markClientVisitSyncedToday(num) {
+    try {
+        var k = visitSyncedStopsStorageKey();
+        var o = JSON.parse(localStorage.getItem(k) || '{}');
+        o[String(num)] = { atMs: Date.now(), synced: true };
+        localStorage.setItem(k, JSON.stringify(o));
+    } catch (e) {}
+}
+function isClientVisitSyncedToday(num) {
+    try {
+        var o = JSON.parse(localStorage.getItem(visitSyncedStopsStorageKey()) || '{}');
+        return !!(o[String(num)] && o[String(num)].synced);
+    } catch (e) { return false; }
+}
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function estimateRotationFromHistoricClient(c) {
+    var avg = typeof c.avg === 'number' ? c.avg : 0;
+    if (!avg || avg < 1000) return null;
+    var refTicketCOP = 420000;
+    var cycles = avg / refTicketCOP;
+    if (cycles < 0.06) {
+        return 'Consumo bajo frente a un ticket referencia mix ~$420k/mes; rotación lenta o ticket distinto — <strong>confirmar en terreno</strong> qué referencias y cada cuántos días.';
+    }
+    var days = Math.round(30 / Math.max(cycles, 0.12));
+    days = Math.min(95, Math.max(7, days));
+    return 'Aprox. <strong>' + days + ' días</strong> entre ciclos de recompra equivalentes (proxy: prom. mensual ÷ ticket referencia ~$420k/mes línea aditivos).';
+}
+
+function populateFichaAdditiveBlock(c, patch) {
+    var body = document.getElementById('ficha-additive-body');
+    if (!body) return;
+    var refs = (patch && patch.additiveRefs) || c.additiveRefs;
+    var rot = (patch && patch.rotationHint) || c.rotationHint;
+    refs = refs && String(refs).trim() ? String(refs).trim() : '';
+    rot = rot && String(rot).trim() ? String(rot).trim() : '';
+    var hist = typeof c.hist === 'number' ? c.hist : 0;
+    var avg = typeof c.avg === 'number' ? c.avg : 0;
+    var rotBlock = rot ? escapeHtml(rot) : (estimateRotationFromHistoricClient(c) || '<span style="color:var(--t3);">Sin promedio para estimar. Cargá rotación en ✏️ Actualizar datos.</span>');
+    var html = '';
+    html += '<p style="margin:0 0 8px 0;"><strong>Referencias que manejaban:</strong> ';
+    html += refs ? escapeHtml(refs) : '<span style="color:var(--t3);">Aún no cargado.</span> Completá en <strong>✏️ Actualizar datos</strong> (este dispositivo) u oficina desde Ventas QP por aditivo.';
+    html += '</p>';
+    html += '<p style="margin:0 0 8px 0;"><strong>Rotación / uso:</strong> ' + rotBlock + '</p>';
+    html += '<p class="sub" style="font-size:10px;margin:0;line-height:1.45;color:var(--t2);">Respaldo ERP: histórico acum. 2022–2025 <strong style="color:var(--yellow);">$' + hist.toLocaleString('es-CO') + '</strong> · prom. mensual <strong>$' + avg.toLocaleString('es-CO') + '</strong>.</p>';
+    body.innerHTML = html;
+}
+
+function sortRouteClientsForDisplay(arr) {
+    return arr.slice().sort(function(a, b) {
+        var sa = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(a) ? 0 : 1;
+        var sb = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(b) ? 0 : 1;
+        if (sa !== sb) return sa - sb;
+        var ca = (a.days || 0) > 400 ? 0 : 1;
+        var cb = (b.days || 0) > 400 ? 0 : 1;
+        if (ca !== cb) return ca - cb;
+        var wa = a.routeWave || 1, wb = b.routeWave || 1;
+        var oa = a.stopOrder || 0, ob = b.stopOrder || 0;
+        if (wa !== wb) return wa - wb;
+        return oa - ob;
+    });
+}
+
+function getSortedRouteClientsForListView() {
+    return sortRouteClientsForDisplay(getClientsForRouteListView());
+}
+
+function getNextClientInRouteAfterNum(num) {
+    var list = getSortedRouteClientsForListView();
+    var idx = list.findIndex(function(x) { return x.num === num; });
+    if (idx < 0 || idx >= list.length - 1) return null;
+    return list[idx + 1] || null;
+}
+
+function updateFichaNextStopHint(c) {
+    var wrap = document.getElementById('ficha-next-stop');
+    var txt = document.getElementById('ficha-next-stop-text');
+    if (!wrap || !txt || !c) return;
+    var next = getNextClientInRouteAfterNum(c.num);
+    if (next) {
+        wrap.style.display = 'block';
+        var cn = (next.company || next.name || '').trim();
+        if (cn.length > 52) cn = cn.slice(0, 50) + '…';
+        txt.innerHTML = 'Parada siguiente: <strong>' + escapeHtml(next.name || '') + '</strong>' + (cn ? ' · <span style="color:var(--t2);">' + escapeHtml(cn) + '</span>' : '');
+    } else {
+        wrap.style.display = 'none';
+    }
+}
+
+function assertCanLeaveVisitScreen(navigatingToId) {
+    if (navigatingToId === 's-registro') return true;
+    var reg = document.getElementById('s-registro');
+    if (!reg || !reg.classList.contains('active')) return true;
+    if (!visitCompletionState.openedVisit) return true;
+    if (visitCompletionState.savedThisSession) return true;
+    return confirm('⚠️ No guardaste la visita con observaciones obligatorias.\n\nDebés registrar la salida de la estación antes de seguir la ruta.\n\n¿Salir sin guardar? (solo si fue un error al abrir)');
+}
 function schedulePersistUi() {
     clearTimeout(_persistUiT);
     _persistUiT = setTimeout(persistUiState, 200);
@@ -3720,6 +3848,8 @@ function updateFichaDistance() {
 }
 
 function onVisitScreenOpened() {
+    visitCompletionState.openedVisit = true;
+    visitCompletionState.savedThisSession = false;
     visitSessionGps = null;
     var el = document.getElementById('visit-gps-capture');
     if (el) el.textContent = 'Comprobando si ya hay ubicación guardada...';
@@ -4190,19 +4320,7 @@ function buildRouteList() {
     if (!list) return;
     list.innerHTML = '';
     ensureRouteListDayFilterInit();
-    let filteredRoute = getClientsForRouteListView();
-    filteredRoute = filteredRoute.slice().sort(function(a, b) {
-        var sa = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(a) ? 0 : 1;
-        var sb = typeof clientStandbyFromBusinessZone === 'function' && clientStandbyFromBusinessZone(b) ? 0 : 1;
-        if (sa !== sb) return sa - sb;
-        var ca = (a.days || 0) > 400 ? 0 : 1;
-        var cb = (b.days || 0) > 400 ? 0 : 1;
-        if (ca !== cb) return ca - cb;
-        var wa = a.routeWave || 1, wb = b.routeWave || 1;
-        var oa = a.stopOrder || 0, ob = b.stopOrder || 0;
-        if (wa !== wb) return wa - wb;
-        return oa - ob;
-    });
+    let filteredRoute = getSortedRouteClientsForListView();
     var totalStops = filteredRoute.length;
     filteredRoute.forEach((c, idx) => {
         const listPos = idx + 1;
@@ -4235,6 +4353,7 @@ function buildRouteList() {
             + '<h3 style="font-size:12px;line-height:1.2;">' + c.name + '</h3>'
             + '<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:center;">'
             + '<span class="badge ' + iCls + '" style="flex-shrink:0;">' + (isProspect ? 'PROSPECTO' : c.status) + '</span>'
+            + (isClientVisitSyncedToday(c.num) ? '<span class="badge bg" style="flex-shrink:0;font-size:9px;">✓ Registrada hoy</span>' : '')
             + (isStandbyZone ? '<span class="badge" style="flex-shrink:0;background:#475569;font-size:9px;">⏸ Standby</span>' : '')
             + '</span>'
             + '</div>'
@@ -4795,6 +4914,10 @@ function toggleFichaEdit() {
         document.getElementById('edit-email').value       = p.email      || '';
         document.getElementById('edit-address').value     = p.address    || '';
         document.getElementById('edit-field-notes').value = p.notes      || '';
+        var ear = document.getElementById('edit-additive-refs');
+        var erh = document.getElementById('edit-rotation-hint');
+        if (ear) ear.value = p.additiveRefs || '';
+        if (erh) erh.value = p.rotationHint || '';
         document.getElementById('ficha-edit-saved-msg').style.display = 'none';
         var notesRow = document.getElementById('ficha-edit-notes-row');
         var notesText = document.getElementById('ficha-edit-notes-text');
@@ -4816,7 +4939,9 @@ function saveFichaEdits() {
         adminPhone: (document.getElementById('edit-admin-phone').value || '').trim(),
         email:      (document.getElementById('edit-email').value       || '').trim(),
         address:    (document.getElementById('edit-address').value     || '').trim(),
-        notes:      (document.getElementById('edit-field-notes').value || '').trim()
+        notes:      (document.getElementById('edit-field-notes').value || '').trim(),
+        additiveRefs: (document.getElementById('edit-additive-refs') && document.getElementById('edit-additive-refs').value || '').trim(),
+        rotationHint: (document.getElementById('edit-rotation-hint') && document.getElementById('edit-rotation-hint').value || '').trim()
     };
     setClientPatch(currentFicha.num, patch);
     var msg = document.getElementById('ficha-edit-saved-msg');
@@ -4832,6 +4957,7 @@ function saveFichaEdits() {
         }
     }
     _applyPatchToFichaUI(currentFicha, patch);
+    populateFichaAdditiveBlock(currentFicha, patch);
 }
 
 /** Normaliza valores vacíos/nulos del ERP: "NULL", "N/A", "N/D", "—", "" → null */
@@ -4936,6 +5062,8 @@ function openFichaCore(c, quietHistory) {
         document.getElementById('ficha-lost').textContent      = c.hist;
     }
     document.getElementById('ficha-ai-text').textContent   = c.aiText || 'Sin análisis disponible.';
+    populateFichaAdditiveBlock(c, patch);
+    updateFichaNextStopHint(c);
     document.getElementById('visit-name').textContent      = c.name;
     document.getElementById('visit-company').textContent   = c.company;
     var fb = document.getElementById('ficha-geo-banner');
@@ -5167,15 +5295,33 @@ function sendQuote() {
     alert('✅ Cotización lista para ' + clientName + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
 }
 async function saveVisitToFirebase() {
+    const btn = document.getElementById('btn-save-visit');
+    function resetVisitSaveBtn() {
+        if (btn) {
+            btn.textContent = '📤 Guardar y Sincronizar';
+            btn.disabled = false;
+        }
+    }
+    var commentRaw = document.getElementById('comment') ? String(document.getElementById('comment').value || '') : '';
+    var comment = commentRaw.trim();
+    if (comment.length < MIN_VISIT_OBS_CHARS) {
+        alert('Observaciones obligatorias: escribí al menos ' + MIN_VISIT_OBS_CHARS + ' caracteres (qué pasó, acuerdos, objeciones, próximo paso) antes de Guardar y sincronizar.');
+        return;
+    }
+    const res = document.querySelector('#r1.sel, #r2.sel, #r3.sel, #r4.sel');
+    if (!res) {
+        alert('Elegí un resultado de visita: Pedido, Seguimiento, Sin respuesta o Rechazado.');
+        return;
+    }
+    const resVal = res.textContent || '';
     try {
-        const btn = document.getElementById('btn-save-visit');
-        btn.textContent = '⏳ Sincronizando...';
-        btn.disabled = true;
+        if (btn) {
+            btn.textContent = '⏳ Sincronizando...';
+            btn.disabled = true;
+        }
 
-        const res = document.querySelector('.r1.sel, .r2.sel, .r3.sel, .r4.sel') || document.querySelector('.card.brdr.sel');
-        const resVal = res ? res.textContent : 'No especificado';
-        const comment = document.getElementById('comment').value;
-        const calcVal = document.getElementById('calc-total-val').textContent;
+        var calcEl = document.getElementById('calc-total-val');
+        const calcVal = calcEl ? calcEl.textContent : '$0';
 
         var anchorPayload = null;
         if (currentFicha && currentFicha.num != null && VISIT_ANCHORS[currentFicha.num]) {
@@ -5184,9 +5330,9 @@ async function saveVisitToFirebase() {
         }
         const payload = {
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            routeDay: new Date().toDateString(),
+            routeDay: orcDateKeyISO(new Date()),
             result: resVal.trim(),
-            comment: comment || '',
+            comment: comment,
             amountCalculated: calcVal,
             clientRef: currentFicha ? currentFicha.name : 'Ruta Generica',
             clientNum: currentFicha ? currentFicha.num : null,
@@ -5207,23 +5353,38 @@ async function saveVisitToFirebase() {
 
         await db.collection('visitas').add(payload);
 
-        alert('✅ Visita registrada correctamente y sincronizada (Offline-first)');
+        var savedNum = currentFicha ? currentFicha.num : null;
+        markClientVisitSyncedToday(savedNum);
+        visitCompletionState.savedThisSession = true;
+        visitCompletionState.openedVisit = false;
         try { localStorage.removeItem(XP3_VISIT_TIMER_KEY); } catch (e) {}
-        
-        setTimeout(() => {
-            btn.textContent = '📤 Guardar y Sincronizar';
-            btn.disabled = false;
-            document.getElementById('comment').value = '';
-            showScreen('s-home', 'nb-home');
+
+        var nextC = savedNum != null ? getNextClientInRouteAfterNum(savedNum) : null;
+
+        if (document.getElementById('comment')) document.getElementById('comment').value = '';
+        ['r1', 'r2', 'r3', 'r4'].forEach(function(id) {
+            var e = document.getElementById(id);
+            if (e) e.classList.remove('sel');
+        });
+
+        resetVisitSaveBtn();
+
+        if (nextC) {
+            alert('✅ Visita registrada y sincronizada.\n\nSiguiente parada: ' + (nextC.name || '') + '.');
+            openFichaByNum(nextC.num);
+            buildRouteList();
             buildAgenda();
-        }, 500);
+        } else {
+            alert('✅ Visita registrada correctamente y sincronizada. No hay más paradas en esta vista de ruta.');
+            showScreen('s-ruta', 'nb-ruta');
+            buildRouteList();
+            buildAgenda();
+        }
 
     } catch (e) {
         console.error('Error guardando visita:', e);
         alert('⚠️ Error interno al guardar.');
-        const btn = document.getElementById('btn-save-visit');
-        btn.disabled = false;
-        btn.textContent = '📤 Guardar y Sincronizar';
+        resetVisitSaveBtn();
     }
 }
 
