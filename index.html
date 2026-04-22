@@ -3621,11 +3621,19 @@ var ORC_FESTIVOS_CO_2026 = new Set([
 // </auto:orc_festivos_co>
 
 /**
- * Calendario operativo mayo 2026 — ruta asignada por fecha.
- * Fuente: Plan de Trabajo Mayo 2026 (cronograma visual usuario).
+ * Calendario operativo ORC 2026 — ruta asignada por fecha (abril cierre + mayo).
+ * Abril: Plan de Trabajo abril 2026 (días faltantes hacia inicio mayo).
+ * Mayo: Plan de Trabajo mayo 2026 (cronograma visual usuario).
  * Estructura: { fecha: { type, label, dayKey?, routeName? } }
  */
-var ROUTE_CALENDAR_MAY_2026 = {
+var ROUTE_CALENDAR_ORC_2026 = {
+    '2026-04-22': { type: 'route', label: 'Barranquilla Sur', dayKey: 'WED', routeName: 'Ruta Barranquilla Sur' },
+    '2026-04-23': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'THU', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-04-24': { type: 'route', label: 'Metropolitana Centro-Occidente', dayKey: 'FRI', routeName: 'Metropolitana Centro-Occidente' },
+    '2026-04-27': { type: 'route', label: 'Barranquilla Sur', dayKey: 'MON', routeName: 'Ruta Barranquilla Sur' },
+    '2026-04-28': { type: 'route', label: 'Metropolitana Centro-Oriente', dayKey: 'TUE', routeName: 'Metropolitana Centro-Oriente' },
+    '2026-04-29': { type: 'route', label: 'Barranquilla Norte', dayKey: 'WED', routeName: 'Barranquilla Norte' },
+    '2026-04-30': { type: 'route', label: 'Metropolitana Centro-Occidente', dayKey: 'THU', routeName: 'Metropolitana Centro-Occidente' },
     '2026-05-01': { type: 'festivo', label: 'Festivo' },
     '2026-05-04': { type: 'admin', label: 'Día administrativo' },
     '2026-05-05': { type: 'route', label: 'Barranquilla Sur', dayKey: 'MON', routeName: 'Ruta Barranquilla Sur' },
@@ -3671,11 +3679,11 @@ function orcEsHabilCol(d) {
  */
 function getTodayRouteEntry(dateObj) {
     var k = orcDateKeyISO(dateObj || new Date());
-    return ROUTE_CALENDAR_MAY_2026[k] || null;
+    return ROUTE_CALENDAR_ORC_2026[k] || null;
 }
 
 /**
- * Orden fijo del selector «Todas las rutas» (nombres canónicos = routeName del calendario ORC mayo 2026).
+ * Orden fijo del selector «Todas las rutas» (nombres canónicos = routeName del calendario ORC 2026).
  * No se mezclan primeros segmentos de subzone del ERP (evita duplicados tipo Barranquilla NORTE / Norte, Ruta Cartagena / Cartagena, R20.0km…).
  */
 var ORC_CANONICAL_ROUTE_ORDER = [
@@ -3689,7 +3697,7 @@ var ORC_CANONICAL_ROUTE_ORDER = [
 ];
 function getOrcRouteNamesFromCalendarOnly() {
     var set = new Set();
-    Object.values(ROUTE_CALENDAR_MAY_2026).forEach(function(e) {
+    Object.values(ROUTE_CALENDAR_ORC_2026).forEach(function(e) {
         if (e && e.type === 'route' && e.routeName) {
             var rn = String(e.routeName).trim();
             if (rn) set.add(rn);
