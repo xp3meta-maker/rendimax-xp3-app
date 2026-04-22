@@ -158,6 +158,7 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 </head>
 <body>
 
@@ -803,16 +804,38 @@
         <div id="s-admin" class="screen">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;">
                 <div><p class="lbl" style="color:var(--yellow);margin-bottom:4px;">Control Gerencial</p><h2>Costa Norte</h2><p class="sub" id="admin-date">—</p></div>
-                <button class="btn btn-gh btn-sm" style="font-size:11px;">🔄 Refresh</button>
+                <button type="button" class="btn btn-gh btn-sm" style="font-size:11px;" onclick="loadAdminDashboard()">🔄 Refresh</button>
             </div>
 
             <div class="card cg" style="margin-bottom:14px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                     <div style="width:10px;height:10px;background:var(--green);border-radius:50%;animation:pb 1.5s infinite;"></div>
-                    <span style="font-weight:700;font-size:14px;" id="admin-user">—</span>
-                    <span class="badge bg" style="margin-left:auto;">EN RUTA</span>
+                    <span style="font-weight:700;font-size:14px;" id="admin-user">Equipo comercial</span>
+                    <span class="badge bg" style="margin-left:auto;" id="admin-live-badge">SEGUIMIENTO</span>
                 </div>
-                <p class="sub" id="admin-bot-txt">0 visitas · Iniciando día</p>
+                <p class="sub" id="admin-bot-txt">Cargando Firestore…</p>
+                <p class="sub" style="font-size:9px;margin-top:6px;color:var(--t2);line-height:1.4;">GPS del comercial: pings cada ~2 min (app abierta). Reglas Firestore deben permitir lectura/escritura en <code style="font-size:9px;">xp3_seguimiento_pings</code> y lectura en <code style="font-size:9px;">visitas</code> para este panel.</p>
+            </div>
+
+            <div class="card cy" style="margin-bottom:14px;">
+                <div class="lbl" style="margin-bottom:8px;">Seguimiento hoy · KPIs (Firestore)</div>
+                <div class="g2" style="margin-bottom:0;">
+                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
+                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
+                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo visita</div></div>
+                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-km">—</div><div class="kl">Km trayecto (pings)</div></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:14px;">
+                <div class="lbl" style="margin-bottom:8px;">Mapa · trayectoria y calor (pings del día)</div>
+                <div id="admin-tracking-map" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);background:var(--dark2);"></div>
+                <p class="sub" style="font-size:9px;margin-top:6px;color:var(--t2);" id="admin-map-hint">—</p>
+            </div>
+
+            <div class="card" style="margin-bottom:14px;">
+                <div class="lbl" style="margin-bottom:8px;">Visitas sincronizadas hoy</div>
+                <div id="admin-visits-table" class="sub" style="font-size:10px;line-height:1.45;max-height:180px;overflow-y:auto;">—</div>
             </div>
 
             <div class="card cy" style="margin-bottom:14px;">
@@ -821,13 +844,6 @@
                 <label class="sub" for="admin-ventas-mes-input" style="display:block;margin-bottom:4px;">Acumulado del mes (COP)</label>
                 <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:10px;">
                 <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
-            </div>
-
-            <div class="g2" style="margin-bottom:14px;">
-                <div class="kpi"><div class="kv" style="font-size:17px;">8:12 AM</div><div class="kl">Primera visita</div></div>
-                <div class="kpi"><div class="kv" style="font-size:17px;">10:47 AM</div><div class="kl">Última visita</div></div>
-                <div class="kpi"><div class="kv" style="font-size:17px;">28 min</div><div class="kl">Prom/cliente</div></div>
-                <div class="kpi"><div class="kv" style="font-size:17px;">47 km</div><div class="kl">Km recorridos</div></div>
             </div>
 
             <div class="card">
@@ -4076,6 +4092,9 @@ window.addEventListener('popstate', (e) => {
 
 function showScreen(id, navId, isPop = false) {
     var prevActive = document.querySelector('.screen.active');
+    if (prevActive && prevActive.id === 's-admin' && id !== 's-admin') {
+        teardownAdminDashboard();
+    }
     if (prevActive && prevActive.id === 's-registro' && id !== 's-registro') {
         if (!assertCanLeaveVisitScreen(id)) return;
         visitCompletionState.openedVisit = false;
@@ -4099,7 +4118,10 @@ function showScreen(id, navId, isPop = false) {
     if (id === 's-agenda') buildAgenda();
     if (id === 's-registro') onVisitScreenOpened();
     if (id === 's-home') updateHomeVentasMeta();
-    if (id === 's-admin') loadAdminVentasMesField();
+    if (id === 's-admin') {
+        loadAdminVentasMesField();
+        loadAdminDashboard();
+    }
     if (id === 's-calc') {
         var pre = calcPrefillClientNum;
         calcPrefillClientNum = null;
@@ -4512,6 +4534,7 @@ function startGPS() {
         pos => {
             userLat = pos.coords.latitude;
             userLon = pos.coords.longitude;
+            maybeWriteTrackingPing(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             document.getElementById('gps-indicator').className   = 'gps-pill gps-ok';
             document.getElementById('gps-indicator').innerHTML   = '<span class="gpsdot"></span>GPS';
             checkGeofence();
@@ -4838,9 +4861,246 @@ function buildAgenda() {
 // ================================================================
 // Haversine
 function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
+    const R = 6371; var dLat = (lat2-lat1)*Math.PI/180; var dLon = (lon2-lon1)*Math.PI/180;
     const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ----- Seguimiento gerencial: pings GPS + panel Admin (Firestore) -----
+var XP3_DEVICE_ID_KEY = 'xp3_device_id_v1';
+var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
+var TRACKING_PING_MIN_MS = 120000;
+var TRACKING_PING_MIN_MOVE_KM = 0.12;
+var lastTrackingPingWriteMs = 0;
+var lastTrackingPingLat = null;
+var lastTrackingPingLng = null;
+var adminDashboardUnsubs = [];
+var adminTrackingMapInstance = null;
+var _adminLastVisitsRows = [];
+var _adminLastPings = [];
+
+function ensureXp3DeviceId() {
+    try {
+        var x = localStorage.getItem(XP3_DEVICE_ID_KEY);
+        if (!x) {
+            x = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : ('xp3-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10));
+            localStorage.setItem(XP3_DEVICE_ID_KEY, x);
+        }
+        return x;
+    } catch (e) { return 'xp3-device'; }
+}
+
+function maybeWriteTrackingPing(lat, lng, accuracy) {
+    if (typeof db === 'undefined' || !db || lat == null || lng == null) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    var now = Date.now();
+    if (now - lastTrackingPingWriteMs < TRACKING_PING_MIN_MS) {
+        if (lastTrackingPingLat != null && lastTrackingPingLng != null) {
+            var moved = getDistance(lastTrackingPingLat, lastTrackingPingLng, lat, lng);
+            if (moved < TRACKING_PING_MIN_MOVE_KM) return;
+        } else return;
+    }
+    lastTrackingPingWriteMs = now;
+    lastTrackingPingLat = lat;
+    lastTrackingPingLng = lng;
+    var routeDay = orcDateKeyISO(new Date());
+    db.collection(XP3_PINGS_COLLECTION).add({
+        routeDay: routeDay,
+        lat: lat,
+        lng: lng,
+        accuracyM: accuracy != null ? Math.round(accuracy) : null,
+        capturedAtMs: now,
+        deviceId: ensureXp3DeviceId()
+    }).catch(function(e) { console.warn('Seguimiento ping:', e && e.message ? e.message : e); });
+}
+
+function teardownAdminDashboard() {
+    adminDashboardUnsubs.forEach(function(u) {
+        try { if (typeof u === 'function') u(); } catch (e) {}
+    });
+    adminDashboardUnsubs = [];
+    _adminLastVisitsRows = [];
+    _adminLastPings = [];
+    if (adminTrackingMapInstance) {
+        try { adminTrackingMapInstance.remove(); } catch (eR) {}
+        adminTrackingMapInstance = null;
+    }
+}
+
+function _adminFmtTime(d) {
+    if (!d) return '—';
+    try {
+        return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return '—'; }
+}
+
+function _adminFmtDur(sec) {
+    if (sec == null || isNaN(sec)) return '—';
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + 'm ' + s + 's';
+}
+
+function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
+    var wrap = document.getElementById('admin-tracking-map');
+    var hint = document.getElementById('admin-map-hint');
+    if (!wrap || typeof L === 'undefined') return;
+    if (adminTrackingMapInstance) {
+        try { adminTrackingMapInstance.remove(); } catch (eM) {}
+        adminTrackingMapInstance = null;
+    }
+    var center = [10.95, -74.45];
+    var z = 8;
+    if (pingsAsc.length) {
+        var sumLa = 0, sumLn = 0;
+        pingsAsc.forEach(function(p) { sumLa += p.lat; sumLn += p.lng; });
+        center = [sumLa / pingsAsc.length, sumLn / pingsAsc.length];
+        z = pingsAsc.length === 1 ? 12 : 10;
+    } else if (visitsAsc.length) {
+        var g = [];
+        visitsAsc.forEach(function(row) {
+            var g0 = row.d && row.d.gpsAtVisitStart;
+            if (g0 && g0.lat != null && g0.lng != null) g.push([g0.lat, g0.lng]);
+        });
+        if (g.length) {
+            sumLa = 0; sumLn = 0;
+            g.forEach(function(xy) { sumLa += xy[0]; sumLn += xy[1]; });
+            center = [sumLa / g.length, sumLn / g.length];
+            z = 11;
+        }
+    }
+    adminTrackingMapInstance = L.map(wrap, { scrollWheelZoom: false, attributionControl: true }).setView(center, z);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(adminTrackingMapInstance);
+    var layers = [];
+    if (pingsAsc.length > 1) {
+        var latlngs = pingsAsc.map(function(p) { return [p.lat, p.lng]; });
+        L.polyline(latlngs, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(adminTrackingMapInstance);
+        layers.push(L.latLngBounds(latlngs));
+    }
+    if (typeof L.heatLayer === 'function' && pingsAsc.length) {
+        var heatData = pingsAsc.map(function(p) { return [p.lat, p.lng, 0.55]; });
+        L.heatLayer(heatData, { radius: 26, blur: 16, maxZoom: 14, max: 1.0 }).addTo(adminTrackingMapInstance);
+    }
+    visitsAsc.forEach(function(row) {
+        var g0 = row.d && row.d.gpsAtVisitStart;
+        if (!g0 || g0.lat == null || g0.lng == null) return;
+        var label = (row.d.clientRef || ('#' + (row.d.clientNum != null ? row.d.clientNum : '?'))) + '';
+        L.circleMarker([g0.lat, g0.lng], { radius: 7, color: '#22c55e', fillColor: '#4ade80', fillOpacity: 0.9, weight: 2 })
+            .bindPopup(label + '<br>' + (row.d.result || '') + '<br>' + _adminFmtTime(row.ts))
+            .addTo(adminTrackingMapInstance);
+    });
+    if (layers.length) adminTrackingMapInstance.fitBounds(layers[0], { padding: [18, 18], maxZoom: 12 });
+    setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 200);
+    if (hint) {
+        hint.textContent = pingsAsc.length
+            ? (pingsAsc.length + ' pings · ' + visitsAsc.length + ' visitas con hora en mapa.')
+            : ('Sin pings aún hoy. El comercial debe tener la app abierta y GPS activo para registrar trayectoria.');
+    }
+}
+
+function maybeRedrawAdminMap() {
+    var vr = (_adminLastVisitsRows || []).slice().sort(function(a, b) {
+        var ta = a.ts ? a.ts.getTime() : 0, tb = b.ts ? b.ts.getTime() : 0;
+        return ta - tb;
+    });
+    var pr = (_adminLastPings || []).slice().sort(function(a, b) {
+        return (a.capturedAtMs || 0) - (b.capturedAtMs || 0);
+    });
+    renderAdminTrackingMapInner(vr, pr);
+}
+
+function redrawAdminDashboardUI(todayKey) {
+    var rows = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
+    var kf = document.getElementById('admin-kpi-first');
+    var kl = document.getElementById('admin-kpi-last');
+    var ka = document.getElementById('admin-kpi-avg');
+    var tb = document.getElementById('admin-visits-table');
+    if (kf) kf.textContent = rows.length ? _adminFmtTime(rows[0].ts) : '—';
+    if (kl) kl.textContent = rows.length ? _adminFmtTime(rows[rows.length - 1].ts) : '—';
+    var durSum = 0, durN = 0;
+    rows.forEach(function(r) {
+        var s = r.d && r.d.visitDurationSec;
+        if (s != null && !isNaN(s) && s > 0) { durSum += s; durN++; }
+    });
+    if (ka) ka.textContent = durN ? _adminFmtDur(Math.round(durSum / durN)) : '—';
+    if (tb) {
+        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + todayKey + '.</span>';
+        else {
+            tb.innerHTML = rows.map(function(r) {
+                var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
+                if (nm.length > 42) nm = nm.slice(0, 40) + '…';
+                return '<div style="border-bottom:1px solid rgba(255,255,255,.06);padding:6px 0;">'
+                    + '<strong>' + _adminFmtTime(r.ts) + '</strong> · ' + nm
+                    + '<br><span style="color:var(--t2);">' + (r.d.result || '—') + ' · dur. ' + _adminFmtDur(r.d.visitDurationSec) + '</span></div>';
+            }).join('');
+        }
+    }
+    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+    var kmP = 0;
+    for (var i = 1; i < pr.length; i++) {
+        if (pr[i].lat != null && pr[i].lng != null && pr[i - 1].lat != null && pr[i - 1].lng != null)
+            kmP += getDistance(pr[i - 1].lat, pr[i - 1].lng, pr[i].lat, pr[i].lng);
+    }
+    var kk = document.getElementById('admin-kpi-km');
+    if (kk) kk.textContent = pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : (pr.length ? '1 punto' : '0 km');
+    var kmV = 0;
+    var prev = null;
+    rows.forEach(function(r) {
+        var g0 = r.d && r.d.gpsAtVisitStart;
+        if (!g0 || g0.lat == null || g0.lng == null) return;
+        if (prev) kmV += getDistance(prev.lat, prev.lng, g0.lat, g0.lng);
+        prev = g0;
+    });
+    var bot = document.getElementById('admin-bot-txt');
+    if (bot) {
+        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km trayecto (pings) arriba · km entre GPS visitas ~ '
+            + (Math.round(kmV * 10) / 10) + ' km';
+    }
+    maybeRedrawAdminMap();
+}
+
+function loadAdminDashboard() {
+    if (typeof db === 'undefined' || !db) {
+        var b0 = document.getElementById('admin-bot-txt');
+        if (b0) b0.textContent = 'Firestore no inicializado.';
+        return;
+    }
+    teardownAdminDashboard();
+    _adminLastVisitsRows = [];
+    _adminLastPings = [];
+    var todayKey = orcDateKeyISO(new Date());
+    var unVis = db.collection('visitas').orderBy('timestamp', 'desc').limit(150).onSnapshot(function(snap) {
+        var rows = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if ((d.routeDay || '') !== todayKey) return;
+            var ts = d.timestamp && typeof d.timestamp.toDate === 'function' ? d.timestamp.toDate() : null;
+            rows.push({ id: doc.id, d: d, ts: ts });
+        });
+        _adminLastVisitsRows = rows;
+        redrawAdminDashboardUI(todayKey);
+    }, function(err) {
+        var b1 = document.getElementById('admin-bot-txt');
+        if (b1) b1.textContent = 'Error visitas: ' + (err && err.message ? err.message : err);
+    });
+    adminDashboardUnsubs.push(function() { unVis(); });
+    var unPing = db.collection(XP3_PINGS_COLLECTION).orderBy('capturedAtMs', 'desc').limit(500).onSnapshot(function(snap) {
+        var pings = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if ((d.routeDay || '') !== todayKey) return;
+            if (d.lat != null && d.lng != null) pings.push(d);
+        });
+        _adminLastPings = pings;
+        redrawAdminDashboardUI(todayKey);
+    }, function(err) {
+        console.warn('Pings snapshot:', err);
+        _adminLastPings = [];
+        redrawAdminDashboardUI(todayKey);
+    });
+    adminDashboardUnsubs.push(function() { unPing(); });
 }
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;
@@ -6166,6 +6426,11 @@ async function saveVisitToFirebase() {
             var ax = VISIT_ANCHORS[currentFicha.num];
             anchorPayload = { lat: ax.lat, lng: ax.lng, accuracyM: ax.accuracy, capturedAtMs: ax.capturedAt, source: 'visit_start' };
         }
+        var visitDurationSec = null;
+        try {
+            var tjDur = JSON.parse(localStorage.getItem(XP3_VISIT_TIMER_KEY) || 'null');
+            if (tjDur && tjDur.startedAtMs) visitDurationSec = Math.max(0, Math.floor((Date.now() - tjDur.startedAtMs) / 1000));
+        } catch (eDur) {}
         const payload = {
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             routeDay: orcDateKeyISO(new Date()),
@@ -6174,6 +6439,8 @@ async function saveVisitToFirebase() {
             amountCalculated: calcVal,
             clientRef: currentFicha ? currentFicha.name : 'Ruta Generica',
             clientNum: currentFicha ? currentFicha.num : null,
+            visitDurationSec: visitDurationSec,
+            deviceId: ensureXp3DeviceId(),
             gpsAtVisitStart: visitSessionGps ? {
                 lat: visitSessionGps.lat,
                 lng: visitSessionGps.lng,
