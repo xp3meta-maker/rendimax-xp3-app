@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <title>Rendimax XP3 · Panel Gerencia · Costa Norte</title>
+    <meta name="description" content="Seguimiento operativo y Firestore — solo perfil gerencial Rendimax XP3">
+    <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --yellow: #FFB300; --dark: #0D0900; --dark2: #1C1200; --dark3: #2A1C00;
+            --t1: #FFF9ED; --t2: #C4A96A; --t3: #8A7040;
+            --glass: rgba(255,179,0,.06); --border: rgba(255,179,0,.14);
+            --green: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(ellipse at 30% 10%, #2A1800 0%, #080400 65%);
+            color: var(--t1);
+            min-height: 100vh;
+        }
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+            background: #060402;
+        }
+        #login-screen.hidden { display: none; }
+        .login-hero {
+            width: 100%;
+            max-width: 380px;
+            background: var(--yellow);
+            border-radius: 24px;
+            padding: 28px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            box-shadow: 0 24px 64px rgba(255, 179, 0, 0.35);
+        }
+        .login-logo-main { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; color: #000; }
+        .login-logo-xp3 { font-family: 'Outfit', sans-serif; font-size: 44px; font-weight: 800; color: #7A3F00; }
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+        }
+        .lbl { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--t3); }
+        .sub { font-size: 12px; color: var(--t2); line-height: 1.45; }
+        h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 800; }
+        h2 { font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 700; }
+        input {
+            width: 100%;
+            background: var(--dark3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--t1);
+            font-size: 14px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        input:focus { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(255,179,0,.15); }
+        .btn {
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: .2s;
+        }
+        .btn-p {
+            background: linear-gradient(135deg, #FFB300, #FF7A00);
+            color: #000;
+            padding: 12px 18px;
+            width: 100%;
+            font-weight: 700;
+        }
+        .btn-gh { background: var(--glass); border: 1px solid var(--border); color: var(--t1); padding: 8px 14px; font-size: 12px; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .bg { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+        .kpi { padding: 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--border); }
+        .kv { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; }
+        .kl { font-size: 10px; color: var(--t3); margin-top: 4px; }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
+        #dash-root.visible { display: block; }
+        .dash-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .dash-links a { color: var(--yellow); font-size: 13px; font-weight: 600; margin-right: 16px; }
+        .dash-grid {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 1024px) {
+            .dash-grid { grid-template-columns: 1fr 1.15fr; align-items: start; }
+            #admin-tracking-map { height: min(52vh, 520px) !important; min-height: 360px; }
+        }
+        #admin-tracking-map { width: 100%; height: 280px; border-radius: 14px; border: 1px solid var(--border); background: var(--dark2); }
+        #admin-visits-table { max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.45; }
+        @media (min-width: 1024px) {
+            #admin-visits-table { max-height: min(48vh, 480px); }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,179,0,.2); border-radius: 8px; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOLo1rnabrfbMSXKZLkmZsYFkDAasfAWE",
+            authDomain: "rendimax-xp3.firebaseapp.com",
+            projectId: "rendimax-xp3",
+            storageBucket: "rendimax-xp3.firebasestorage.app",
+            messagingSenderId: "607175383173",
+            appId: "1:607175383173:web:380d7658eaf7e4de33b1ec"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+        window.db = db;
+        db.enablePersistence().catch(function(err) { console.warn('Offline persistence:', err); });
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-hero">
+        <div style="font-size:42px;margin-bottom:8px;">⛽</div>
+        <div class="login-logo-main">RENDI<span style="color:#7A3F00;">MAX</span></div>
+        <div class="login-logo-xp3">XP3</div>
+        <p style="font-size:11px;color:rgba(0,0,0,.6);font-weight:600;margin-top:10px;">PANEL GERENCIA · ESCRITORIO</p>
+        <p style="font-size:10px;color:rgba(0,0,0,.55);margin-top:6px;">Acceso exclusivo: <strong>xp3meta@rendimax.com.co</strong></p>
+    </div>
+    <div style="width:100%;max-width:380px;">
+        <div class="card" style="background:var(--dark2);">
+            <p class="lbl" style="margin-bottom:14px;">Iniciar sesión</p>
+            <input type="email" id="login-email" placeholder="xp3meta@rendimax.com.co" autocomplete="username">
+            <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password">
+            <button type="button" class="btn btn-p" onclick="doAdminLogin()" style="margin-bottom:12px;">Ingresar</button>
+            <p style="text-align:center;color:var(--t3);font-size:11px;margin:12px 0;">— o —</p>
+            <div id="g_id_onload"
+                 data-client_id="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleAdminGoogleCredential"
+                 data-auto_prompt="false"></div>
+            <div class="g_id_signin"
+                 data-type="standard" data-shape="rectangular" data-theme="outline"
+                 data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="320"
+                 style="display:flex;justify-content:center;"></div>
+            <p class="sub" style="text-align:center;margin-top:14px;font-size:11px;">
+                <a href="index.html" style="color:var(--yellow);font-weight:600;">← App comercial (móvil / campo)</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div id="dash-root">
+    <div class="dash-top">
+        <div>
+            <p class="lbl" style="color:var(--yellow);margin-bottom:6px;">Control gerencial</p>
+            <h1>Costa Norte</h1>
+            <p class="sub" id="admin-date">—</p>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <span class="badge bg" id="admin-live-badge">Seguimiento</span>
+            <button type="button" class="btn btn-gh" onclick="loadAdminDashboard()">Refrescar datos</button>
+            <button type="button" class="btn btn-gh" onclick="doAdminLogout()">Cerrar sesión</button>
+        </div>
+    </div>
+    <p class="dash-links sub" style="margin-bottom:18px;">
+        <a href="index.html">App comercial</a>
+        <span style="color:var(--t3);">Misma sesión que la app si iniciaste con la misma cuenta en este navegador.</span>
+    </p>
+
+    <div class="card" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);margin-bottom:18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-weight:700;" id="admin-user">—</span>
+        </div>
+        <p class="sub" id="admin-bot-txt">Cargando Firestore…</p>
+        <p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">
+            Colecciones: <code style="font-size:10px;color:var(--t2);">visitas</code>,
+            <code style="font-size:10px;color:var(--t2);">xp3_seguimiento_pings</code> — reglas Firestore deben permitir lectura gerencial.
+        </p>
+    </div>
+
+    <div class="dash-grid">
+        <div>
+            <div class="card" style="margin-bottom:18px;">
+                <p class="lbl" style="margin-bottom:12px;">KPIs hoy (Firestore)</p>
+                <div class="g2">
+                    <div class="kpi"><div class="kv" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo visita</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-km">—</div><div class="kl">Km trayecto (pings)</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <p class="lbl" style="margin-bottom:10px;">Visitas sincronizadas hoy</p>
+                <div id="admin-visits-table" class="sub">—</div>
+            </div>
+        </div>
+        <div>
+            <div class="card" style="margin-bottom:18px;">
+                <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria y calor</p>
+                <div id="admin-tracking-map"></div>
+                <p class="sub" style="font-size:11px;margin-top:10px;" id="admin-map-hint">—</p>
+            </div>
+            <div class="card">
+                <p class="lbl" style="margin-bottom:8px;">Objetivo de ventas · mes (local)</p>
+                <p class="sub" style="margin-bottom:12px;">Meta regional referencia <strong style="color:var(--t1);">$10.000.000</strong>. El acumulado se guarda en este navegador y alimenta el avance en el Home de la app comercial.</p>
+                <label class="sub" for="admin-ventas-mes-input" style="display:block;margin-bottom:6px;">Acumulado del mes (COP)</label>
+                <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:12px;">
+                <button type="button" class="btn btn-p" style="width:100%;box-shadow:none;font-size:13px;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
+
+function normalizeEmail(e) {
+    return String(e || '').trim().toLowerCase();
+}
+function isAllowedAdminEmail(email) {
+    return normalizeEmail(email) === XP3_ADMIN_DASHBOARD_EMAIL;
+}
+
+function orcDateKeyISO(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
+var adminDashboardUnsubs = [];
+var adminTrackingMapInstance = null;
+var _adminLastVisitsRows = [];
+var _adminLastPings = [];
+
+function orcVentasMesStorageKey() {
+    var d = new Date();
+    return 'orc_ventas_mes_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function getOrcVentasMesAcumuladoCOP() {
+    var v = parseInt(localStorage.getItem(orcVentasMesStorageKey()) || '0', 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+}
+function loadAdminVentasMesField() {
+    var inp = document.getElementById('admin-ventas-mes-input');
+    if (!inp) return;
+    var v = getOrcVentasMesAcumuladoCOP();
+    inp.value = v > 0 ? String(v) : '';
+}
+function saveOrcVentasMesFromAdmin() {
+    var inp = document.getElementById('admin-ventas-mes-input');
+    if (!inp) return;
+    var raw = String(inp.value || '').replace(/\D/g, '');
+    var n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    localStorage.setItem(orcVentasMesStorageKey(), String(n));
+    alert('Acumulado guardado. Abrí la app comercial (Home) para ver la barra de avance del mes.');
+}
+
+function teardownAdminDashboard() {
+    adminDashboardUnsubs.forEach(function(u) {
+        try { if (typeof u === 'function') u(); } catch (e) {}
+    });
+    adminDashboardUnsubs = [];
+    _adminLastVisitsRows = [];
+    _adminLastPings = [];
+    if (adminTrackingMapInstance) {
+        try { adminTrackingMapInstance.remove(); } catch (eR) {}
+        adminTrackingMapInstance = null;
+    }
+}
+
+function _adminFmtTime(d) {
+    if (!d) return '—';
+    try {
+        return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return '—'; }
+}
+function _adminFmtDur(sec) {
+    if (sec == null || isNaN(sec)) return '—';
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + 'm ' + s + 's';
+}
+
+function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
+    var wrap = document.getElementById('admin-tracking-map');
+    var hint = document.getElementById('admin-map-hint');
+    if (!wrap || typeof L === 'undefined') return;
+    if (adminTrackingMapInstance) {
+        try { adminTrackingMapInstance.remove(); } catch (eM) {}
+        adminTrackingMapInstance = null;
+    }
+    var center = [10.95, -74.45];
+    var z = 8;
+    if (pingsAsc.length) {
+        var sumLa = 0, sumLn = 0;
+        pingsAsc.forEach(function(p) { sumLa += p.lat; sumLn += p.lng; });
+        center = [sumLa / pingsAsc.length, sumLn / pingsAsc.length];
+        z = pingsAsc.length === 1 ? 12 : 10;
+    } else if (visitsAsc.length) {
+        var g = [];
+        visitsAsc.forEach(function(row) {
+            var g0 = row.d && row.d.gpsAtVisitStart;
+            if (g0 && g0.lat != null && g0.lng != null) g.push([g0.lat, g0.lng]);
+        });
+        if (g.length) {
+            var sumLa = 0, sumLn = 0;
+            g.forEach(function(xy) { sumLa += xy[0]; sumLn += xy[1]; });
+            center = [sumLa / g.length, sumLn / g.length];
+            z = 11;
+        }
+    }
+    adminTrackingMapInstance = L.map(wrap, { scrollWheelZoom: true, attributionControl: true }).setView(center, z);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(adminTrackingMapInstance);
+    var layers = [];
+    if (pingsAsc.length > 1) {
+        var latlngs = pingsAsc.map(function(p) { return [p.lat, p.lng]; });
+        L.polyline(latlngs, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(adminTrackingMapInstance);
+        layers.push(L.latLngBounds(latlngs));
+    }
+    if (typeof L.heatLayer === 'function' && pingsAsc.length) {
+        var heatData = pingsAsc.map(function(p) { return [p.lat, p.lng, 0.55]; });
+        L.heatLayer(heatData, { radius: 28, blur: 18, maxZoom: 14, max: 1.0 }).addTo(adminTrackingMapInstance);
+    }
+    visitsAsc.forEach(function(row) {
+        var g0 = row.d && row.d.gpsAtVisitStart;
+        if (!g0 || g0.lat == null || g0.lng == null) return;
+        var label = (row.d.clientRef || ('#' + (row.d.clientNum != null ? row.d.clientNum : '?'))) + '';
+        L.circleMarker([g0.lat, g0.lng], { radius: 8, color: '#22c55e', fillColor: '#4ade80', fillOpacity: 0.9, weight: 2 })
+            .bindPopup(label + '<br>' + (row.d.result || '') + '<br>' + _adminFmtTime(row.ts))
+            .addTo(adminTrackingMapInstance);
+    });
+    if (layers.length) adminTrackingMapInstance.fitBounds(layers[0], { padding: [20, 20], maxZoom: 12 });
+    setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 250);
+    if (hint) {
+        hint.textContent = pingsAsc.length
+            ? (pingsAsc.length + ' pings · ' + visitsAsc.length + ' visitas con GPS en mapa.')
+            : ('Sin pings aún hoy. La app comercial debe estar abierta con GPS para registrar trayectoria.');
+    }
+}
+
+function maybeRedrawAdminMap() {
+    var vr = (_adminLastVisitsRows || []).slice().sort(function(a, b) {
+        var ta = a.ts ? a.ts.getTime() : 0, tb = b.ts ? b.ts.getTime() : 0;
+        return ta - tb;
+    });
+    var pr = (_adminLastPings || []).slice().sort(function(a, b) {
+        return (a.capturedAtMs || 0) - (b.capturedAtMs || 0);
+    });
+    renderAdminTrackingMapInner(vr, pr);
+}
+
+function redrawAdminDashboardUI(todayKey) {
+    var rows = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
+    var kf = document.getElementById('admin-kpi-first');
+    var kl = document.getElementById('admin-kpi-last');
+    var ka = document.getElementById('admin-kpi-avg');
+    var tb = document.getElementById('admin-visits-table');
+    if (kf) kf.textContent = rows.length ? _adminFmtTime(rows[0].ts) : '—';
+    if (kl) kl.textContent = rows.length ? _adminFmtTime(rows[rows.length - 1].ts) : '—';
+    var durSum = 0, durN = 0;
+    rows.forEach(function(r) {
+        var s = r.d && r.d.visitDurationSec;
+        if (s != null && !isNaN(s) && s > 0) { durSum += s; durN++; }
+    });
+    if (ka) ka.textContent = durN ? _adminFmtDur(Math.round(durSum / durN)) : '—';
+    if (tb) {
+        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + todayKey + '.</span>';
+        else {
+            tb.innerHTML = rows.map(function(r) {
+                var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
+                if (nm.length > 48) nm = nm.slice(0, 46) + '…';
+                return '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0;">'
+                    + '<strong>' + _adminFmtTime(r.ts) + '</strong> · ' + nm
+                    + '<br><span style="color:var(--t2);">' + (r.d.result || '—') + ' · dur. ' + _adminFmtDur(r.d.visitDurationSec) + '</span></div>';
+            }).join('');
+        }
+    }
+    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+    var kmP = 0;
+    for (var i = 1; i < pr.length; i++) {
+        if (pr[i].lat != null && pr[i].lng != null && pr[i - 1].lat != null && pr[i - 1].lng != null)
+            kmP += getDistance(pr[i - 1].lat, pr[i - 1].lng, pr[i].lat, pr[i].lng);
+    }
+    var kk = document.getElementById('admin-kpi-km');
+    if (kk) kk.textContent = pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : (pr.length ? '1 punto' : '0 km');
+    var kmV = 0;
+    var prev = null;
+    rows.forEach(function(r) {
+        var g0 = r.d && r.d.gpsAtVisitStart;
+        if (!g0 || g0.lat == null || g0.lng == null) return;
+        if (prev) kmV += getDistance(prev.lat, prev.lng, g0.lat, g0.lng);
+        prev = g0;
+    });
+    var bot = document.getElementById('admin-bot-txt');
+    if (bot) {
+        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km trayecto (pings) arriba · km entre GPS visitas ~ '
+            + (Math.round(kmV * 10) / 10) + ' km';
+    }
+    maybeRedrawAdminMap();
+}
+
+function loadAdminDashboard() {
+    if (typeof db === 'undefined' || !db) {
+        var b0 = document.getElementById('admin-bot-txt');
+        if (b0) b0.textContent = 'Firestore no inicializado.';
+        return;
+    }
+    teardownAdminDashboard();
+    _adminLastVisitsRows = [];
+    _adminLastPings = [];
+    var todayKey = orcDateKeyISO(new Date());
+    var unVis = db.collection('visitas').orderBy('timestamp', 'desc').limit(150).onSnapshot(function(snap) {
+        var rows = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if ((d.routeDay || '') !== todayKey) return;
+            var ts = d.timestamp && typeof d.timestamp.toDate === 'function' ? d.timestamp.toDate() : null;
+            rows.push({ id: doc.id, d: d, ts: ts });
+        });
+        _adminLastVisitsRows = rows;
+        redrawAdminDashboardUI(todayKey);
+    }, function(err) {
+        var b1 = document.getElementById('admin-bot-txt');
+        if (b1) b1.textContent = 'Error visitas: ' + (err && err.message ? err.message : err);
+    });
+    adminDashboardUnsubs.push(function() { unVis(); });
+    var unPing = db.collection(XP3_PINGS_COLLECTION).orderBy('capturedAtMs', 'desc').limit(500).onSnapshot(function(snap) {
+        var pings = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if ((d.routeDay || '') !== todayKey) return;
+            if (d.lat != null && d.lng != null) pings.push(d);
+        });
+        _adminLastPings = pings;
+        redrawAdminDashboardUI(todayKey);
+    }, function(err) {
+        console.warn('Pings snapshot:', err);
+        _adminLastPings = [];
+        redrawAdminDashboardUI(todayKey);
+    });
+    adminDashboardUnsubs.push(function() { unPing(); });
+}
+
+function applyAdminUser(name, email, picture) {
+    localStorage.setItem('rendimax_session', JSON.stringify({ name: name, email: email, picture: picture || null, loginTime: Date.now() }));
+    var uel = document.getElementById('admin-user');
+    if (uel) uel.textContent = name + ' · ' + email;
+    var n = new Date();
+    var ad = document.getElementById('admin-date');
+    if (ad) ad.textContent = n.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) + ' · En vivo';
+}
+
+function showDashboardAfterAuth(name, email, picture) {
+    applyAdminUser(name, email, picture);
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('dash-root').classList.add('visible');
+    loadAdminVentasMesField();
+    loadAdminDashboard();
+}
+
+function rejectNonAdmin() {
+    alert('Este panel es solo para gerencia (' + XP3_ADMIN_DASHBOARD_EMAIL + '). Usá la app comercial en index.html.');
+}
+
+function doAdminLogin() {
+    var email = document.getElementById('login-email').value.trim();
+    var pass = document.getElementById('login-pass').value;
+    if (!email || !pass) { alert('Ingresá correo y contraseña.'); return; }
+    if (!isAllowedAdminEmail(email)) { rejectNonAdmin(); return; }
+    var name = email.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    showDashboardAfterAuth(name, email, null);
+}
+
+function handleAdminGoogleCredential(response) {
+    var payload = JSON.parse(atob(response.credential.split('.')[1]));
+    var displayName = (payload.name || payload.given_name || (payload.email ? payload.email.split('@')[0] : '') || 'Usuario').trim();
+    var email = payload.email || '';
+    if (!isAllowedAdminEmail(email)) { rejectNonAdmin(); return; }
+    showDashboardAfterAuth(displayName, email, payload.picture || null);
+}
+
+function doAdminLogout() {
+    if (!confirm('¿Cerrar sesión del panel gerencia?')) return;
+    teardownAdminDashboard();
+    localStorage.removeItem('rendimax_session');
+    document.getElementById('dash-root').classList.remove('visible');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-pass').value = '';
+}
+
+(function bootAdmin() {
+    var raw = localStorage.getItem('rendimax_session');
+    if (!raw) return;
+    try {
+        var s = JSON.parse(raw);
+        if (isAllowedAdminEmail(s.email)) {
+            showDashboardAfterAuth(s.name || 'Usuario', s.email, s.picture || null);
+        }
+    } catch (e) {}
+})();
+</script>
+</body>
+</html>

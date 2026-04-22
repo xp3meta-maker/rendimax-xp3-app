@@ -191,7 +191,8 @@
                  data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="288"
                  style="display:flex;justify-content:center;margin-bottom:4px;">
             </div>
-            <p class="sub" style="text-align:center;font-size:10px;margin-top:10px;">APLICACIÓN MÓVIL COMERCIAL<br>xp3meta@rendimax.com.co</p>
+            <p class="sub" style="text-align:center;font-size:10px;margin-top:10px;">APLICACIÓN MÓVIL COMERCIAL</p>
+            <p class="sub" style="text-align:center;font-size:10px;margin-top:6px;">Panel gerencia (PC): <a href="admin.html" style="color:var(--yellow);font-weight:700;">admin.html</a> · solo xp3meta@rendimax.com.co</p>
         </div>
     </div>
 </div>
@@ -800,91 +801,6 @@
             <button class="btn btn-p" id="btn-save-visit" onclick="saveVisitToFirebase()">📤 Guardar y Sincronizar</button>
         </div>
 
-        <!-- ==================== ADMIN ==================== -->
-        <div id="s-admin" class="screen">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;">
-                <div><p class="lbl" style="color:var(--yellow);margin-bottom:4px;">Control Gerencial</p><h2>Costa Norte</h2><p class="sub" id="admin-date">—</p></div>
-                <button type="button" class="btn btn-gh btn-sm" style="font-size:11px;" onclick="loadAdminDashboard()">🔄 Refresh</button>
-            </div>
-
-            <div class="card cg" style="margin-bottom:14px;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                    <div style="width:10px;height:10px;background:var(--green);border-radius:50%;animation:pb 1.5s infinite;"></div>
-                    <span style="font-weight:700;font-size:14px;" id="admin-user">Equipo comercial</span>
-                    <span class="badge bg" style="margin-left:auto;" id="admin-live-badge">SEGUIMIENTO</span>
-                </div>
-                <p class="sub" id="admin-bot-txt">Cargando Firestore…</p>
-                <p class="sub" style="font-size:9px;margin-top:6px;color:var(--t2);line-height:1.4;">GPS del comercial: pings cada ~2 min (app abierta). Reglas Firestore deben permitir lectura/escritura en <code style="font-size:9px;">xp3_seguimiento_pings</code> y lectura en <code style="font-size:9px;">visitas</code> para este panel.</p>
-            </div>
-
-            <div class="card cy" style="margin-bottom:14px;">
-                <div class="lbl" style="margin-bottom:8px;">Seguimiento hoy · KPIs (Firestore)</div>
-                <div class="g2" style="margin-bottom:0;">
-                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
-                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
-                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo visita</div></div>
-                    <div class="kpi"><div class="kv" style="font-size:15px;" id="admin-kpi-km">—</div><div class="kl">Km trayecto (pings)</div></div>
-                </div>
-            </div>
-
-            <div class="card" style="margin-bottom:14px;">
-                <div class="lbl" style="margin-bottom:8px;">Mapa · trayectoria y calor (pings del día)</div>
-                <div id="admin-tracking-map" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);background:var(--dark2);"></div>
-                <p class="sub" style="font-size:9px;margin-top:6px;color:var(--t2);" id="admin-map-hint">—</p>
-            </div>
-
-            <div class="card" style="margin-bottom:14px;">
-                <div class="lbl" style="margin-bottom:8px;">Visitas sincronizadas hoy</div>
-                <div id="admin-visits-table" class="sub" style="font-size:10px;line-height:1.45;max-height:180px;overflow-y:auto;">—</div>
-            </div>
-
-            <div class="card cy" style="margin-bottom:14px;">
-                <div class="lbl" style="margin-bottom:8px;">Objetivo de ventas · mes</div>
-                <p class="sub" style="font-size:11px;margin-bottom:10px;line-height:1.45;">Meta regional <strong style="color:var(--t1);">$10.000.000</strong> (inicial). Registrá acá lo facturado o acordado en el mes para ver el avance en el Home.</p>
-                <label class="sub" for="admin-ventas-mes-input" style="display:block;margin-bottom:4px;">Acumulado del mes (COP)</label>
-                <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:10px;">
-                <button type="button" class="btn btn-p btn-sm" style="width:100%;box-shadow:none;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
-            </div>
-
-            <div class="card">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🔥</span><span class="lbl">Cobertura por Zona</span></div>
-                <div class="g3">
-                    <div class="hcell" style="background:rgba(255,179,0,.85);color:#000;border-radius:8px;">Bq. Norte</div>
-                    <div class="hcell" style="background:rgba(255,179,0,.6);color:#000;border-radius:8px;">Soledad</div>
-                    <div class="hcell" style="background:rgba(255,179,0,.2);border-radius:8px;">Sabana.</div>
-                    <div class="hcell" style="background:rgba(255,179,0,.35);border-radius:8px;">Ctg.</div>
-                    <div class="hcell" style="background:rgba(255,179,0,.12);border-radius:8px;">Sincelejo</div>
-                    <div class="hcell" style="background:rgba(239,68,68,.2);color:#fca5a5;border-radius:8px;">⚠ Mtría</div>
-                </div>
-            </div>
-
-            <div class="slbl">Top 5 · Oportunidades</div>
-            <div class="card">
-                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Esmeralda (Sincelejo)</div><div class="sub" style="font-size:10px;">400 días · $199.275/mes</div></div><span style="font-weight:800;color:var(--yellow);font-size:14px;">$7.173.906</span></div>
-                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">Ecos San Josue</div><div class="sub" style="font-size:10px;">400 días · $81.145/mes</div></div><span style="font-weight:800;color:var(--yellow);font-size:13px;">$2.921.220</span></div>
-                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Monsu (Gastrans)</div><div class="sub" style="font-size:10px;">400 días · $77.665/mes</div></div><span style="font-weight:800;color:var(--yellow);font-size:13px;">$2.795.940</span></div>
-                <div class="mrow" style="padding:6px 0;"><div><div style="font-weight:600;font-size:12px;">EDS Los Almendros</div><div class="sub" style="font-size:10px;">400 días · $76.492/mes</div></div><span style="font-weight:800;color:var(--yellow);font-size:13px;">$2.753.700</span></div>
-                <div class="mrow" style="padding:6px 0;border-bottom:none;"><div><div style="font-weight:600;font-size:12px;">EDS El Paso</div><div class="sub" style="font-size:10px;">400 días · $64.363/mes</div></div><span style="font-weight:800;color:var(--yellow);font-size:13px;">$2.317.075</span></div>
-            </div>
-
-            <div class="slbl">Visitas Esta Semana</div>
-            <div class="card">
-                <div style="display:flex;gap:14px;margin-bottom:12px;">
-                    <div><span style="font-size:20px;font-weight:700;color:var(--yellow);">15</span><div class="sub" style="font-size:10px;">Esta semana</div></div>
-                    <div><span style="font-size:20px;font-weight:700;color:var(--t1);">42</span><div class="sub" style="font-size:10px;">Mes acum.</div></div>
-                    <div><span style="font-size:20px;font-weight:700;color:var(--green);">71%</span><div class="sub" style="font-size:10px;">Cumplimiento</div></div>
-                </div>
-                <div style="display:flex;align-items:flex-end;gap:8px;height:56px;">
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;"><div class="bar" style="width:100%;height:40px;"></div><span class="sub" style="font-size:9px;">L</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;"><div class="bar" style="width:100%;height:50px;opacity:.8;"></div><span class="sub" style="font-size:9px;">M</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;"><div class="bar" style="width:100%;height:56px;box-shadow:0 0 10px rgba(255,179,0,.4);"></div><span class="sub" style="font-size:9px;color:var(--yellow);">Hoy</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;"><div class="bar" style="width:100%;height:20px;opacity:.2;"></div><span class="sub" style="font-size:9px;">J</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;"><div class="bar" style="width:100%;height:10px;opacity:.12;"></div><span class="sub" style="font-size:9px;">V</span></div>
-                </div>
-            </div>
-
-            <button class="btn btn-gh" style="width:100%;font-size:12px;" onclick="doLogout()">🔓 Cerrar Sesión</button>
-        </div>
     </div><!-- end content -->
 
     <nav id="nav">
@@ -892,7 +808,6 @@
         <button class="nb" id="nb-agenda"           onclick="showScreen('s-agenda','nb-agenda')"><span class="ic">📅</span>Agenda</button>
         <button class="nb" id="nb-ruta"             onclick="showScreen('s-ruta','nb-ruta')"><span class="ic">📍</span>Ruta</button>
         <button class="nb" id="nb-calc"             onclick="showScreen('s-calc','nb-calc')"><span class="ic">🧮</span>Pedido</button>
-        <button class="nb" id="nb-admin"            onclick="showScreen('s-admin','nb-admin')"><span class="ic">📊</span>Admin</button>
         <button class="nb" id="nb-ficha"   style="display:none;" onclick="showScreen('s-ficha','nb-ficha')"></button>
         <button class="nb" id="nb-registro" style="display:none;" onclick="showScreen('s-registro','nb-registro')"></button>
     </nav>
@@ -3577,8 +3492,6 @@ function updateHomeVisitMetricsForRealToday(WEEKLY_PLAN) {
     var zonaLine = tp.emoji + ' ' + tp.zone;
     var sub = document.getElementById('today-banner-sub');
     if (sub) sub.textContent = orcToday.corto + ' · ' + zonaLine + ' · ' + tp.numClients + ' EDS en agenda';
-    var aTxt = document.getElementById('admin-bot-txt');
-    if (aTxt) aTxt.innerHTML = vCompleted + '/' + vTotal + ' visitas · Última: <strong style="color:var(--t1);">Ninguna aún</strong>';
 }
 
 loadProspects();
@@ -3907,7 +3820,7 @@ function updateHomeVentasMeta() {
         if (acum > 0) {
             lines.push('Acumulado ' + formatCopCOP(acum) + ' · ' + pct + '% · Falta ' + formatCopCOP(falta) + '.');
         } else {
-            lines.push('Registrá el acumulado en Admin para ver % y barra de avance.');
+            lines.push('Registrá el acumulado en el panel gerencia (admin.html, escritorio) para ver % y barra de avance.');
         }
         sub.textContent = lines.join(' ');
     }
@@ -4010,24 +3923,6 @@ function updateHomeTodayRouteCard() {
     if (badgesEl) badgesEl.innerHTML = '';
 }
 
-function loadAdminVentasMesField() {
-    var inp = document.getElementById('admin-ventas-mes-input');
-    if (!inp) return;
-    var v = getOrcVentasMesAcumuladoCOP();
-    inp.value = v > 0 ? String(v) : '';
-}
-
-function saveOrcVentasMesFromAdmin() {
-    var inp = document.getElementById('admin-ventas-mes-input');
-    if (!inp) return;
-    var raw = String(inp.value || '').replace(/\D/g, '');
-    var n = parseInt(raw, 10);
-    if (isNaN(n) || n < 0) n = 0;
-    localStorage.setItem(orcVentasMesStorageKey(), String(n));
-    updateHomeVentasMeta();
-    alert('Acumulado guardado. Revisá el avance en Home.');
-}
-
 function buildWeeklyPlanSnapshot() {
     const keys = ['MON','TUE','WED','THU','FRI'];
     const out = {};
@@ -4079,14 +3974,6 @@ function buildWeeklyPlanSnapshot() {
 // ================================================================
 window.addEventListener('popstate', (e) => {
     if (e.state && e.state.id) {
-        if (e.state.id === 's-admin' && !isXp3AdminDashboardUser()) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('s-home').classList.add('active');
-            document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
-            document.getElementById('nb-home').classList.add('active');
-            schedulePersistUi();
-            return;
-        }
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(e.state.id).classList.add('active');
         document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
@@ -4099,14 +3986,7 @@ window.addEventListener('popstate', (e) => {
 });
 
 function showScreen(id, navId, isPop = false) {
-    if (id === 's-admin' && !isXp3AdminDashboardUser()) {
-        alert('El panel de administración y seguimiento es solo para control gerencial (xp3meta@rendimax.com.co). Tu sesión sigue con acceso a Home, Agenda, Ruta y el resto de la app.');
-        return;
-    }
     var prevActive = document.querySelector('.screen.active');
-    if (prevActive && prevActive.id === 's-admin' && id !== 's-admin') {
-        teardownAdminDashboard();
-    }
     if (prevActive && prevActive.id === 's-registro' && id !== 's-registro') {
         if (!assertCanLeaveVisitScreen(id)) return;
         visitCompletionState.openedVisit = false;
@@ -4130,10 +4010,6 @@ function showScreen(id, navId, isPop = false) {
     if (id === 's-agenda') buildAgenda();
     if (id === 's-registro') onVisitScreenOpened();
     if (id === 's-home') updateHomeVentasMeta();
-    if (id === 's-admin') {
-        loadAdminVentasMesField();
-        loadAdminDashboard();
-    }
     if (id === 's-calc') {
         var pre = calcPrefillClientNum;
         calcPrefillClientNum = null;
@@ -4364,7 +4240,7 @@ function schedulePersistUi() {
     _persistUiT = setTimeout(persistUiState, 200);
 }
 function defaultNavIdForScreen(screenId) {
-    var m = { 's-home': 'nb-home', 's-agenda': 'nb-agenda', 's-ruta': 'nb-ruta', 's-mapa': 'nb-ruta', 's-prospecto': 'nb-ruta', 's-ficha': 'nb-ruta', 's-calc': 'nb-calc', 's-registro': 'nb-ruta', 's-admin': 'nb-admin' };
+    var m = { 's-home': 'nb-home', 's-agenda': 'nb-agenda', 's-ruta': 'nb-ruta', 's-mapa': 'nb-ruta', 's-prospecto': 'nb-ruta', 's-ficha': 'nb-ruta', 's-calc': 'nb-calc', 's-registro': 'nb-ruta' };
     return m[screenId] || 'nb-home';
 }
 function persistUiState() {
@@ -4395,12 +4271,6 @@ function tryRestoreUiFromStorageOrUrl() {
         var sid = params.get('s');
         var fichaParam = params.get('ficha');
         if (sid && document.getElementById(sid)) {
-            if (sid === 's-admin' && !isXp3AdminDashboardUser()) {
-                var pathB0 = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
-                history.replaceState({ id: 's-home', navId: 'nb-home' }, '', pathB0 + '?s=s-home');
-                showScreen('s-home', 'nb-home', true);
-                return true;
-            }
             var navU = defaultNavIdForScreen(sid);
             showScreen(sid, navU, true);
             if (fichaParam) {
@@ -4423,12 +4293,6 @@ function tryRestoreUiFromStorageOrUrl() {
             return false;
         }
         var nav = o.navId && document.getElementById(o.navId) ? o.navId : defaultNavIdForScreen(o.screenId);
-        if (o.screenId === 's-admin' && !isXp3AdminDashboardUser()) {
-            var pathB1 = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
-            history.replaceState({ id: 's-home', navId: 'nb-home' }, '', pathB1 + '?s=s-home');
-            showScreen('s-home', 'nb-home', true);
-            return true;
-        }
         if (o.routeDayFilter && /^(MON|TUE|WED|THU|FRI|ALL)$/.test(o.routeDayFilter)) {
             routeListDayFilter = o.routeDayFilter;
             try { sessionStorage.setItem('xp3_route_list_day_v1', o.routeDayFilter); } catch (e2) {}
@@ -4477,25 +4341,6 @@ setInterval(pollCapacitacionReminders, 45 * 60 * 1000);
 // ================================================================
 // AUTH
 // ================================================================
-/** Único correo con acceso al panel Admin / seguimiento (gerencia). El resto usa la app operativa sin Admin. */
-var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
-function getSessionEmailNormalized() {
-    try {
-        var raw = localStorage.getItem('rendimax_session');
-        if (!raw) return '';
-        var s = JSON.parse(raw);
-        return String(s.email || '').trim().toLowerCase();
-    } catch (e) { return ''; }
-}
-function isXp3AdminDashboardUser() {
-    return getSessionEmailNormalized() === XP3_ADMIN_DASHBOARD_EMAIL;
-}
-function updateAdminNavVisibility() {
-    var nb = document.getElementById('nb-admin');
-    if (!nb) return;
-    nb.style.display = isXp3AdminDashboardUser() ? '' : 'none';
-}
-
 function doLogin() {
     const email = document.getElementById('login-email').value.trim();
     const pass  = document.getElementById('login-pass').value;
@@ -4520,7 +4365,6 @@ function applyUser(name, email, picture) {
     const firstName = (name || 'U').split(' ')[0];
     document.getElementById('usr-name').textContent   = firstName;
     document.getElementById('user-label').textContent = '⛽ ' + email;
-    document.getElementById('admin-user').textContent = name;
     const av = document.getElementById('usr-avatar');
     if (picture) {
         av.style.backgroundImage    = 'url(' + picture + ')';
@@ -4530,13 +4374,11 @@ function applyUser(name, email, picture) {
     } else {
         av.textContent = (name && name[0] ? name[0] : '?').toUpperCase();
     }
-    updateAdminNavVisibility();
 }
 
 function doLogout() {
     if (confirm('¿Cerrar sesión de Rendimax XP3?')) {
         localStorage.removeItem('rendimax_session');
-        updateAdminNavVisibility();
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
         document.getElementById('login-pass').value  = '';
@@ -4550,9 +4392,6 @@ function postLogin() {
     pollCapacitacionReminders();
     updateHomeVentasMeta();
     startGPS();
-    const n = new Date();
-    document.getElementById('admin-date').textContent =
-        n.toLocaleDateString('es-CO', {day:'numeric',month:'short',year:'numeric'}) + ' · En vivo';
     if (!tryRestoreUiFromStorageOrUrl()) {
         showScreen('s-home', 'nb-home');
     }
@@ -4919,11 +4758,6 @@ var TRACKING_PING_MIN_MOVE_KM = 0.12;
 var lastTrackingPingWriteMs = 0;
 var lastTrackingPingLat = null;
 var lastTrackingPingLng = null;
-var adminDashboardUnsubs = [];
-var adminTrackingMapInstance = null;
-var _adminLastVisitsRows = [];
-var _adminLastPings = [];
-
 function ensureXp3DeviceId() {
     try {
         var x = localStorage.getItem(XP3_DEVICE_ID_KEY);
@@ -4959,193 +4793,6 @@ function maybeWriteTrackingPing(lat, lng, accuracy) {
         capturedAtMs: now,
         deviceId: ensureXp3DeviceId()
     }).catch(function(e) { console.warn('Seguimiento ping:', e && e.message ? e.message : e); });
-}
-
-function teardownAdminDashboard() {
-    adminDashboardUnsubs.forEach(function(u) {
-        try { if (typeof u === 'function') u(); } catch (e) {}
-    });
-    adminDashboardUnsubs = [];
-    _adminLastVisitsRows = [];
-    _adminLastPings = [];
-    if (adminTrackingMapInstance) {
-        try { adminTrackingMapInstance.remove(); } catch (eR) {}
-        adminTrackingMapInstance = null;
-    }
-}
-
-function _adminFmtTime(d) {
-    if (!d) return '—';
-    try {
-        return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return '—'; }
-}
-
-function _adminFmtDur(sec) {
-    if (sec == null || isNaN(sec)) return '—';
-    var m = Math.floor(sec / 60);
-    var s = sec % 60;
-    return m + 'm ' + s + 's';
-}
-
-function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
-    var wrap = document.getElementById('admin-tracking-map');
-    var hint = document.getElementById('admin-map-hint');
-    if (!wrap || typeof L === 'undefined') return;
-    if (adminTrackingMapInstance) {
-        try { adminTrackingMapInstance.remove(); } catch (eM) {}
-        adminTrackingMapInstance = null;
-    }
-    var center = [10.95, -74.45];
-    var z = 8;
-    if (pingsAsc.length) {
-        var sumLa = 0, sumLn = 0;
-        pingsAsc.forEach(function(p) { sumLa += p.lat; sumLn += p.lng; });
-        center = [sumLa / pingsAsc.length, sumLn / pingsAsc.length];
-        z = pingsAsc.length === 1 ? 12 : 10;
-    } else if (visitsAsc.length) {
-        var g = [];
-        visitsAsc.forEach(function(row) {
-            var g0 = row.d && row.d.gpsAtVisitStart;
-            if (g0 && g0.lat != null && g0.lng != null) g.push([g0.lat, g0.lng]);
-        });
-        if (g.length) {
-            sumLa = 0; sumLn = 0;
-            g.forEach(function(xy) { sumLa += xy[0]; sumLn += xy[1]; });
-            center = [sumLa / g.length, sumLn / g.length];
-            z = 11;
-        }
-    }
-    adminTrackingMapInstance = L.map(wrap, { scrollWheelZoom: false, attributionControl: true }).setView(center, z);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(adminTrackingMapInstance);
-    var layers = [];
-    if (pingsAsc.length > 1) {
-        var latlngs = pingsAsc.map(function(p) { return [p.lat, p.lng]; });
-        L.polyline(latlngs, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(adminTrackingMapInstance);
-        layers.push(L.latLngBounds(latlngs));
-    }
-    if (typeof L.heatLayer === 'function' && pingsAsc.length) {
-        var heatData = pingsAsc.map(function(p) { return [p.lat, p.lng, 0.55]; });
-        L.heatLayer(heatData, { radius: 26, blur: 16, maxZoom: 14, max: 1.0 }).addTo(adminTrackingMapInstance);
-    }
-    visitsAsc.forEach(function(row) {
-        var g0 = row.d && row.d.gpsAtVisitStart;
-        if (!g0 || g0.lat == null || g0.lng == null) return;
-        var label = (row.d.clientRef || ('#' + (row.d.clientNum != null ? row.d.clientNum : '?'))) + '';
-        L.circleMarker([g0.lat, g0.lng], { radius: 7, color: '#22c55e', fillColor: '#4ade80', fillOpacity: 0.9, weight: 2 })
-            .bindPopup(label + '<br>' + (row.d.result || '') + '<br>' + _adminFmtTime(row.ts))
-            .addTo(adminTrackingMapInstance);
-    });
-    if (layers.length) adminTrackingMapInstance.fitBounds(layers[0], { padding: [18, 18], maxZoom: 12 });
-    setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 200);
-    if (hint) {
-        hint.textContent = pingsAsc.length
-            ? (pingsAsc.length + ' pings · ' + visitsAsc.length + ' visitas con hora en mapa.')
-            : ('Sin pings aún hoy. El comercial debe tener la app abierta y GPS activo para registrar trayectoria.');
-    }
-}
-
-function maybeRedrawAdminMap() {
-    var vr = (_adminLastVisitsRows || []).slice().sort(function(a, b) {
-        var ta = a.ts ? a.ts.getTime() : 0, tb = b.ts ? b.ts.getTime() : 0;
-        return ta - tb;
-    });
-    var pr = (_adminLastPings || []).slice().sort(function(a, b) {
-        return (a.capturedAtMs || 0) - (b.capturedAtMs || 0);
-    });
-    renderAdminTrackingMapInner(vr, pr);
-}
-
-function redrawAdminDashboardUI(todayKey) {
-    var rows = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
-    var kf = document.getElementById('admin-kpi-first');
-    var kl = document.getElementById('admin-kpi-last');
-    var ka = document.getElementById('admin-kpi-avg');
-    var tb = document.getElementById('admin-visits-table');
-    if (kf) kf.textContent = rows.length ? _adminFmtTime(rows[0].ts) : '—';
-    if (kl) kl.textContent = rows.length ? _adminFmtTime(rows[rows.length - 1].ts) : '—';
-    var durSum = 0, durN = 0;
-    rows.forEach(function(r) {
-        var s = r.d && r.d.visitDurationSec;
-        if (s != null && !isNaN(s) && s > 0) { durSum += s; durN++; }
-    });
-    if (ka) ka.textContent = durN ? _adminFmtDur(Math.round(durSum / durN)) : '—';
-    if (tb) {
-        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + todayKey + '.</span>';
-        else {
-            tb.innerHTML = rows.map(function(r) {
-                var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
-                if (nm.length > 42) nm = nm.slice(0, 40) + '…';
-                return '<div style="border-bottom:1px solid rgba(255,255,255,.06);padding:6px 0;">'
-                    + '<strong>' + _adminFmtTime(r.ts) + '</strong> · ' + nm
-                    + '<br><span style="color:var(--t2);">' + (r.d.result || '—') + ' · dur. ' + _adminFmtDur(r.d.visitDurationSec) + '</span></div>';
-            }).join('');
-        }
-    }
-    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
-    var kmP = 0;
-    for (var i = 1; i < pr.length; i++) {
-        if (pr[i].lat != null && pr[i].lng != null && pr[i - 1].lat != null && pr[i - 1].lng != null)
-            kmP += getDistance(pr[i - 1].lat, pr[i - 1].lng, pr[i].lat, pr[i].lng);
-    }
-    var kk = document.getElementById('admin-kpi-km');
-    if (kk) kk.textContent = pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : (pr.length ? '1 punto' : '0 km');
-    var kmV = 0;
-    var prev = null;
-    rows.forEach(function(r) {
-        var g0 = r.d && r.d.gpsAtVisitStart;
-        if (!g0 || g0.lat == null || g0.lng == null) return;
-        if (prev) kmV += getDistance(prev.lat, prev.lng, g0.lat, g0.lng);
-        prev = g0;
-    });
-    var bot = document.getElementById('admin-bot-txt');
-    if (bot) {
-        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km trayecto (pings) arriba · km entre GPS visitas ~ '
-            + (Math.round(kmV * 10) / 10) + ' km';
-    }
-    maybeRedrawAdminMap();
-}
-
-function loadAdminDashboard() {
-    if (typeof db === 'undefined' || !db) {
-        var b0 = document.getElementById('admin-bot-txt');
-        if (b0) b0.textContent = 'Firestore no inicializado.';
-        return;
-    }
-    teardownAdminDashboard();
-    _adminLastVisitsRows = [];
-    _adminLastPings = [];
-    var todayKey = orcDateKeyISO(new Date());
-    var unVis = db.collection('visitas').orderBy('timestamp', 'desc').limit(150).onSnapshot(function(snap) {
-        var rows = [];
-        snap.forEach(function(doc) {
-            var d = doc.data();
-            if ((d.routeDay || '') !== todayKey) return;
-            var ts = d.timestamp && typeof d.timestamp.toDate === 'function' ? d.timestamp.toDate() : null;
-            rows.push({ id: doc.id, d: d, ts: ts });
-        });
-        _adminLastVisitsRows = rows;
-        redrawAdminDashboardUI(todayKey);
-    }, function(err) {
-        var b1 = document.getElementById('admin-bot-txt');
-        if (b1) b1.textContent = 'Error visitas: ' + (err && err.message ? err.message : err);
-    });
-    adminDashboardUnsubs.push(function() { unVis(); });
-    var unPing = db.collection(XP3_PINGS_COLLECTION).orderBy('capturedAtMs', 'desc').limit(500).onSnapshot(function(snap) {
-        var pings = [];
-        snap.forEach(function(doc) {
-            var d = doc.data();
-            if ((d.routeDay || '') !== todayKey) return;
-            if (d.lat != null && d.lng != null) pings.push(d);
-        });
-        _adminLastPings = pings;
-        redrawAdminDashboardUI(todayKey);
-    }, function(err) {
-        console.warn('Pings snapshot:', err);
-        _adminLastPings = [];
-        redrawAdminDashboardUI(todayKey);
-    });
-    adminDashboardUnsubs.push(function() { unPing(); });
 }
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;
@@ -6611,7 +6258,6 @@ if (savedSession) {
 } else {
     console.log('No active session found.');
 }
-updateAdminNavVisibility();
 
 buildRouteList();
 populateCalcClientSelect(null);
