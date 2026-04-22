@@ -4079,6 +4079,14 @@ function buildWeeklyPlanSnapshot() {
 // ================================================================
 window.addEventListener('popstate', (e) => {
     if (e.state && e.state.id) {
+        if (e.state.id === 's-admin' && !isXp3AdminDashboardUser()) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('s-home').classList.add('active');
+            document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+            document.getElementById('nb-home').classList.add('active');
+            schedulePersistUi();
+            return;
+        }
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(e.state.id).classList.add('active');
         document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
@@ -4091,6 +4099,10 @@ window.addEventListener('popstate', (e) => {
 });
 
 function showScreen(id, navId, isPop = false) {
+    if (id === 's-admin' && !isXp3AdminDashboardUser()) {
+        alert('El panel de administración y seguimiento es solo para control gerencial (xp3meta@rendimax.com.co). Tu sesión sigue con acceso a Home, Agenda, Ruta y el resto de la app.');
+        return;
+    }
     var prevActive = document.querySelector('.screen.active');
     if (prevActive && prevActive.id === 's-admin' && id !== 's-admin') {
         teardownAdminDashboard();
@@ -4383,6 +4395,12 @@ function tryRestoreUiFromStorageOrUrl() {
         var sid = params.get('s');
         var fichaParam = params.get('ficha');
         if (sid && document.getElementById(sid)) {
+            if (sid === 's-admin' && !isXp3AdminDashboardUser()) {
+                var pathB0 = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
+                history.replaceState({ id: 's-home', navId: 'nb-home' }, '', pathB0 + '?s=s-home');
+                showScreen('s-home', 'nb-home', true);
+                return true;
+            }
             var navU = defaultNavIdForScreen(sid);
             showScreen(sid, navU, true);
             if (fichaParam) {
@@ -4405,6 +4423,12 @@ function tryRestoreUiFromStorageOrUrl() {
             return false;
         }
         var nav = o.navId && document.getElementById(o.navId) ? o.navId : defaultNavIdForScreen(o.screenId);
+        if (o.screenId === 's-admin' && !isXp3AdminDashboardUser()) {
+            var pathB1 = (window.location.pathname && window.location.pathname.length) ? window.location.pathname : '/';
+            history.replaceState({ id: 's-home', navId: 'nb-home' }, '', pathB1 + '?s=s-home');
+            showScreen('s-home', 'nb-home', true);
+            return true;
+        }
         if (o.routeDayFilter && /^(MON|TUE|WED|THU|FRI|ALL)$/.test(o.routeDayFilter)) {
             routeListDayFilter = o.routeDayFilter;
             try { sessionStorage.setItem('xp3_route_list_day_v1', o.routeDayFilter); } catch (e2) {}
@@ -4453,6 +4477,25 @@ setInterval(pollCapacitacionReminders, 45 * 60 * 1000);
 // ================================================================
 // AUTH
 // ================================================================
+/** Único correo con acceso al panel Admin / seguimiento (gerencia). El resto usa la app operativa sin Admin. */
+var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
+function getSessionEmailNormalized() {
+    try {
+        var raw = localStorage.getItem('rendimax_session');
+        if (!raw) return '';
+        var s = JSON.parse(raw);
+        return String(s.email || '').trim().toLowerCase();
+    } catch (e) { return ''; }
+}
+function isXp3AdminDashboardUser() {
+    return getSessionEmailNormalized() === XP3_ADMIN_DASHBOARD_EMAIL;
+}
+function updateAdminNavVisibility() {
+    var nb = document.getElementById('nb-admin');
+    if (!nb) return;
+    nb.style.display = isXp3AdminDashboardUser() ? '' : 'none';
+}
+
 function doLogin() {
     const email = document.getElementById('login-email').value.trim();
     const pass  = document.getElementById('login-pass').value;
@@ -4487,11 +4530,13 @@ function applyUser(name, email, picture) {
     } else {
         av.textContent = (name && name[0] ? name[0] : '?').toUpperCase();
     }
+    updateAdminNavVisibility();
 }
 
 function doLogout() {
     if (confirm('¿Cerrar sesión de Rendimax XP3?')) {
         localStorage.removeItem('rendimax_session');
+        updateAdminNavVisibility();
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
         document.getElementById('login-pass').value  = '';
@@ -6566,6 +6611,7 @@ if (savedSession) {
 } else {
     console.log('No active session found.');
 }
+updateAdminNavVisibility();
 
 buildRouteList();
 populateCalcClientSelect(null);
