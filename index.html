@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thin...png">
     <title>Rendimax XP3 · App Comercial Costa Norte</title>
     <meta name="description" content="App comercial Rendimax XP3 · Regional Costa Norte · ORC 2026">
-    <meta name="xp3-build" content="2026-04-20-field-zone-policy-a">
+    <meta name="xp3-build" content="2026-04-20-productivity-gap-alert">
     <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +87,7 @@
         #field-zone-banner { display:none; margin:6px 12px 0; padding:10px 12px; background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.4); border-radius:12px; font-size:11px; line-height:1.45; color:var(--t1); position:relative; z-index:888; }
         #field-zone-banner.field-zone-warn { background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.45); }
         #field-zone-banner.field-zone-ok { background:rgba(16,185,129,.1); border-color:rgba(16,185,129,.35); }
+        #productivity-gap-banner { display:none; margin:6px 12px 0; padding:10px 12px; background:rgba(234,179,8,.1); border:1px solid rgba(234,179,8,.45); border-radius:12px; font-size:11px; line-height:1.45; color:var(--t1); position:relative; z-index:887; }
         .slbl { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--t3); margin:20px 0 10px; }
         .pdot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
         .pr { background:var(--red); box-shadow:0 0 8px var(--red); }
@@ -241,6 +242,20 @@
             <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
                 <button type="button" class="btn btn-gh btn-sm" style="padding:4px 8px;font-size:9px;" onclick="snoozeFieldZonePolicyBanner(45)">Recordar en 45m</button>
                 <button type="button" class="btn btn-gh btn-sm" style="padding:4px 8px;font-size:9px;" onclick="dismissFieldZonePolicyBanner(20)">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="productivity-gap-banner" role="status" aria-live="polite">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:20px;" id="productivity-gap-banner-icon">⏱️</span>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;" id="productivity-gap-banner-title">Tiempo en calle</div>
+                <div class="sub" id="productivity-gap-banner-body" style="margin-top:2px;font-size:11px;color:var(--t2);">—</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                <button type="button" class="btn btn-gh btn-sm" style="padding:4px 8px;font-size:9px;" onclick="snoozeProductivityGapBanner(45)">Recordar en 45m</button>
+                <button type="button" class="btn btn-gh btn-sm" style="padding:4px 8px;font-size:9px;" onclick="dismissProductivityGapBanner(25)">Cerrar</button>
             </div>
         </div>
     </div>
@@ -4396,6 +4411,7 @@ function applyUser(name, email, picture) {
 function doLogout() {
     if (confirm('¿Cerrar sesión de Rendimax XP3?')) {
         hideFieldZonePolicyBanner();
+        hideProductivityGapBanner();
         localStorage.removeItem('rendimax_session');
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
@@ -4457,6 +4473,7 @@ function startGPS() {
             }
             checkGeofence();
             maybeEvaluateFieldZonePresence();
+            maybeEvaluateProductivityReturnGap();
             updateFichaDistance();
         },
         err => { document.getElementById('gps-indicator').className = 'gps-pill gps-off'; },
@@ -4746,6 +4763,189 @@ function maybeEvaluateFieldZonePresence() {
 
     if (!complete && fieldZoneConsecutiveInside >= FIELD_ZONE_IN_READINGS && nearestM <= thresholdM) {
         hideFieldZonePolicyBanner();
+    }
+}
+
+/** Hueco de productividad: última vez “cerca” de una EDS de la ruta de hoy vs. regreso (hora Colombia). */
+var PROD_NEAR_CLIENT_RADIUS_M = 900;
+var PROD_GAP_MIN_MS = 90 * 60 * 1000;
+var PROD_GAP_CONSEC_READINGS = 2;
+var PROD_GAP_ALERT_COOLDOWN_MS = 25 * 60 * 1000;
+var XP3_PROD_GAP_QUIET_KEY = 'xp3_prod_gap_quiet_until';
+var prodGapTrackedDayISO = '';
+var pgConsecNear = 0;
+var pgConsecAway = 0;
+
+function prodGapStorageKey() {
+    return 'xp3_prod_gap_v1_' + orcDateKeyISO(new Date());
+}
+
+function readProdGapState() {
+    try {
+        var o = JSON.parse(localStorage.getItem(prodGapStorageKey()) || '{}');
+        if (!o || typeof o !== 'object') o = {};
+        return {
+            lastWhileNearMs: typeof o.lastWhileNearMs === 'number' ? o.lastWhileNearMs : null,
+            leftNearAtMs: typeof o.leftNearAtMs === 'number' ? o.leftNearAtMs : null,
+            lastGapAlertAtMs: typeof o.lastGapAlertAtMs === 'number' ? o.lastGapAlertAtMs : 0
+        };
+    } catch (e) {
+        return { lastWhileNearMs: null, leftNearAtMs: null, lastGapAlertAtMs: 0 };
+    }
+}
+
+function writeProdGapState(s) {
+    try {
+        localStorage.setItem(prodGapStorageKey(), JSON.stringify({
+            lastWhileNearMs: s.lastWhileNearMs,
+            leftNearAtMs: s.leftNearAtMs,
+            lastGapAlertAtMs: s.lastGapAlertAtMs
+        }));
+    } catch (e) {}
+}
+
+/** Refuerza “última actividad en ruta” cuando se guarda visita (GPS a veces no entra al radio). */
+function bumpProdGapAfterVisitSynced(num) {
+    if (num == null) return;
+    var nums = getTodayOrcPlannedActiveClients().map(function(c) { return String(c.num); });
+    if (nums.indexOf(String(num)) === -1) return;
+    var s = readProdGapState();
+    s.lastWhileNearMs = Date.now();
+    writeProdGapState(s);
+}
+
+function formatTimeBogota(d) {
+    var date = d instanceof Date ? d : new Date(d);
+    try {
+        return new Intl.DateTimeFormat('es-CO', {
+            timeZone: 'America/Bogota',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).format(date);
+    } catch (e) {
+        return date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+function getProdGapQuietUntilMs() {
+    try {
+        var v = parseInt(sessionStorage.getItem(XP3_PROD_GAP_QUIET_KEY) || '0', 10);
+        return isNaN(v) ? 0 : v;
+    } catch (e) { return 0; }
+}
+
+function setProdGapQuietMs(untilTs) {
+    try {
+        sessionStorage.setItem(XP3_PROD_GAP_QUIET_KEY, String(untilTs));
+    } catch (e) {}
+}
+
+function isProdGapQuiet() {
+    return Date.now() < getProdGapQuietUntilMs();
+}
+
+function snoozeProductivityGapBanner(minutes) {
+    var m = parseInt(minutes, 10) || 45;
+    setProdGapQuietMs(Date.now() + m * 60 * 1000);
+    hideProductivityGapBanner();
+}
+
+function dismissProductivityGapBanner(minutes) {
+    var m = parseInt(minutes, 10) || 25;
+    setProdGapQuietMs(Date.now() + m * 60 * 1000);
+    hideProductivityGapBanner();
+}
+
+function hideProductivityGapBanner() {
+    var b = document.getElementById('productivity-gap-banner');
+    if (b) b.style.display = 'none';
+}
+
+function showProductivityGapBanner(title, bodyHtml) {
+    var b = document.getElementById('productivity-gap-banner');
+    var ti = document.getElementById('productivity-gap-banner-title');
+    var bo = document.getElementById('productivity-gap-banner-body');
+    if (!b || !ti || !bo) return;
+    ti.textContent = title;
+    bo.innerHTML = bodyHtml;
+    b.style.display = 'block';
+}
+
+function maybeEvaluateProductivityReturnGap() {
+    if (shouldSkipFirestoreTrackingForSession()) {
+        hideProductivityGapBanner();
+        return;
+    }
+    if (!isLoggedInAppVisible()) {
+        hideProductivityGapBanner();
+        return;
+    }
+    if (userLat === null || userLon === null) return;
+
+    var dayIso = orcDateKeyISO(new Date());
+    if (prodGapTrackedDayISO !== dayIso) {
+        prodGapTrackedDayISO = dayIso;
+        pgConsecNear = 0;
+        pgConsecAway = 0;
+    }
+
+    var acc = lastUserGpsAccuracy;
+    if (acc != null && acc > FIELD_ZONE_MAX_ACCURACY_M) return;
+
+    var now = new Date();
+    var work = isWithinCommercialWorkWindow(now);
+    if (!work) {
+        hideProductivityGapBanner();
+        return;
+    }
+
+    var entry = getTodayRouteEntry(now);
+    if (!entry || entry.type !== 'route') {
+        hideProductivityGapBanner();
+        return;
+    }
+
+    var routeClients = getTodayOrcRouteClientsForZone();
+    if (!routeClients.length) return;
+
+    var nearestM = nearestDistanceMToRouteClients(userLat, userLon, routeClients);
+    if (!isFinite(nearestM)) return;
+
+    var nearNow = nearestM <= PROD_NEAR_CLIENT_RADIUS_M;
+    if (nearNow) {
+        pgConsecNear++;
+        pgConsecAway = 0;
+    } else {
+        pgConsecAway++;
+        pgConsecNear = 0;
+    }
+
+    var s = readProdGapState();
+
+    if (pgConsecNear >= PROD_GAP_CONSEC_READINGS) {
+        if (s.leftNearAtMs != null) {
+            var gapMs = Date.now() - s.leftNearAtMs;
+            var coolOk = Date.now() - s.lastGapAlertAtMs >= PROD_GAP_ALERT_COOLDOWN_MS;
+            if (gapMs >= PROD_GAP_MIN_MS && !isProdGapQuiet() && coolOk) {
+                var tLeave = formatTimeBogota(new Date(s.leftNearAtMs));
+                var tRet = formatTimeBogota(now);
+                var gapMin = Math.round(gapMs / 60000);
+                var body = 'La última vez que la app te detectó <strong>cerca de una EDS de tu ruta de hoy</strong> fue alrededor de las <strong>' + escapeHtml(tLeave) + '</strong> (hora Colombia). '
+                    + 'Volvés a estar cerca de la ruta sobre las <strong>' + escapeHtml(tRet) + '</strong> — pasaron unos <strong>' + gapMin + ' min</strong> sin estar en zona de visita.'
+                    + '<br><span style="opacity:.92;margin-top:6px;display:inline-block;">Aprovechá el horario en calle: barrido, pendientes o prospectos antes de cerrar la jornada.</span>';
+                showProductivityGapBanner('Tiempo en calle · revisá el hueco', body);
+                s.lastGapAlertAtMs = Date.now();
+            }
+            s.leftNearAtMs = null;
+        }
+        s.lastWhileNearMs = Date.now();
+        writeProdGapState(s);
+    } else if (pgConsecAway >= PROD_GAP_CONSEC_READINGS) {
+        if (s.lastWhileNearMs != null && s.leftNearAtMs == null) {
+            s.leftNearAtMs = s.lastWhileNearMs;
+            writeProdGapState(s);
+        }
     }
 }
 
@@ -6518,10 +6718,12 @@ async function saveVisitToFirebase() {
 
         var savedNum = currentFicha ? currentFicha.num : null;
         markClientVisitSyncedToday(savedNum);
+        try { bumpProdGapAfterVisitSynced(savedNum); } catch (eB) {}
         visitCompletionState.savedThisSession = true;
         visitCompletionState.openedVisit = false;
         try { localStorage.removeItem(XP3_VISIT_TIMER_KEY); } catch (e) {}
         try { maybeEvaluateFieldZonePresence(); } catch (eFZ) {}
+        try { maybeEvaluateProductivityReturnGap(); } catch (ePG) {}
 
         var nextC = savedNum != null ? getNextClientInRouteAfterNum(savedNum) : null;
 
