@@ -363,6 +363,14 @@ function isAllowedAdminEmail(email) {
     return normalizeEmail(email) === XP3_ADMIN_DASHBOARD_EMAIL;
 }
 
+/** Pings / ubicación viva de la cuenta gerencial no entran al mapa ni a KPIs (históricos viejos + demos). */
+function adminTrackingRowAllowedForMap(row) {
+    if (!row) return false;
+    var em = (row.operatorEmail && String(row.operatorEmail).trim()) || '';
+    if (em && normalizeEmail(em) === normalizeEmail(XP3_ADMIN_DASHBOARD_EMAIL)) return false;
+    return true;
+}
+
 function orcDateKeyISO(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
@@ -554,9 +562,11 @@ function adminStaleTierLabel(t) {
 function _adminBuildDeviceEmailMap() {
     var m = {};
     (_adminLastPings || []).forEach(function(p) {
+        if (!adminTrackingRowAllowedForMap(p)) return;
         if (p.deviceId && p.operatorEmail) m[String(p.deviceId)] = String(p.operatorEmail).trim();
     });
     (_adminLiveLocations || []).forEach(function(L) {
+        if (!adminTrackingRowAllowedForMap(L)) return;
         if (L.deviceId && L.operatorEmail) m[String(L.deviceId)] = String(L.operatorEmail).trim();
     });
     return m;
@@ -579,9 +589,9 @@ function adminFilteredData() {
     var devMap = _adminBuildDeviceEmailMap();
     var vr = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
     if (_adminOperatorFilter) vr = vr.filter(function(r) { return adminVisitMatchesFilter(r, devMap); });
-    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+    var pr = (_adminLastPings || []).filter(adminTrackingRowAllowedForMap).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
     if (_adminOperatorFilter) pr = pr.filter(function(p) { return adminPingMatchesFilter(p, devMap); });
-    var live = (_adminLiveLocations || []).slice();
+    var live = (_adminLiveLocations || []).filter(adminTrackingRowAllowedForMap).slice();
     if (_adminOperatorFilter) live = live.filter(function(L) { return adminPingMatchesFilter(L, devMap); });
     return { devMap: devMap, vr: vr, pr: pr, live: live };
 }
@@ -610,10 +620,12 @@ function rebuildAdminOperatorFilterOptions() {
         if (e) emails[e] = 1;
     });
     (_adminLastPings || []).forEach(function(p) {
+        if (!adminTrackingRowAllowedForMap(p)) return;
         var e = (p.operatorEmail && String(p.operatorEmail).trim());
         if (e) emails[e] = 1;
     });
     (_adminLiveLocations || []).forEach(function(L) {
+        if (!adminTrackingRowAllowedForMap(L)) return;
         var e = (L.operatorEmail && String(L.operatorEmail).trim());
         if (e) emails[e] = 1;
     });
