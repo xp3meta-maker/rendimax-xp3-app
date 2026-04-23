@@ -164,6 +164,7 @@
         }
         .admin-route-row:last-child { border-bottom: none; }
         .admin-route-row.done { color: var(--t2); }
+        .admin-route-row-today { border-left: 3px solid rgba(34, 197, 94, 0.55); padding-left: 8px; margin-left: -2px; }
         .admin-route-row .chk { font-size: 15px; flex-shrink: 0; line-height: 1.2; }
         .admin-route-row .nm { font-weight: 600; color: var(--t1); }
         .admin-route-row .meta { font-size: 10px; color: var(--t3); margin-top: 2px; }
@@ -460,22 +461,40 @@ function adminGetClientsForRouteName(routeName) {
         return false;
     });
 }
+function adminSortStopsByDayThenOrder(a, b) {
+    var order = { MON: 0, TUE: 1, WED: 2, THU: 3, FRI: 4 };
+    var da = order[a.day] != null ? order[a.day] : 99;
+    var db = order[b.day] != null ? order[b.day] : 99;
+    if (da !== db) return da - db;
+    var oa = a.stopOrder != null ? Number(a.stopOrder) : 999;
+    var ob = b.stopOrder != null ? Number(b.stopOrder) : 999;
+    if (oa !== ob) return oa - ob;
+    return (Number(a.num) || 0) - (Number(b.num) || 0);
+}
 function adminGetTodayRoutePlan(isoKey) {
     var cal = window.XP3_ROUTE_CALENDAR_ORC_2026;
-    if (!cal) return { stops: [] };
+    if (!cal) return { stops: [], stopsToday: [], stopsFullRoute: [], nInactiveOnRoute: 0 };
     var entry = cal[isoKey];
-    if (!entry || entry.type !== 'route' || !entry.routeName) return { entry: entry, stops: [] };
+    if (!entry || entry.type !== 'route' || !entry.routeName) {
+        return { entry: entry, routeName: entry && entry.routeName, label: entry && entry.label, dayKey: entry && entry.dayKey, stops: [], stopsToday: [], stopsFullRoute: [], nInactiveOnRoute: 0 };
+    }
     var all = adminGetClientsForRouteName(entry.routeName);
     var dayKey = entry.dayKey;
-    var stops = all.filter(function(c) { return c && c.day === dayKey; });
-    stops = stops.filter(function(c) { return c.status === 'ACTIVO'; });
-    stops.sort(function(a, b) {
-        var oa = a.stopOrder != null ? Number(a.stopOrder) : 999;
-        var ob = b.stopOrder != null ? Number(b.stopOrder) : 999;
-        if (oa !== ob) return oa - ob;
-        return (Number(a.num) || 0) - (Number(b.num) || 0);
-    });
-    return { entry: entry, routeName: entry.routeName, label: entry.label, dayKey: dayKey, stops: stops };
+    var stopsToday = all.filter(function(c) { return c && c.day === dayKey && c.status === 'ACTIVO'; });
+    stopsToday.sort(adminSortStopsByDayThenOrder);
+    var stopsFullRoute = all.filter(function(c) { return c && c.status === 'ACTIVO'; });
+    stopsFullRoute.sort(adminSortStopsByDayThenOrder);
+    var nInactiveOnRoute = all.filter(function(c) { return c && c.status === 'INACTIVO'; }).length;
+    return {
+        entry: entry,
+        routeName: entry.routeName,
+        label: entry.label,
+        dayKey: dayKey,
+        stops: stopsToday,
+        stopsToday: stopsToday,
+        stopsFullRoute: stopsFullRoute,
+        nInactiveOnRoute: nInactiveOnRoute
+    };
 }
 
 function renderAdminRouteChecklist(todayKey) {
@@ -486,11 +505,11 @@ function renderAdminRouteChecklist(todayKey) {
         return;
     }
     var plan = adminGetTodayRoutePlan(todayKey);
-    var stops = plan.stops || [];
-    if (!stops.length) {
-        host.innerHTML = '<span style="color:var(--t2);">Sin paradas <strong>ACTIVAS</strong> para '
-            + escapeHtml(plan.routeName || 'esta ruta') + ' · día ' + escapeHtml(String(plan.dayKey || ''))
-            + ' (revisá cartera o calendario).</span>';
+    var stopsToday = plan.stopsToday || plan.stops || [];
+    var stopsFull = plan.stopsFullRoute || [];
+    if (!stopsFull.length) {
+        host.innerHTML = '<span style="color:var(--t2);">Sin EDS <strong>ACTIVAS</strong> en datos para la ruta ORC '
+            + escapeHtml(plan.routeName || '—') + ' (revisá <code>xp3_route_data_admin.js</code> / export).</span>';
         return;
     }
     var devMap = _adminBuildDeviceEmailMap();
@@ -501,31 +520,46 @@ function renderAdminRouteChecklist(todayKey) {
         visited[r.d.clientNum] = true;
     });
     var nDone = 0;
-    stops.forEach(function(c) { if (visited[c.num]) nDone++; });
-    var nTotal = stops.length;
+    stopsToday.forEach(function(c) { if (visited[c.num]) nDone++; });
+    var nTotal = stopsToday.length;
     var nPend = nTotal - nDone;
     var complete = nTotal > 0 && nPend === 0;
+    var nFull = stopsFull.length;
+    var nInactive = typeof plan.nInactiveOnRoute === 'number' ? plan.nInactiveOnRoute : 0;
     var filtNote = _adminOperatorFilter
         ? ('Visitas contadas solo para <strong>' + escapeHtml(_adminOperatorFilter) + '</strong> (correo guardado en la visita; si falta, se usa dispositivo → pings/ubicación viva).')
         : ('Visitas de <strong>todos</strong> los operadores del día (sin filtro).');
-    var statusClass = complete ? 'admin-route-status-box complete' : 'admin-route-status-box incomplete';
-    var statusTitle = complete ? 'Ruta del día: COMPLETA' : 'Ruta del día: INCOMPLETA';
-    var statusSub = complete
-        ? ('Todas las paradas activas del plan (' + nTotal + ') tienen visita registrada hoy.')
-        : ('Faltan <strong>' + nPend + '</strong> cliente(s) activo(s) por visitar de <strong>' + nTotal + '</strong>. Visitadas: ' + nDone + '.');
-    var chipClass = complete ? 'admin-route-sum-chip ok' : 'admin-route-sum-chip pend';
-    var chipTxt = complete ? 'COMPLETA' : 'INCOMPLETA';
-    var planShort = escapeHtml(plan.routeName || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + ' · ' + nDone + '/' + nTotal + ' visitadas';
+    var statusClass = (nTotal > 0 && complete) ? 'admin-route-status-box complete' : 'admin-route-status-box incomplete';
+    var statusTitle = nTotal <= 0
+        ? 'Ruta del día: revisar datos'
+        : (complete ? 'Ruta del día: COMPLETA' : 'Ruta del día: INCOMPLETA');
+    var statusSub = (nTotal > 0)
+        ? (complete
+            ? ('Todas las paradas del <strong>día ' + escapeHtml(String(plan.dayKey || '')) + '</strong> en plan (' + nTotal + ') tienen visita registrada hoy.')
+            : ('Faltan <strong>' + nPend + '</strong> de <strong>' + nTotal + '</strong> del día <strong>' + escapeHtml(String(plan.dayKey || '')) + '</strong> en plan. Visitadas hoy: ' + nDone + '.'))
+        : ('<strong>No hay EDS activas</strong> con <code>day=' + escapeHtml(String(plan.dayKey || '')) + '</code> en datos para esta ruta; el chip de completo no aplica. Revisá que el <code>day</code> en cartera coincida con el calendario ORC.');
+    statusSub += ' Cartera <strong>ACTIVA</strong> total en esta subzona ORC: <strong>' + nFull + '</strong> EDS (suma Lun–Vie).';
+    if (nInactive > 0) {
+        statusSub += ' Inactivas en la misma ruta: <strong>' + nInactive + '</strong> (no entran al plan de visita).';
+    }
+    var chipClass = (nTotal > 0 && complete) ? 'admin-route-sum-chip ok' : 'admin-route-sum-chip pend';
+    var chipTxt = (nTotal > 0 ? (complete ? 'COMPLETA' : 'INCOMPLETA') : 'REVISAR');
+    var planShort = escapeHtml(plan.routeName || '') + ' · día ORC ' + escapeHtml(String(plan.dayKey || '')) + ' · hoy ' + nDone + '/' + nTotal + ' del plan · <span style="opacity:.95;">' + nFull + ' activas tot. ruta</span>';
     var sumHint = 'Lista del plan y estado de visita. Tocá el encabezado para plegar.';
     /** Siempre abierto: si no, al refrescar Firestore el <details> se recrea y queda cerrado (parecía que no desplegaba). */
     var detailsOpen = ' open';
-    var rowsHtml = stops.map(function(c) {
+    var rowsHtml = stopsFull.map(function(c) {
         var ok = !!visited[c.num];
+        var isTodayPlan = c.day === plan.dayKey;
         var nm = (c.name || c.company || ('#' + c.num)) + '';
         var sub = (c.subzone || '').trim();
-        return '<div class="admin-route-row' + (ok ? ' done' : '') + '">'
+        var dayLbl = escapeHtml(String(c.day || '—'));
+        var wave = c.routeWave != null ? ' · ola ' + escapeHtml(String(c.routeWave)) : '';
+        var ord = c.stopOrder != null ? ' · parada ' + escapeHtml(String(c.stopOrder)) : '';
+        return '<div class="admin-route-row' + (ok ? ' done' : '') + (isTodayPlan ? ' admin-route-row-today' : '') + '">'
             + '<span class="chk">' + (ok ? '✅' : '⬜') + '</span>'
             + '<div><div class="nm">#' + escapeHtml(String(c.num)) + ' · ' + escapeHtml(nm.length > 72 ? nm.slice(0, 70) + '…' : nm) + '</div>'
+            + '<div class="meta">Día en ruta: <strong>' + dayLbl + '</strong>' + (isTodayPlan ? ' · <span style="color:#86efac;">plan hoy ORC</span>' : '') + wave + ord + '</div>'
             + (sub ? '<div class="meta">' + escapeHtml(sub.length > 120 ? sub.slice(0, 118) + '…' : sub) + '</div>' : '')
             + '</div></div>';
     }).join('');
@@ -538,8 +572,9 @@ function renderAdminRouteChecklist(todayKey) {
         + '<div class="admin-route-status-sub">' + statusSub + '</div>'
         + '<div class="admin-route-status-sub" style="margin-top:8px;">' + filtNote + '</div>'
         + '</div>'
-        + '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin:12px 0 8px;">Plan ORC · '
-        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin:12px 0 8px;">EDS ACTIVAS en esta ruta ORC (todas) · '
+        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · marcas ✅ = visita hoy en Firestore</div>'
+        + '<p class="sub" style="font-size:10px;margin:-4px 0 10px;color:var(--t3);">Fila con borde verde: entra al plan del <strong>día ' + escapeHtml(String(plan.dayKey || '')) + '</strong> según <code>day</code> en datos. El resto es la misma subzona en otros días (para ver crecimiento de la ruta).</p>'
         + rowsHtml
         + '</div></details>';
 }
