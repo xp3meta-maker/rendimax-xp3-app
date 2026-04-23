@@ -222,14 +222,15 @@
         <p class="sub" id="admin-bot-txt">Cargando Firestore…</p>
         <p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">
             Colecciones: <code style="font-size:10px;color:var(--t2);">visitas</code>,
-            <code style="font-size:10px;color:var(--t2);">xp3_seguimiento_pings</code> — reglas Firestore deben permitir lectura gerencial.
+            <code style="font-size:10px;color:var(--t2);">xp3_seguimiento_pings</code>,
+            <code style="font-size:10px;color:var(--t2);">xp3_ubicacion_operador</code> — reglas Firestore: lectura gerencial + escritura app en pings y ubicación viva.
         </p>
     </div>
 
-    <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.06);">
-        <p class="lbl" style="margin-bottom:8px;color:#93c5fd;">Última posición en vivo (ping GPS)</p>
-        <div id="admin-live-ping-body" class="sub">Sin datos de ping aún.</div>
-        <p class="muted-hint" id="admin-live-ping-hint">Los pings se graban cada ~2 min con la app abierta y GPS. Si el comercial minimiza o bloquea el teléfono, muchos navegadores dejan de enviar posición.</p>
+    <div class="card" style="margin-bottom:18px;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
+        <p class="lbl" style="margin-bottom:8px;color:#fca5a5;">Dónde está ahora (última señal de la app)</p>
+        <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
+        <p class="muted-hint" id="admin-live-ping-hint">La app escribe <strong>xp3_ubicacion_operador</strong> cada ~18 s con GPS activo (misma pantalla con «GPS» en verde). Pings históricos ~2 min en <strong>xp3_seguimiento_pings</strong>. Si el teléfono duerme o niega ubicación, no hay señal nueva.</p>
     </div>
 
     <div class="dash-grid">
@@ -254,7 +255,7 @@
         <div>
             <div class="card" style="margin-bottom:18px;">
                 <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria</p>
-                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);">Línea naranja: orden de visitas según GPS al guardar. Línea azul / calor: pings en vivo (si hay).</p>
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);"><strong style="color:#fca5a5;">●</strong> Rojo: ubicación casi en vivo (~18 s). Naranja: visitas guardadas. Azul / calor: pings ~2 min.</p>
                 <div id="admin-tracking-map"></div>
                 <p class="sub" style="font-size:11px;margin-top:10px;" id="admin-map-hint">—</p>
             </div>
@@ -299,10 +300,12 @@ function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
+var XP3_LIVE_LOC_COLLECTION = 'xp3_ubicacion_operador';
 var adminDashboardUnsubs = [];
 var adminTrackingMapInstance = null;
 var _adminLastVisitsRows = [];
 var _adminLastPings = [];
+var _adminLiveLocations = [];
 
 function orcVentasMesStorageKey() {
     var d = new Date();
@@ -335,6 +338,7 @@ function teardownAdminDashboard() {
     adminDashboardUnsubs = [];
     _adminLastVisitsRows = [];
     _adminLastPings = [];
+    _adminLiveLocations = [];
     if (adminTrackingMapInstance) {
         try { adminTrackingMapInstance.remove(); } catch (eR) {}
         adminTrackingMapInstance = null;
@@ -354,7 +358,12 @@ function _adminFmtDur(sec) {
     return m + 'm ' + s + 's';
 }
 
-function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
+function _adminAgeSec(ms) {
+    if (ms == null) return null;
+    return Math.max(0, Math.floor((Date.now() - ms) / 1000));
+}
+
+function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
     var wrap = document.getElementById('admin-tracking-map');
     var hint = document.getElementById('admin-map-hint');
     if (!wrap || typeof L === 'undefined') return;
@@ -369,7 +378,16 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
     });
     var center = [10.95, -74.45];
     var z = 8;
-    if (pingsAsc.length) {
+    var liveArr = liveLocs || [];
+    var freshestLive = null;
+    liveArr.forEach(function(L) {
+        if (L.lat == null || L.lng == null || !L.capturedAtMs) return;
+        if (!freshestLive || L.capturedAtMs > freshestLive.capturedAtMs) freshestLive = L;
+    });
+    if (freshestLive && _adminAgeSec(freshestLive.capturedAtMs) != null && _adminAgeSec(freshestLive.capturedAtMs) < 300) {
+        center = [freshestLive.lat, freshestLive.lng];
+        z = 15;
+    } else if (pingsAsc.length) {
         var sumLa = 0, sumLn = 0;
         pingsAsc.forEach(function(p) { sumLa += p.lat; sumLn += p.lng; });
         center = [sumLa / pingsAsc.length, sumLn / pingsAsc.length];
@@ -410,12 +428,41 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
             .bindPopup(pop)
             .addTo(adminTrackingMapInstance);
     });
+    liveArr.forEach(function(Ld) {
+        if (Ld.lat == null || Ld.lng == null || !Ld.capturedAtMs) return;
+        var age = _adminAgeSec(Ld.capturedAtMs);
+        var fresh = age != null && age < 120;
+        var ageTxt = age == null ? '—' : (age < 90 ? age + ' s' : Math.floor(age / 60) + ' min');
+        var pop = '<strong style="color:#fecaca;">Ubicación app</strong><br>Hace ' + ageTxt
+            + '<br>' + escapeHtml(Ld.operatorEmail || '(sin correo en señal)')
+            + '<br><span style="font-size:10px;">±' + escapeHtml(String(Ld.accuracyM != null ? Ld.accuracyM + ' m' : '—')) + '</span>';
+        L.circleMarker([Ld.lat, Ld.lng], {
+            radius: fresh ? 15 : 11,
+            color: '#b91c1c',
+            fillColor: '#ef4444',
+            fillOpacity: fresh ? 0.95 : 0.65,
+            weight: 3,
+            pane: 'markerPane'
+        }).bindPopup(pop).addTo(adminTrackingMapInstance);
+        try {
+            L.circleMarker([Ld.lat, Ld.lng], { radius: fresh ? 28 : 20, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.12, weight: 0 })
+                .addTo(adminTrackingMapInstance);
+        } catch (eH) {}
+    });
+    var liveBoundsPts = [];
+    liveArr.forEach(function(Ld) {
+        if (Ld.lat != null && Ld.lng != null) liveBoundsPts.push([Ld.lat, Ld.lng]);
+    });
+    if (liveBoundsPts.length) layers.push(L.latLngBounds(liveBoundsPts));
     if (layers.length === 1) {
         adminTrackingMapInstance.fitBounds(layers[0], { padding: [22, 22], maxZoom: 13 });
     } else if (layers.length > 1) {
         var merged = layers[0];
         for (var li = 1; li < layers.length; li++) merged = merged.extend(layers[li]);
         adminTrackingMapInstance.fitBounds(merged, { padding: [26, 26], maxZoom: 13 });
+    }
+    if (freshestLive && _adminAgeSec(freshestLive.capturedAtMs) != null && _adminAgeSec(freshestLive.capturedAtMs) < 120) {
+        adminTrackingMapInstance.setView([freshestLive.lat, freshestLive.lng], 16, { animate: false });
     }
     setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 250);
     if (hint) {
@@ -430,8 +477,11 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
             ? ('Recorrido visitas ~ ' + (Math.round(kmV * 10) / 10) + ' km (línea naranja). ')
             : '';
         hint.textContent += pingsAsc.length
-            ? (pingsAsc.length + ' pings (azul / calor).')
-            : ('Sin pings hoy: la app comercial con GPS y sesión iniciada; revisá reglas Firestore en xp3_seguimiento_pings.');
+            ? (pingsAsc.length + ' pings (azul / calor). ')
+            : ('Sin pings hoy. ');
+        hint.textContent += liveArr.length
+            ? ('Ubicación viva: ' + liveArr.length + ' dispositivo(s) en xp3_ubicacion_operador.')
+            : ('Sin doc de ubicación viva: la app debe estar abierta con GPS (actualización ~18 s).');
     }
 }
 
@@ -443,7 +493,7 @@ function maybeRedrawAdminMap() {
     var pr = (_adminLastPings || []).slice().sort(function(a, b) {
         return (a.capturedAtMs || 0) - (b.capturedAtMs || 0);
     });
-    renderAdminTrackingMapInner(vr, pr);
+    renderAdminTrackingMapInner(vr, pr, _adminLiveLocations || []);
 }
 
 function redrawAdminDashboardUI(todayKey) {
@@ -511,25 +561,49 @@ function redrawAdminDashboardUI(todayKey) {
     });
     if (kkVisit) kkVisit.textContent = rows.length >= 2 && kmV > 0 ? (Math.round(kmV * 10) / 10) + ' km' : (rows.length < 2 ? '—' : '0 km');
     var lastPing = pr.length ? pr[pr.length - 1] : null;
+    var bestLive = null;
+    (_adminLiveLocations || []).forEach(function(L) {
+        if (L.lat == null || L.lng == null || !L.capturedAtMs) return;
+        if (!bestLive || L.capturedAtMs > bestLive.capturedAtMs) bestLive = L;
+    });
+    var useLive = bestLive && (!lastPing || !lastPing.capturedAtMs || bestLive.capturedAtMs >= lastPing.capturedAtMs);
     if (kLastPing) {
-        if (lastPing && lastPing.capturedAtMs) {
-            var dlp = new Date(lastPing.capturedAtMs);
+        var tsMs = useLive && bestLive ? bestLive.capturedAtMs : (lastPing && lastPing.capturedAtMs);
+        if (tsMs) {
+            var dlp = new Date(tsMs);
             kLastPing.textContent = _adminFmtTime(dlp);
         } else kLastPing.textContent = '—';
     }
     if (liveBody) {
-        if (!lastPing || lastPing.lat == null) {
-            liveBody.innerHTML = '<span style="color:var(--t2);">No hay pings con coordenadas para hoy. Cuando la app comercial tenga GPS y conexión, aparecerá aquí la última posición.</span>';
-        } else {
-            var tStr = new Date(lastPing.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            var acc = lastPing.accuracyM != null ? lastPing.accuracyM + ' m' : '—';
-            var mail = lastPing.operatorEmail ? escapeHtml(lastPing.operatorEmail) : '(sin operatorEmail en ping — actualizá la app)';
-            var dev = lastPing.deviceId ? escapeHtml(String(lastPing.deviceId).slice(0, 36)) : '—';
-            liveBody.innerHTML = '<div style="font-weight:700;color:var(--t1);margin-bottom:6px;">' + tStr + '</div>'
+        if (useLive && bestLive) {
+            var ageSec = _adminAgeSec(bestLive.capturedAtMs);
+            var fresh = ageSec != null && ageSec < 120;
+            var tStr = new Date(bestLive.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var acc = bestLive.accuracyM != null ? bestLive.accuracyM + ' m' : '—';
+            var mail = bestLive.operatorEmail ? escapeHtml(bestLive.operatorEmail) : '(sin correo en señal — iniciá sesión en la app)';
+            var dev = bestLive.deviceId ? escapeHtml(String(bestLive.deviceId).slice(0, 36)) : '—';
+            var badge = fresh ? '<span style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">SEÑAL RECIENTE · hace ' + ageSec + ' s</span>'
+                : '<span style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">Última conocida · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>';
+            liveBody.innerHTML = badge
+                + '<div style="font-weight:700;color:var(--t1);margin-bottom:6px;">' + tStr + '</div>'
+                + '<div class="visit-meta">Fuente: <strong>xp3_ubicacion_operador</strong> (actualización ~18 s con GPS)</div>'
                 + '<div class="visit-meta">Operador: ' + mail + '</div>'
-                + '<div class="visit-meta">Lat ' + Number(lastPing.lat).toFixed(5) + ' · Lng ' + Number(lastPing.lng).toFixed(5)
+                + '<div class="visit-meta">Lat ' + Number(bestLive.lat).toFixed(5) + ' · Lng ' + Number(bestLive.lng).toFixed(5)
                 + ' · Precisión ±' + escapeHtml(String(acc)) + '</div>'
                 + '<div class="visit-meta" style="font-size:10px;">Dispositivo: ' + dev + '</div>';
+        } else if (lastPing && lastPing.lat != null) {
+            var tStr2 = new Date(lastPing.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var acc2 = lastPing.accuracyM != null ? lastPing.accuracyM + ' m' : '—';
+            var mail2 = lastPing.operatorEmail ? escapeHtml(lastPing.operatorEmail) : '(sin operatorEmail en ping)';
+            var dev2 = lastPing.deviceId ? escapeHtml(String(lastPing.deviceId).slice(0, 36)) : '—';
+            liveBody.innerHTML = '<span style="font-size:10px;color:var(--t3);">Sin ubicación viva reciente; mostrando último ping histórico.</span>'
+                + '<div style="font-weight:700;color:var(--t1);margin:8px 0 6px;">' + tStr2 + '</div>'
+                + '<div class="visit-meta">Operador: ' + mail2 + '</div>'
+                + '<div class="visit-meta">Lat ' + Number(lastPing.lat).toFixed(5) + ' · Lng ' + Number(lastPing.lng).toFixed(5)
+                + ' · Precisión ±' + escapeHtml(String(acc2)) + '</div>'
+                + '<div class="visit-meta" style="font-size:10px;">Dispositivo: ' + dev2 + '</div>';
+        } else {
+            liveBody.innerHTML = '<span style="color:var(--t2);">No hay posición para hoy. El comercial debe abrir la app, iniciar sesión y dejar el GPS activo (indicador verde); en ~18 s debería aparecer la primera marca en el mapa.</span>';
         }
     }
     var bot = document.getElementById('admin-bot-txt');
@@ -580,6 +654,19 @@ function loadAdminDashboard() {
         redrawAdminDashboardUI(todayKey);
     });
     adminDashboardUnsubs.push(function() { unPing(); });
+    var unLive = db.collection(XP3_LIVE_LOC_COLLECTION).where('routeDay', '==', todayKey).onSnapshot(function(snap) {
+        _adminLiveLocations = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if (d.lat != null && d.lng != null) _adminLiveLocations.push(Object.assign({ id: doc.id }, d));
+        });
+        redrawAdminDashboardUI(todayKey);
+    }, function(err) {
+        console.warn('Ubicación viva:', err);
+        _adminLiveLocations = [];
+        redrawAdminDashboardUI(todayKey);
+    });
+    adminDashboardUnsubs.push(function() { unLive(); });
 }
 
 function applyAdminUser(name, email, picture) {

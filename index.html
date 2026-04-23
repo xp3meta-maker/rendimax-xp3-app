@@ -4419,6 +4419,7 @@ function startGPS() {
             userLat = pos.coords.latitude;
             userLon = pos.coords.longitude;
             maybeWriteTrackingPing(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+            maybeUpdateLiveLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             document.getElementById('gps-indicator').className   = 'gps-pill gps-ok';
             document.getElementById('gps-indicator').innerHTML   = '<span class="gpsdot"></span>GPS';
             checkGeofence();
@@ -4753,6 +4754,10 @@ function getDistance(lat1, lon1, lat2, lon2) {
 // ----- Seguimiento gerencial: pings GPS + panel Admin (Firestore) -----
 var XP3_DEVICE_ID_KEY = 'xp3_device_id_v1';
 var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
+/** Un doc por dispositivo: posición “casi en vivo” para el panel gerencia (~cada LIVE_LOC_WRITE_MIN_MS). */
+var XP3_LIVE_LOC_COLLECTION = 'xp3_ubicacion_operador';
+var LIVE_LOC_WRITE_MIN_MS = 18000;
+var lastLiveLocWriteMs = 0;
 var TRACKING_PING_MIN_MS = 120000;
 var TRACKING_PING_MIN_MOVE_KM = 0.12;
 var lastTrackingPingWriteMs = 0;
@@ -4805,6 +4810,28 @@ function maybeWriteTrackingPing(lat, lng, accuracy) {
     var oe = getOperatorEmailForPing();
     if (oe) pingDoc.operatorEmail = oe;
     db.collection(XP3_PINGS_COLLECTION).add(pingDoc).catch(function(e) { console.warn('Seguimiento ping:', e && e.message ? e.message : e); });
+}
+
+function maybeUpdateLiveLocation(lat, lng, accuracy) {
+    if (typeof db === 'undefined' || !db || lat == null || lng == null) return;
+    var now = Date.now();
+    if (now - lastLiveLocWriteMs < LIVE_LOC_WRITE_MIN_MS) return;
+    lastLiveLocWriteMs = now;
+    var dev = ensureXp3DeviceId();
+    var routeDay = orcDateKeyISO(new Date());
+    var payload = {
+        lat: lat,
+        lng: lng,
+        accuracyM: accuracy != null ? Math.round(accuracy) : null,
+        capturedAtMs: now,
+        routeDay: routeDay,
+        deviceId: dev
+    };
+    var oe = getOperatorEmailForPing();
+    if (oe) payload.operatorEmail = oe;
+    db.collection(XP3_LIVE_LOC_COLLECTION).doc(dev).set(payload, { merge: true }).catch(function(e) {
+        console.warn('Ubicación en vivo:', e && e.message ? e.message : e);
+    });
 }
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;
