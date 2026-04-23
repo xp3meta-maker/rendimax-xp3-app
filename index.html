@@ -4401,6 +4401,8 @@ function postLogin() {
 // REAL GPS + HAVERSINE GEOFENCING
 // ================================================================
 let userLat = null, userLon = null;
+/** Última precisión GPS del watchPosition (para flush al ir a segundo plano). */
+var lastUserGpsAccuracy = null;
 const GEOFENCE_RADIUS_M = 500; // meters — only alerts when truly close
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -4418,6 +4420,7 @@ function startGPS() {
         pos => {
             userLat = pos.coords.latitude;
             userLon = pos.coords.longitude;
+            lastUserGpsAccuracy = pos.coords.accuracy != null ? pos.coords.accuracy : null;
             maybeWriteTrackingPing(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             maybeUpdateLiveLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             document.getElementById('gps-indicator').className   = 'gps-pill gps-ok';
@@ -4833,6 +4836,20 @@ function maybeUpdateLiveLocation(lat, lng, accuracy) {
         console.warn('Ubicación en vivo:', e && e.message ? e.message : e);
     });
 }
+
+/** Al bloquear teléfono o cambiar de app el SO suele cortar el GPS; intentamos una última escritura con la última posición conocida. */
+function flushSeguimientoSnapshotBeforeSuspend() {
+    if (typeof db === 'undefined' || !db || userLat == null || userLon == null) return;
+    try {
+        lastLiveLocWriteMs = 0;
+        maybeUpdateLiveLocation(userLat, userLon, lastUserGpsAccuracy);
+        lastTrackingPingWriteMs = 0;
+        maybeWriteTrackingPing(userLat, userLon, lastUserGpsAccuracy);
+    } catch (e) {}
+}
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') flushSeguimientoSnapshotBeforeSuspend();
+});
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;
 let userHomeLng = localStorage.getItem('userHomeLng') || null;
