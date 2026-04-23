@@ -167,6 +167,14 @@
         .admin-route-row .chk { font-size: 15px; flex-shrink: 0; line-height: 1.2; }
         .admin-route-row .nm { font-weight: 600; color: var(--t1); }
         .admin-route-row .meta { font-size: 10px; color: var(--t3); margin-top: 2px; }
+        .admin-route-status-box {
+            margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.22);
+        }
+        .admin-route-status-box.complete { border-color: rgba(34, 197, 94, 0.45); background: rgba(34, 197, 94, 0.1); }
+        .admin-route-status-box.incomplete { border-color: rgba(250, 204, 21, 0.45); background: rgba(250, 204, 21, 0.09); }
+        .admin-route-status-title { font-size: 14px; font-weight: 800; margin-bottom: 6px; color: var(--t1); }
+        .admin-route-status-sub { font-size: 11px; color: var(--t2); line-height: 1.45; }
         #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
         #dash-root.visible { display: block; }
         .dash-top {
@@ -284,6 +292,8 @@
         <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
         <p class="muted-hint" id="admin-live-ping-hint">La app escribe <strong>xp3_ubicacion_operador</strong> cada ~18 s con GPS activo (misma pantalla con «GPS» en verde). Pings históricos ~2 min en <strong>xp3_seguimiento_pings</strong>. Si el teléfono duerme o niega ubicación, no hay señal nueva.</p>
         <div id="admin-freshness-strip" class="fresh-strip f2" style="display:none;">Semáforo de frescura: —</div>
+        <button type="button" class="btn btn-gh" style="margin-top:12px;font-size:11px;" onclick="purgeAdminGerenciaSignalsToday()">Eliminar de Firestore señales GPS de la cuenta gerencial (hoy)</button>
+        <p class="muted-hint" style="margin-top:6px;">Quita pings y ubicación viva con correo <strong>xp3meta@rendimax.com.co</strong> para la fecha de hoy. No borra visitas. Requiere reglas Firestore actualizadas.</p>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;" id="admin-toolbar">
@@ -350,6 +360,9 @@
 <script src="xp3_route_data_admin.js"></script>
 <script>
 var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
+/** Opcional: correo del comercial ORC (Costa) para abrir el panel ya filtrado en mapa + checklist. Ej. 'comercial@...'. Dejar '' para ver todos. */
+var XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL = '';
+var _adminDefaultOpApplied = false;
 
 function escapeHtml(s) {
     if (s == null) return '';
@@ -466,9 +479,24 @@ function renderAdminRouteChecklist(todayKey) {
     });
     var nDone = 0;
     stops.forEach(function(c) { if (visited[c.num]) nDone++; });
-    var head = '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:10px;">'
-        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · '
-        + nDone + ' / ' + stops.length + ' visitadas (activas)</div>';
+    var nTotal = stops.length;
+    var nPend = nTotal - nDone;
+    var complete = nTotal > 0 && nPend === 0;
+    var filtNote = _adminOperatorFilter
+        ? ('Visitas contadas solo para <strong>' + escapeHtml(_adminOperatorFilter) + '</strong> (device → correo).')
+        : ('Visitas de <strong>todos</strong> los operadores del día (sin filtro).');
+    var statusClass = complete ? 'admin-route-status-box complete' : 'admin-route-status-box incomplete';
+    var statusTitle = complete ? '✅ Ruta del día: COMPLETA' : '⏳ Ruta del día: INCOMPLETA';
+    var statusSub = complete
+        ? ('Todas las paradas activas del plan (' + nTotal + ') tienen visita registrada hoy.')
+        : ('Faltan <strong>' + nPend + '</strong> cliente(s) activo(s) por visitar de <strong>' + nTotal + '</strong>. Visitadas: ' + nDone + '.');
+    var head = '<div class="' + statusClass + '">'
+        + '<div class="admin-route-status-title">' + statusTitle + '</div>'
+        + '<div class="admin-route-status-sub">' + statusSub + '</div>'
+        + '<div class="admin-route-status-sub" style="margin-top:8px;">' + filtNote + '</div>'
+        + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:10px;">Plan ORC · '
+        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + '</div>';
     host.innerHTML = head + stops.map(function(c) {
         var ok = !!visited[c.num];
         var nm = (c.name || c.company || ('#' + c.num)) + '';
@@ -516,6 +544,72 @@ function saveOrcVentasMesFromAdmin() {
     alert('Acumulado guardado. Abrí la app comercial (Home) para ver la barra de avance del mes.');
 }
 
+function purgeAdminGerenciaSignalsToday() {
+    if (typeof db === 'undefined' || !db) {
+        alert('Firestore no está listo.');
+        return;
+    }
+    var todayKey = orcDateKeyISO(new Date());
+    var adm = normalizeEmail(XP3_ADMIN_DASHBOARD_EMAIL);
+    if (!confirm('¿Borrar en Firestore todos los pings y la ubicación viva de HOY (' + todayKey + ') con correo '
+        + XP3_ADMIN_DASHBOARD_EMAIL + '? No se borran visitas.')) {
+        return;
+    }
+    var refs = [];
+    db.collection(XP3_PINGS_COLLECTION).where('routeDay', '==', todayKey).get()
+        .then(function(snap) {
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                if (normalizeEmail(String(d.operatorEmail || '')) === adm) refs.push(doc.ref);
+            });
+            return db.collection(XP3_LIVE_LOC_COLLECTION).where('routeDay', '==', todayKey).get();
+        })
+        .then(function(snap2) {
+            snap2.forEach(function(doc) {
+                var d = doc.data();
+                if (normalizeEmail(String(d.operatorEmail || '')) === adm) refs.push(doc.ref);
+            });
+            var i = 0;
+            function commitNext() {
+                if (i >= refs.length) return Promise.resolve(refs.length);
+                var b = db.batch();
+                var end = Math.min(i + 450, refs.length);
+                for (; i < end; i++) b.delete(refs[i]);
+                return b.commit().then(commitNext);
+            }
+            return commitNext();
+        })
+        .then(function(nDel) {
+            alert('Eliminados ' + nDel + ' documento(s). Si ves error de permisos, publicá las reglas Firestore actualizadas del repo (firebase/firestore.rules).');
+            loadAdminDashboard();
+        })
+        .catch(function(e) {
+            alert('Error: ' + (e && e.message ? e.message : String(e)));
+        });
+}
+
+function tryApplyDefaultOperatorFilterOnce() {
+    if (_adminDefaultOpApplied) return;
+    var wantRaw = (typeof XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL === 'string' && XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL.trim()) || '';
+    if (!wantRaw) {
+        _adminDefaultOpApplied = true;
+        return;
+    }
+    var sel = document.getElementById('admin-filter-operator');
+    if (!sel || sel.options.length < 2) return;
+    var wn = normalizeEmail(wantRaw);
+    for (var i = 0; i < sel.options.length; i++) {
+        if (normalizeEmail(sel.options[i].value) === wn) {
+            sel.value = sel.options[i].value;
+            _adminOperatorFilter = sel.options[i].value;
+            _adminDefaultOpApplied = true;
+            redrawAdminDashboardUI(orcDateKeyISO(new Date()));
+            return;
+        }
+    }
+    _adminDefaultOpApplied = true;
+}
+
 function teardownAdminDashboard() {
     adminDashboardUnsubs.forEach(function(u) {
         try { if (typeof u === 'function') u(); } catch (e) {}
@@ -524,6 +618,7 @@ function teardownAdminDashboard() {
     _adminLastVisitsRows = [];
     _adminLastPings = [];
     _adminLiveLocations = [];
+    _adminDefaultOpApplied = false;
     if (adminTrackingMapInstance) {
         try { adminTrackingMapInstance.remove(); } catch (eR) {}
         adminTrackingMapInstance = null;
@@ -1048,6 +1143,7 @@ function redrawAdminDashboardUI(todayKey) {
         bot.textContent = bt;
     }
     renderAdminRouteChecklist(todayKey);
+    tryApplyDefaultOperatorFilterOnce();
 }
 
 function loadAdminDashboard() {
