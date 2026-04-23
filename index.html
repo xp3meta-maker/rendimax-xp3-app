@@ -4771,9 +4771,18 @@ function ensureXp3DeviceId() {
     } catch (e) { return 'xp3-device'; }
 }
 
+function getOperatorEmailForPing() {
+    try {
+        var raw = localStorage.getItem('rendimax_session');
+        if (!raw) return null;
+        var s = JSON.parse(raw);
+        var e = String(s.email || '').trim();
+        return e || null;
+    } catch (e) { return null; }
+}
+
 function maybeWriteTrackingPing(lat, lng, accuracy) {
     if (typeof db === 'undefined' || !db || lat == null || lng == null) return;
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     var now = Date.now();
     if (now - lastTrackingPingWriteMs < TRACKING_PING_MIN_MS) {
         if (lastTrackingPingLat != null && lastTrackingPingLng != null) {
@@ -4785,14 +4794,17 @@ function maybeWriteTrackingPing(lat, lng, accuracy) {
     lastTrackingPingLat = lat;
     lastTrackingPingLng = lng;
     var routeDay = orcDateKeyISO(new Date());
-    db.collection(XP3_PINGS_COLLECTION).add({
+    var pingDoc = {
         routeDay: routeDay,
         lat: lat,
         lng: lng,
         accuracyM: accuracy != null ? Math.round(accuracy) : null,
         capturedAtMs: now,
         deviceId: ensureXp3DeviceId()
-    }).catch(function(e) { console.warn('Seguimiento ping:', e && e.message ? e.message : e); });
+    };
+    var oe = getOperatorEmailForPing();
+    if (oe) pingDoc.operatorEmail = oe;
+    db.collection(XP3_PINGS_COLLECTION).add(pingDoc).catch(function(e) { console.warn('Seguimiento ping:', e && e.message ? e.message : e); });
 }
 
 let userHomeLat = localStorage.getItem('userHomeLat') || null;

@@ -92,6 +92,29 @@
         .kv { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; }
         .kl { font-size: 10px; color: var(--t3); margin-top: 4px; }
         .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 900px) {
+            .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        .visit-block {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 0;
+        }
+        .visit-block:last-child { border-bottom: none; }
+        .visit-obs {
+            margin-top: 8px;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--t1);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .visit-meta { font-size: 11px; color: var(--t2); margin-top: 6px; line-height: 1.45; }
+        .muted-hint { font-size: 10px; color: var(--t3); line-height: 1.4; margin-top: 8px; }
         #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
         #dash-root.visible { display: block; }
         .dash-top {
@@ -113,9 +136,9 @@
             #admin-tracking-map { height: min(52vh, 520px) !important; min-height: 360px; }
         }
         #admin-tracking-map { width: 100%; height: 280px; border-radius: 14px; border: 1px solid var(--border); background: var(--dark2); }
-        #admin-visits-table { max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.45; }
+        #admin-visits-table { max-height: 280px; overflow-y: auto; font-size: 12px; line-height: 1.45; }
         @media (min-width: 1024px) {
-            #admin-visits-table { max-height: min(48vh, 480px); }
+            #admin-visits-table { max-height: min(62vh, 720px); }
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,179,0,.2); border-radius: 8px; }
@@ -203,25 +226,35 @@
         </p>
     </div>
 
+    <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.06);">
+        <p class="lbl" style="margin-bottom:8px;color:#93c5fd;">Última posición en vivo (ping GPS)</p>
+        <div id="admin-live-ping-body" class="sub">Sin datos de ping aún.</div>
+        <p class="muted-hint" id="admin-live-ping-hint">Los pings se graban cada ~2 min con la app abierta y GPS. Si el comercial minimiza o bloquea el teléfono, muchos navegadores dejan de enviar posición.</p>
+    </div>
+
     <div class="dash-grid">
         <div>
             <div class="card" style="margin-bottom:18px;">
                 <p class="lbl" style="margin-bottom:12px;">KPIs hoy (Firestore)</p>
-                <div class="g2">
+                <div class="kpi-grid">
                     <div class="kpi"><div class="kv" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
-                    <div class="kpi"><div class="kv" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo visita</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo en EDS</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-km">—</div><div class="kl">Km trayecto (pings)</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-km-visits">—</div><div class="kl">Km entre visitas (GPS al guardar)</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-last-ping">—</div><div class="kl">Último ping (hora)</div></div>
                 </div>
             </div>
             <div class="card">
-                <p class="lbl" style="margin-bottom:10px;">Visitas sincronizadas hoy</p>
+                <p class="lbl" style="margin-bottom:10px;">Visitas del día · detalle por cliente</p>
+                <p class="sub" style="font-size:10px;margin-bottom:10px;color:var(--t3);">Incluye observaciones del comercial, resultado, tiempo en estación y cotización calculada en pantalla.</p>
                 <div id="admin-visits-table" class="sub">—</div>
             </div>
         </div>
         <div>
             <div class="card" style="margin-bottom:18px;">
-                <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria y calor</p>
+                <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria</p>
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);">Línea naranja: orden de visitas según GPS al guardar. Línea azul / calor: pings en vivo (si hay).</p>
                 <div id="admin-tracking-map"></div>
                 <p class="sub" style="font-size:11px;margin-top:10px;" id="admin-map-hint">—</p>
             </div>
@@ -238,6 +271,11 @@
 
 <script>
 var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 function normalizeEmail(e) {
     return String(e || '').trim().toLowerCase();
@@ -324,6 +362,11 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
         try { adminTrackingMapInstance.remove(); } catch (eM) {}
         adminTrackingMapInstance = null;
     }
+    var visitLine = [];
+    visitsAsc.forEach(function(row) {
+        var g0 = row.d && row.d.gpsAtVisitStart;
+        if (g0 && g0.lat != null && g0.lng != null) visitLine.push([g0.lat, g0.lng]);
+    });
     var center = [10.95, -74.45];
     var z = 8;
     if (pingsAsc.length) {
@@ -331,25 +374,24 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
         pingsAsc.forEach(function(p) { sumLa += p.lat; sumLn += p.lng; });
         center = [sumLa / pingsAsc.length, sumLn / pingsAsc.length];
         z = pingsAsc.length === 1 ? 12 : 10;
-    } else if (visitsAsc.length) {
-        var g = [];
-        visitsAsc.forEach(function(row) {
-            var g0 = row.d && row.d.gpsAtVisitStart;
-            if (g0 && g0.lat != null && g0.lng != null) g.push([g0.lat, g0.lng]);
-        });
-        if (g.length) {
-            var sumLa = 0, sumLn = 0;
-            g.forEach(function(xy) { sumLa += xy[0]; sumLn += xy[1]; });
-            center = [sumLa / g.length, sumLn / g.length];
-            z = 11;
-        }
+    } else if (visitLine.length) {
+        var sumLa2 = 0, sumLn2 = 0;
+        visitLine.forEach(function(xy) { sumLa2 += xy[0]; sumLn2 += xy[1]; });
+        center = [sumLa2 / visitLine.length, sumLn2 / visitLine.length];
+        z = visitLine.length === 1 ? 12 : 11;
     }
     adminTrackingMapInstance = L.map(wrap, { scrollWheelZoom: true, attributionControl: true }).setView(center, z);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(adminTrackingMapInstance);
     var layers = [];
+    if (visitLine.length >= 2) {
+        L.polyline(visitLine, { color: '#f59e0b', weight: 4, opacity: 0.92, dashArray: '10 8' }).addTo(adminTrackingMapInstance);
+        layers.push(L.latLngBounds(visitLine));
+    } else if (visitLine.length === 1) {
+        layers.push(L.latLngBounds(visitLine));
+    }
     if (pingsAsc.length > 1) {
         var latlngs = pingsAsc.map(function(p) { return [p.lat, p.lng]; });
-        L.polyline(latlngs, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(adminTrackingMapInstance);
+        L.polyline(latlngs, { color: '#38bdf8', weight: 4, opacity: 0.88 }).addTo(adminTrackingMapInstance);
         layers.push(L.latLngBounds(latlngs));
     }
     if (typeof L.heatLayer === 'function' && pingsAsc.length) {
@@ -360,16 +402,36 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc) {
         var g0 = row.d && row.d.gpsAtVisitStart;
         if (!g0 || g0.lat == null || g0.lng == null) return;
         var label = (row.d.clientRef || ('#' + (row.d.clientNum != null ? row.d.clientNum : '?'))) + '';
+        var com = (row.d.comment || '').trim();
+        var pop = '<strong>' + escapeHtml(label) + '</strong><br>' + escapeHtml(row.d.result || '—') + ' · ' + _adminFmtTime(row.ts);
+        if (com) pop += '<br><span style="font-size:11px;opacity:.9;">' + escapeHtml(com.length > 400 ? com.slice(0, 400) + '…' : com) + '</span>';
+        pop += '<br><span style="font-size:10px;color:#94a3b8;">Dur. ' + _adminFmtDur(row.d.visitDurationSec) + ' · ' + escapeHtml(String(row.d.amountCalculated || '—')) + '</span>';
         L.circleMarker([g0.lat, g0.lng], { radius: 8, color: '#22c55e', fillColor: '#4ade80', fillOpacity: 0.9, weight: 2 })
-            .bindPopup(label + '<br>' + (row.d.result || '') + '<br>' + _adminFmtTime(row.ts))
+            .bindPopup(pop)
             .addTo(adminTrackingMapInstance);
     });
-    if (layers.length) adminTrackingMapInstance.fitBounds(layers[0], { padding: [20, 20], maxZoom: 12 });
+    if (layers.length === 1) {
+        adminTrackingMapInstance.fitBounds(layers[0], { padding: [22, 22], maxZoom: 13 });
+    } else if (layers.length > 1) {
+        var merged = layers[0];
+        for (var li = 1; li < layers.length; li++) merged = merged.extend(layers[li]);
+        adminTrackingMapInstance.fitBounds(merged, { padding: [26, 26], maxZoom: 13 });
+    }
     setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 250);
     if (hint) {
-        hint.textContent = pingsAsc.length
-            ? (pingsAsc.length + ' pings · ' + visitsAsc.length + ' visitas con GPS en mapa.')
-            : ('Sin pings aún hoy. La app comercial debe estar abierta con GPS para registrar trayectoria.');
+        var kmV = 0, prev = null;
+        visitsAsc.forEach(function(row) {
+            var g0 = row.d && row.d.gpsAtVisitStart;
+            if (!g0 || g0.lat == null || g0.lng == null) return;
+            if (prev) kmV += getDistance(prev.lat, prev.lng, g0.lat, g0.lng);
+            prev = g0;
+        });
+        hint.textContent = visitLine.length >= 2
+            ? ('Recorrido visitas ~ ' + (Math.round(kmV * 10) / 10) + ' km (línea naranja). ')
+            : '';
+        hint.textContent += pingsAsc.length
+            ? (pingsAsc.length + ' pings (azul / calor).')
+            : ('Sin pings hoy: la app comercial con GPS y sesión iniciada; revisá reglas Firestore en xp3_seguimiento_pings.');
     }
 }
 
@@ -389,7 +451,11 @@ function redrawAdminDashboardUI(todayKey) {
     var kf = document.getElementById('admin-kpi-first');
     var kl = document.getElementById('admin-kpi-last');
     var ka = document.getElementById('admin-kpi-avg');
+    var kkVisit = document.getElementById('admin-kpi-km-visits');
+    var kkPing = document.getElementById('admin-kpi-km');
+    var kLastPing = document.getElementById('admin-kpi-last-ping');
     var tb = document.getElementById('admin-visits-table');
+    var liveBody = document.getElementById('admin-live-ping-body');
     if (kf) kf.textContent = rows.length ? _adminFmtTime(rows[0].ts) : '—';
     if (kl) kl.textContent = rows.length ? _adminFmtTime(rows[rows.length - 1].ts) : '—';
     var durSum = 0, durN = 0;
@@ -397,16 +463,34 @@ function redrawAdminDashboardUI(todayKey) {
         var s = r.d && r.d.visitDurationSec;
         if (s != null && !isNaN(s) && s > 0) { durSum += s; durN++; }
     });
-    if (ka) ka.textContent = durN ? _adminFmtDur(Math.round(durSum / durN)) : '—';
+    if (ka) {
+        if (durN) ka.textContent = _adminFmtDur(Math.round(durSum / durN));
+        else if (rows.length) ka.textContent = '—';
+        else ka.textContent = '—';
+    }
     if (tb) {
-        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + todayKey + '.</span>';
+        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + escapeHtml(todayKey) + '.</span>';
         else {
             tb.innerHTML = rows.map(function(r) {
                 var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
-                if (nm.length > 48) nm = nm.slice(0, 46) + '…';
-                return '<div style="border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0;">'
-                    + '<strong>' + _adminFmtTime(r.ts) + '</strong> · ' + nm
-                    + '<br><span style="color:var(--t2);">' + (r.d.result || '—') + ' · dur. ' + _adminFmtDur(r.d.visitDurationSec) + '</span></div>';
+                if (nm.length > 56) nm = nm.slice(0, 54) + '…';
+                var com = (r.d.comment || '').trim();
+                var durTxt = _adminFmtDur(r.d.visitDurationSec);
+                if (durTxt === '—') durTxt = '— <span style="color:var(--t3);">(sin temporizador al guardar: abrir «Registrar visita» desde la parada para iniciar el reloj)</span>';
+                var amt = String(r.d.amountCalculated != null ? r.d.amountCalculated : '—');
+                var gpsAcc = (r.d.gpsAtVisitStart && r.d.gpsAtVisitStart.accuracyM != null) ? (r.d.gpsAtVisitStart.accuracyM + ' m') : '—';
+                var docId = r.id ? String(r.id).slice(0, 12) + '…' : '';
+                var obsBlock = com
+                    ? ('<div class="visit-obs">' + escapeHtml(com) + '</div>')
+                    : ('<div class="visit-meta" style="color:var(--t3);">Sin texto de observaciones en Firestore.</div>');
+                return '<div class="visit-block">'
+                    + '<div><strong>' + _adminFmtTime(r.ts) + '</strong> · ' + escapeHtml(nm) + '</div>'
+                    + '<div class="visit-meta">Resultado: <strong style="color:var(--t1);">' + escapeHtml(r.d.result || '—') + '</strong>'
+                    + ' · Duración en EDS: ' + durTxt + '</div>'
+                    + '<div class="visit-meta">Cotización pantalla: ' + escapeHtml(amt) + ' · Precisión GPS visita: ' + escapeHtml(gpsAcc)
+                    + (docId ? ' · id ' + escapeHtml(docId) : '') + '</div>'
+                    + obsBlock
+                    + '</div>';
             }).join('');
         }
     }
@@ -416,8 +500,7 @@ function redrawAdminDashboardUI(todayKey) {
         if (pr[i].lat != null && pr[i].lng != null && pr[i - 1].lat != null && pr[i - 1].lng != null)
             kmP += getDistance(pr[i - 1].lat, pr[i - 1].lng, pr[i].lat, pr[i].lng);
     }
-    var kk = document.getElementById('admin-kpi-km');
-    if (kk) kk.textContent = pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : (pr.length ? '1 punto' : '0 km');
+    if (kkPing) kkPing.textContent = pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : (pr.length ? '1 punto' : '0 km');
     var kmV = 0;
     var prev = null;
     rows.forEach(function(r) {
@@ -426,10 +509,33 @@ function redrawAdminDashboardUI(todayKey) {
         if (prev) kmV += getDistance(prev.lat, prev.lng, g0.lat, g0.lng);
         prev = g0;
     });
+    if (kkVisit) kkVisit.textContent = rows.length >= 2 && kmV > 0 ? (Math.round(kmV * 10) / 10) + ' km' : (rows.length < 2 ? '—' : '0 km');
+    var lastPing = pr.length ? pr[pr.length - 1] : null;
+    if (kLastPing) {
+        if (lastPing && lastPing.capturedAtMs) {
+            var dlp = new Date(lastPing.capturedAtMs);
+            kLastPing.textContent = _adminFmtTime(dlp);
+        } else kLastPing.textContent = '—';
+    }
+    if (liveBody) {
+        if (!lastPing || lastPing.lat == null) {
+            liveBody.innerHTML = '<span style="color:var(--t2);">No hay pings con coordenadas para hoy. Cuando la app comercial tenga GPS y conexión, aparecerá aquí la última posición.</span>';
+        } else {
+            var tStr = new Date(lastPing.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var acc = lastPing.accuracyM != null ? lastPing.accuracyM + ' m' : '—';
+            var mail = lastPing.operatorEmail ? escapeHtml(lastPing.operatorEmail) : '(sin operatorEmail en ping — actualizá la app)';
+            var dev = lastPing.deviceId ? escapeHtml(String(lastPing.deviceId).slice(0, 36)) : '—';
+            liveBody.innerHTML = '<div style="font-weight:700;color:var(--t1);margin-bottom:6px;">' + tStr + '</div>'
+                + '<div class="visit-meta">Operador: ' + mail + '</div>'
+                + '<div class="visit-meta">Lat ' + Number(lastPing.lat).toFixed(5) + ' · Lng ' + Number(lastPing.lng).toFixed(5)
+                + ' · Precisión ±' + escapeHtml(String(acc)) + '</div>'
+                + '<div class="visit-meta" style="font-size:10px;">Dispositivo: ' + dev + '</div>';
+        }
+    }
     var bot = document.getElementById('admin-bot-txt');
     if (bot) {
-        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km trayecto (pings) arriba · km entre GPS visitas ~ '
-            + (Math.round(kmV * 10) / 10) + ' km';
+        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km entre visitas (GPS guardado) ~ '
+            + (Math.round(kmV * 10) / 10) + ' km · km recorrido por pings ~ ' + (pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : '—');
     }
     maybeRedrawAdminMap();
 }
@@ -464,7 +570,7 @@ function loadAdminDashboard() {
         snap.forEach(function(doc) {
             var d = doc.data();
             if ((d.routeDay || '') !== todayKey) return;
-            if (d.lat != null && d.lng != null) pings.push(d);
+            if (d.lat != null && d.lng != null) pings.push(Object.assign({ id: doc.id }, d));
         });
         _adminLastPings = pings;
         redrawAdminDashboardUI(todayKey);
