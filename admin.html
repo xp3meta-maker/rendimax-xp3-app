@@ -115,6 +115,47 @@
         }
         .visit-meta { font-size: 11px; color: var(--t2); margin-top: 6px; line-height: 1.45; }
         .muted-hint { font-size: 10px; color: var(--t3); line-height: 1.4; margin-top: 8px; }
+        .admin-tab-btn { opacity: 0.85; }
+        .admin-tab-btn.admin-tab-active {
+            border-color: rgba(255, 179, 0, 0.55) !important;
+            color: var(--yellow) !important;
+            opacity: 1;
+            box-shadow: 0 0 0 1px rgba(255, 179, 0, 0.2);
+        }
+        .fresh-strip {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .fresh-strip.f0 { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #86efac; }
+        .fresh-strip.f1 { background: rgba(250, 204, 21, 0.1); border-color: rgba(250, 204, 21, 0.35); color: #fde047; }
+        .fresh-strip.f2 { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #fecaca; }
+        .admin-timeline-shell { max-height: min(70vh, 720px); overflow-y: auto; padding: 4px 0 8px 4px; }
+        .tl-row { position: relative; padding-left: 22px; padding-bottom: 14px; border-left: 2px solid rgba(255, 179, 0, 0.2); margin-left: 8px; }
+        .tl-row:last-child { border-left-color: transparent; }
+        .tl-dot {
+            position: absolute;
+            left: -7px;
+            top: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--yellow);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.35);
+        }
+        .tl-dot.visit { background: #4ade80; }
+        .tl-dot.ping { background: #38bdf8; }
+        .tl-dot.alert { background: #f97316; }
+        .tl-time { font-size: 10px; color: var(--t3); font-weight: 700; letter-spacing: 0.04em; }
+        .tl-title { font-size: 13px; font-weight: 700; color: var(--t1); margin-top: 2px; }
+        .tl-body { font-size: 11px; color: var(--t2); margin-top: 4px; line-height: 1.45; }
         #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
         #dash-root.visible { display: block; }
         .dash-top {
@@ -231,8 +272,18 @@
         <p class="lbl" style="margin-bottom:8px;color:#fca5a5;">Dónde está ahora (última señal de la app)</p>
         <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
         <p class="muted-hint" id="admin-live-ping-hint">La app escribe <strong>xp3_ubicacion_operador</strong> cada ~18 s con GPS activo (misma pantalla con «GPS» en verde). Pings históricos ~2 min en <strong>xp3_seguimiento_pings</strong>. Si el teléfono duerme o niega ubicación, no hay señal nueva.</p>
+        <div id="admin-freshness-strip" class="fresh-strip f2" style="display:none;">Semáforo de frescura: —</div>
     </div>
 
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;" id="admin-toolbar">
+        <button type="button" class="btn btn-gh admin-tab-btn admin-tab-active" id="tab-summary" onclick="setAdminMainTab('summary')">Resumen · mapa y KPIs</button>
+        <button type="button" class="btn btn-gh admin-tab-btn" id="tab-timeline" onclick="setAdminMainTab('timeline')">Línea del tiempo del día</button>
+        <div style="flex:1;min-width:8px;"></div>
+        <label class="sub" for="admin-filter-operator" style="white-space:nowrap;">Operador</label>
+        <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
+    </div>
+
+    <div id="admin-panel-summary">
     <div class="dash-grid">
         <div>
             <div class="card" style="margin-bottom:18px;">
@@ -255,7 +306,7 @@
         <div>
             <div class="card" style="margin-bottom:18px;">
                 <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria</p>
-                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);"><strong style="color:#fca5a5;">●</strong> Rojo: ubicación casi en vivo (~18 s). Naranja: visitas guardadas. Azul / calor: pings ~2 min.</p>
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);"><strong style="color:#22c55e;">●</strong> Verde / <strong style="color:#eab308;">●</strong> amarillo / <strong style="color:#ef4444;">●</strong> rojo: ubicación viva por antigüedad (&lt;2 min · 2–15 min · &gt;15 min). Naranja: visitas. Azul / calor: pings históricos ~2 min.</p>
                 <div id="admin-tracking-map"></div>
                 <p class="sub" style="font-size:11px;margin-top:10px;" id="admin-map-hint">—</p>
             </div>
@@ -266,6 +317,15 @@
                 <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:12px;">
                 <button type="button" class="btn btn-p" style="width:100%;box-shadow:none;font-size:13px;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
             </div>
+        </div>
+    </div>
+    </div>
+
+    <div id="admin-panel-timeline" style="display:none;">
+        <div class="card" style="margin-bottom:20px;">
+            <p class="lbl" style="margin-bottom:8px;">Línea del tiempo del día</p>
+            <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Orden cronológico: visitas guardadas, pings GPS (máx. 120 en lista) y alertas si pasan más de 45 min entre pings del mismo dispositivo. Usá el filtro «Operador» para acotar.</p>
+            <div id="admin-day-timeline" class="admin-timeline-shell sub">—</div>
         </div>
     </div>
 </div>
@@ -306,6 +366,9 @@ var adminTrackingMapInstance = null;
 var _adminLastVisitsRows = [];
 var _adminLastPings = [];
 var _adminLiveLocations = [];
+var _adminMainTab = 'summary';
+var _adminOperatorFilter = '';
+var _adminTickTimer = null;
 
 function orcVentasMesStorageKey() {
     var d = new Date();
@@ -363,6 +426,238 @@ function _adminAgeSec(ms) {
     return Math.max(0, Math.floor((Date.now() - ms) / 1000));
 }
 
+function adminStaleTierFromMs(ms) {
+    var a = _adminAgeSec(ms);
+    if (a == null) return 2;
+    if (a < 120) return 0;
+    if (a < 900) return 1;
+    return 2;
+}
+function adminStaleTierLabel(t) {
+    return t === 0 ? 'En vivo (< 2 min)' : t === 1 ? 'Reciente (2–15 min)' : 'Desactualizada (> 15 min)';
+}
+
+function _adminBuildDeviceEmailMap() {
+    var m = {};
+    (_adminLastPings || []).forEach(function(p) {
+        if (p.deviceId && p.operatorEmail) m[String(p.deviceId)] = String(p.operatorEmail).trim();
+    });
+    (_adminLiveLocations || []).forEach(function(L) {
+        if (L.deviceId && L.operatorEmail) m[String(L.deviceId)] = String(L.operatorEmail).trim();
+    });
+    return m;
+}
+function adminPingMatchesFilter(p, devMap) {
+    if (!_adminOperatorFilter) return true;
+    var em = (p.operatorEmail && String(p.operatorEmail).trim()) || '';
+    if (em === _adminOperatorFilter) return true;
+    if (p.deviceId && devMap && devMap[String(p.deviceId)] === _adminOperatorFilter) return true;
+    return false;
+}
+function adminVisitMatchesFilter(row, devMap) {
+    if (!_adminOperatorFilter) return true;
+    var did = row.d && row.d.deviceId;
+    if (!did) return false;
+    return (devMap[String(did)] || '') === _adminOperatorFilter;
+}
+
+function adminFilteredData() {
+    var devMap = _adminBuildDeviceEmailMap();
+    var vr = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
+    if (_adminOperatorFilter) vr = vr.filter(function(r) { return adminVisitMatchesFilter(r, devMap); });
+    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+    if (_adminOperatorFilter) pr = pr.filter(function(p) { return adminPingMatchesFilter(p, devMap); });
+    var live = (_adminLiveLocations || []).slice();
+    if (_adminOperatorFilter) live = live.filter(function(L) { return adminPingMatchesFilter(L, devMap); });
+    return { devMap: devMap, vr: vr, pr: pr, live: live };
+}
+
+function adminGetBestSignal(prSortedAsc, liveArr) {
+    var pr = prSortedAsc || [];
+    var liveUse = liveArr || [];
+    var lastPing = pr.length ? pr[pr.length - 1] : null;
+    var bestLive = null;
+    liveUse.forEach(function(L) {
+        if (L.lat == null || L.lng == null || !L.capturedAtMs) return;
+        if (!bestLive || L.capturedAtMs > bestLive.capturedAtMs) bestLive = L;
+    });
+    var useLive = !!(bestLive && (!lastPing || !lastPing.capturedAtMs || bestLive.capturedAtMs >= lastPing.capturedAtMs));
+    var tsMs = useLive && bestLive ? bestLive.capturedAtMs : (lastPing && lastPing.capturedAtMs);
+    return { tsMs: tsMs || null, useLive: useLive, bestLive: bestLive, lastPing: lastPing, pr: pr };
+}
+
+function rebuildAdminOperatorFilterOptions() {
+    var sel = document.getElementById('admin-filter-operator');
+    if (!sel) return;
+    var devMap = _adminBuildDeviceEmailMap();
+    var emails = {};
+    Object.keys(devMap).forEach(function(k) {
+        var e = devMap[k];
+        if (e) emails[e] = 1;
+    });
+    (_adminLastPings || []).forEach(function(p) {
+        var e = (p.operatorEmail && String(p.operatorEmail).trim());
+        if (e) emails[e] = 1;
+    });
+    (_adminLiveLocations || []).forEach(function(L) {
+        var e = (L.operatorEmail && String(L.operatorEmail).trim());
+        if (e) emails[e] = 1;
+    });
+    var list = Object.keys(emails).sort(function(a, b) { return a.localeCompare(b); });
+    var keep = _adminOperatorFilter;
+    sel.innerHTML = '<option value="">Todos los operadores</option>' + list.map(function(e) {
+        return '<option value="' + escapeHtml(e).replace(/"/g, '&quot;') + '">' + escapeHtml(e) + '</option>';
+    }).join('');
+    if (keep && list.indexOf(keep) >= 0) sel.value = keep;
+    else { sel.value = ''; _adminOperatorFilter = ''; }
+}
+
+function refreshAdminFreshnessUI() {
+    var strip = document.getElementById('admin-freshness-strip');
+    if (!strip) return;
+    var F = adminFilteredData();
+    var sig = adminGetBestSignal(F.pr, F.live);
+    if (!sig.tsMs) {
+        strip.style.display = 'none';
+        return;
+    }
+    strip.style.display = '';
+    var tier = adminStaleTierFromMs(sig.tsMs);
+    strip.className = 'fresh-strip f' + tier;
+    var age = _adminAgeSec(sig.tsMs);
+    var ageTxt = age == null ? '—' : (age < 90 ? age + ' s' : Math.floor(age / 60) + ' min');
+    strip.textContent = 'Última señal hace ' + ageTxt + ' · ' + (sig.useLive && sig.bestLive ? 'xp3_ubicacion_operador' : 'xp3_seguimiento_pings')
+        + ' · ' + adminStaleTierLabel(tier);
+    var badge = document.getElementById('admin-live-fresh-badge');
+    if (!badge) return;
+    var ageSec = _adminAgeSec(sig.tsMs);
+    var t = adminStaleTierFromMs(sig.tsMs);
+    var inner;
+    if (sig.useLive && sig.bestLive) {
+        inner = t === 0
+            ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">EN VIVO · hace ' + (ageSec != null ? ageSec + ' s' : '?') + '</span>'
+            : t === 1
+                ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">RECIENTE · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>'
+                : '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,.22);color:#fecaca;font-size:10px;font-weight:700;">DESACTUALIZADA · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>';
+    } else if (sig.lastPing) {
+        inner = t === 0
+            ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">PING MUY RECIENTE</span>'
+            : t === 1
+                ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">PING RECIENTE (histórico)</span>'
+                : '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,.22);color:#fecaca;font-size:10px;font-weight:700;">PING ANTIGUO (> 15 min)</span>';
+    } else {
+        inner = '';
+    }
+    badge.outerHTML = inner || '<span id="admin-live-fresh-badge"></span>';
+}
+
+function setAdminMainTab(tab) {
+    _adminMainTab = tab === 'timeline' ? 'timeline' : 'summary';
+    var pSum = document.getElementById('admin-panel-summary');
+    var pTl = document.getElementById('admin-panel-timeline');
+    var bSum = document.getElementById('tab-summary');
+    var bTl = document.getElementById('tab-timeline');
+    if (_adminMainTab === 'timeline') {
+        if (pSum) pSum.style.display = 'none';
+        if (pTl) pTl.style.display = 'block';
+        if (bSum) bSum.classList.remove('admin-tab-active');
+        if (bTl) bTl.classList.add('admin-tab-active');
+        renderAdminTimeline(orcDateKeyISO(new Date()));
+    } else {
+        if (pSum) pSum.style.display = 'block';
+        if (pTl) pTl.style.display = 'none';
+        if (bTl) bTl.classList.remove('admin-tab-active');
+        if (bSum) bSum.classList.add('admin-tab-active');
+        maybeRedrawAdminMap();
+        setTimeout(function() {
+            if (adminTrackingMapInstance) {
+                try { adminTrackingMapInstance.invalidateSize(); } catch (eI) {}
+            }
+        }, 200);
+    }
+}
+
+function onAdminOperatorFilterChange() {
+    var sel = document.getElementById('admin-filter-operator');
+    _adminOperatorFilter = sel ? String(sel.value || '').trim() : '';
+    redrawAdminDashboardUI(orcDateKeyISO(new Date()));
+}
+
+function buildAdminTimelineEvents() {
+    var F = adminFilteredData();
+    var rows = F.vr;
+    var pings = F.pr.slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+    if (pings.length > 120) pings = pings.slice(pings.length - 120);
+    var events = [];
+    rows.forEach(function(r) {
+        events.push({ type: 'visit', tsMs: r.ts.getTime(), visit: r });
+    });
+    pings.forEach(function(p) {
+        events.push({ type: 'ping', tsMs: p.capturedAtMs || 0, ping: p });
+    });
+    var byDev = {};
+    pings.forEach(function(p) {
+        var k = p.deviceId ? String(p.deviceId) : '_sin_dispositivo';
+        if (!byDev[k]) byDev[k] = [];
+        byDev[k].push(p);
+    });
+    Object.keys(byDev).forEach(function(k) {
+        var arr = byDev[k].slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
+        for (var i = 1; i < arr.length; i++) {
+            var gap = (arr[i].capturedAtMs || 0) - (arr[i - 1].capturedAtMs || 0);
+            if (gap > 45 * 60 * 1000) {
+                events.push({
+                    type: 'alert',
+                    tsMs: Math.floor(((arr[i - 1].capturedAtMs || 0) + (arr[i].capturedAtMs || 0)) / 2),
+                    gapMin: Math.round(gap / 60000),
+                    prev: arr[i - 1],
+                    next: arr[i],
+                    deviceKey: k
+                });
+            }
+        }
+    });
+    events.sort(function(a, b) { return a.tsMs - b.tsMs; });
+    return events;
+}
+
+function renderAdminTimeline(todayKey) {
+    var el = document.getElementById('admin-day-timeline');
+    if (!el) return;
+    var ev = buildAdminTimelineEvents();
+    if (!ev.length) {
+        el.innerHTML = '<span style="color:var(--t2);">Sin eventos para ' + escapeHtml(todayKey) + ' con el filtro actual.</span>';
+        return;
+    }
+    el.innerHTML = ev.map(function(e) {
+        if (e.type === 'visit') {
+            var r = e.visit;
+            var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
+            var com = (r.d.comment || '').trim();
+            return '<div class="tl-row"><div class="tl-dot visit"></div><div class="tl-time">' + escapeHtml(_adminFmtTime(r.ts)) + '</div>'
+                + '<div class="tl-title">Visita · ' + escapeHtml(nm.length > 80 ? nm.slice(0, 78) + '…' : nm) + '</div>'
+                + '<div class="tl-body">Resultado: <strong>' + escapeHtml(r.d.result || '—') + '</strong>'
+                + (com ? '<br>' + escapeHtml(com.length > 220 ? com.slice(0, 218) + '…' : com) : '')
+                + '</div></div>';
+        }
+        if (e.type === 'ping') {
+            var p = e.ping;
+            var t = p.capturedAtMs ? new Date(p.capturedAtMs) : null;
+            return '<div class="tl-row"><div class="tl-dot ping"></div><div class="tl-time">' + escapeHtml(_adminFmtTime(t)) + '</div>'
+                + '<div class="tl-title">Ping GPS</div>'
+                + '<div class="tl-body">' + escapeHtml(p.operatorEmail || '—') + ' · precisión ±' + escapeHtml(String(p.accuracyM != null ? p.accuracyM + ' m' : '—')) + '</div></div>';
+        }
+        if (e.type === 'alert') {
+            return '<div class="tl-row"><div class="tl-dot alert"></div><div class="tl-time">Alerta</div>'
+                + '<div class="tl-title">Hueco &gt; ' + e.gapMin + ' min entre pings</div>'
+                + '<div class="tl-body">Dispositivo: ' + escapeHtml(e.deviceKey) + ' · entre '
+                + escapeHtml(_adminFmtTime(new Date(e.prev.capturedAtMs))) + ' y '
+                + escapeHtml(_adminFmtTime(new Date(e.next.capturedAtMs))) + '</div></div>';
+        }
+        return '';
+    }).join('');
+}
+
 function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
     var wrap = document.getElementById('admin-tracking-map');
     var hint = document.getElementById('admin-map-hint');
@@ -384,7 +679,7 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
         if (L.lat == null || L.lng == null || !L.capturedAtMs) return;
         if (!freshestLive || L.capturedAtMs > freshestLive.capturedAtMs) freshestLive = L;
     });
-    if (freshestLive && _adminAgeSec(freshestLive.capturedAtMs) != null && _adminAgeSec(freshestLive.capturedAtMs) < 300) {
+    if (freshestLive && adminStaleTierFromMs(freshestLive.capturedAtMs) < 2) {
         center = [freshestLive.lat, freshestLive.lng];
         z = 15;
     } else if (pingsAsc.length) {
@@ -431,21 +726,27 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
     liveArr.forEach(function(Ld) {
         if (Ld.lat == null || Ld.lng == null || !Ld.capturedAtMs) return;
         var age = _adminAgeSec(Ld.capturedAtMs);
-        var fresh = age != null && age < 120;
+        var tier = adminStaleTierFromMs(Ld.capturedAtMs);
         var ageTxt = age == null ? '—' : (age < 90 ? age + ' s' : Math.floor(age / 60) + ' min');
-        var pop = '<strong style="color:#fecaca;">Ubicación app</strong><br>Hace ' + ageTxt
+        var staleLbl = adminStaleTierLabel(tier);
+        var pop = '<strong style="color:#fecaca;">Ubicación app</strong><br>Hace ' + ageTxt + ' · ' + escapeHtml(staleLbl)
             + '<br>' + escapeHtml(Ld.operatorEmail || '(sin correo en señal)')
             + '<br><span style="font-size:10px;">±' + escapeHtml(String(Ld.accuracyM != null ? Ld.accuracyM + ' m' : '—')) + '</span>';
+        var pal = tier === 0
+            ? { c: '#15803d', f: '#22c55e', r: 15, halo: 30, op: 0.95 }
+            : tier === 1
+                ? { c: '#a16207', f: '#eab308', r: 12, halo: 24, op: 0.88 }
+                : { c: '#991b1b', f: '#ef4444', r: 9, halo: 18, op: 0.62 };
         L.circleMarker([Ld.lat, Ld.lng], {
-            radius: fresh ? 15 : 11,
-            color: '#b91c1c',
-            fillColor: '#ef4444',
-            fillOpacity: fresh ? 0.95 : 0.65,
-            weight: 3,
+            radius: pal.r,
+            color: pal.c,
+            fillColor: pal.f,
+            fillOpacity: pal.op,
+            weight: tier === 0 ? 3 : 2,
             pane: 'markerPane'
         }).bindPopup(pop).addTo(adminTrackingMapInstance);
         try {
-            L.circleMarker([Ld.lat, Ld.lng], { radius: fresh ? 28 : 20, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.12, weight: 0 })
+            L.circleMarker([Ld.lat, Ld.lng], { radius: pal.halo, color: pal.f, fillColor: pal.f, fillOpacity: 0.12, weight: 0 })
                 .addTo(adminTrackingMapInstance);
         } catch (eH) {}
     });
@@ -461,7 +762,7 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
         for (var li = 1; li < layers.length; li++) merged = merged.extend(layers[li]);
         adminTrackingMapInstance.fitBounds(merged, { padding: [26, 26], maxZoom: 13 });
     }
-    if (freshestLive && _adminAgeSec(freshestLive.capturedAtMs) != null && _adminAgeSec(freshestLive.capturedAtMs) < 120) {
+    if (freshestLive && adminStaleTierFromMs(freshestLive.capturedAtMs) === 0) {
         adminTrackingMapInstance.setView([freshestLive.lat, freshestLive.lng], 16, { animate: false });
     }
     setTimeout(function() { if (adminTrackingMapInstance) adminTrackingMapInstance.invalidateSize(); }, 250);
@@ -486,18 +787,16 @@ function renderAdminTrackingMapInner(visitsAsc, pingsAsc, liveLocs) {
 }
 
 function maybeRedrawAdminMap() {
-    var vr = (_adminLastVisitsRows || []).slice().sort(function(a, b) {
-        var ta = a.ts ? a.ts.getTime() : 0, tb = b.ts ? b.ts.getTime() : 0;
-        return ta - tb;
-    });
-    var pr = (_adminLastPings || []).slice().sort(function(a, b) {
-        return (a.capturedAtMs || 0) - (b.capturedAtMs || 0);
-    });
-    renderAdminTrackingMapInner(vr, pr, _adminLiveLocations || []);
+    var F = adminFilteredData();
+    renderAdminTrackingMapInner(F.vr, F.pr, F.live);
 }
 
 function redrawAdminDashboardUI(todayKey) {
-    var rows = (_adminLastVisitsRows || []).filter(function(r) { return r.ts; }).sort(function(a, b) { return a.ts.getTime() - b.ts.getTime(); });
+    rebuildAdminOperatorFilterOptions();
+    var F = adminFilteredData();
+    var rows = F.vr;
+    var pr = F.pr;
+    var sig = adminGetBestSignal(F.pr, F.live);
     var kf = document.getElementById('admin-kpi-first');
     var kl = document.getElementById('admin-kpi-last');
     var ka = document.getElementById('admin-kpi-avg');
@@ -519,8 +818,10 @@ function redrawAdminDashboardUI(todayKey) {
         else ka.textContent = '—';
     }
     if (tb) {
-        if (!rows.length) tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + escapeHtml(todayKey) + '.</span>';
-        else {
+        if (!rows.length) {
+            tb.innerHTML = '<span style="color:var(--t2);">Sin visitas registradas para ' + escapeHtml(todayKey)
+                + (_adminOperatorFilter ? ' con el operador seleccionado' : '') + '.</span>';
+        } else {
             tb.innerHTML = rows.map(function(r) {
                 var nm = (r.d.clientRef || ('Cliente #' + r.d.clientNum)) + '';
                 if (nm.length > 56) nm = nm.slice(0, 54) + '…';
@@ -544,7 +845,6 @@ function redrawAdminDashboardUI(todayKey) {
             }).join('');
         }
     }
-    var pr = (_adminLastPings || []).slice().sort(function(a, b) { return (a.capturedAtMs || 0) - (b.capturedAtMs || 0); });
     var kmP = 0;
     for (var i = 1; i < pr.length; i++) {
         if (pr[i].lat != null && pr[i].lng != null && pr[i - 1].lat != null && pr[i - 1].lng != null)
@@ -560,58 +860,67 @@ function redrawAdminDashboardUI(todayKey) {
         prev = g0;
     });
     if (kkVisit) kkVisit.textContent = rows.length >= 2 && kmV > 0 ? (Math.round(kmV * 10) / 10) + ' km' : (rows.length < 2 ? '—' : '0 km');
-    var lastPing = pr.length ? pr[pr.length - 1] : null;
-    var bestLive = null;
-    (_adminLiveLocations || []).forEach(function(L) {
-        if (L.lat == null || L.lng == null || !L.capturedAtMs) return;
-        if (!bestLive || L.capturedAtMs > bestLive.capturedAtMs) bestLive = L;
-    });
-    var useLive = bestLive && (!lastPing || !lastPing.capturedAtMs || bestLive.capturedAtMs >= lastPing.capturedAtMs);
     if (kLastPing) {
-        var tsMs = useLive && bestLive ? bestLive.capturedAtMs : (lastPing && lastPing.capturedAtMs);
-        if (tsMs) {
-            var dlp = new Date(tsMs);
+        if (sig.tsMs) {
+            var dlp = new Date(sig.tsMs);
             kLastPing.textContent = _adminFmtTime(dlp);
         } else kLastPing.textContent = '—';
     }
     if (liveBody) {
-        if (useLive && bestLive) {
-            var ageSec = _adminAgeSec(bestLive.capturedAtMs);
-            var fresh = ageSec != null && ageSec < 120;
-            var tStr = new Date(bestLive.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            var acc = bestLive.accuracyM != null ? bestLive.accuracyM + ' m' : '—';
-            var mail = bestLive.operatorEmail ? escapeHtml(bestLive.operatorEmail) : '(sin correo en señal — iniciá sesión en la app)';
-            var dev = bestLive.deviceId ? escapeHtml(String(bestLive.deviceId).slice(0, 36)) : '—';
-            var badge = fresh ? '<span style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">SEÑAL RECIENTE · hace ' + ageSec + ' s</span>'
-                : '<span style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">Última conocida · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>';
+        if (sig.useLive && sig.bestLive) {
+            var bl = sig.bestLive;
+            var ageSec = _adminAgeSec(bl.capturedAtMs);
+            var tier = adminStaleTierFromMs(bl.capturedAtMs);
+            var tStr = new Date(bl.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var acc = bl.accuracyM != null ? bl.accuracyM + ' m' : '—';
+            var mail = bl.operatorEmail ? escapeHtml(bl.operatorEmail) : '(sin correo en señal — iniciá sesión en la app)';
+            var dev = bl.deviceId ? escapeHtml(String(bl.deviceId).slice(0, 36)) : '—';
+            var badge = tier === 0
+                ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">EN VIVO · hace ' + (ageSec != null ? ageSec + ' s' : '?') + '</span>'
+                : tier === 1
+                    ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">RECIENTE (2–15 min) · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>'
+                    : '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,.22);color:#fecaca;font-size:10px;font-weight:700;">DESACTUALIZADA (&gt;15 min) · hace ' + (ageSec != null ? Math.floor(ageSec / 60) + ' min' : '?') + '</span>';
             liveBody.innerHTML = badge
                 + '<div style="font-weight:700;color:var(--t1);margin-bottom:6px;">' + tStr + '</div>'
                 + '<div class="visit-meta">Fuente: <strong>xp3_ubicacion_operador</strong> (actualización ~18 s con GPS)</div>'
                 + '<div class="visit-meta">Operador: ' + mail + '</div>'
-                + '<div class="visit-meta">Lat ' + Number(bestLive.lat).toFixed(5) + ' · Lng ' + Number(bestLive.lng).toFixed(5)
+                + '<div class="visit-meta">Lat ' + Number(bl.lat).toFixed(5) + ' · Lng ' + Number(bl.lng).toFixed(5)
                 + ' · Precisión ±' + escapeHtml(String(acc)) + '</div>'
                 + '<div class="visit-meta" style="font-size:10px;">Dispositivo: ' + dev + '</div>';
-        } else if (lastPing && lastPing.lat != null) {
-            var tStr2 = new Date(lastPing.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-            var acc2 = lastPing.accuracyM != null ? lastPing.accuracyM + ' m' : '—';
-            var mail2 = lastPing.operatorEmail ? escapeHtml(lastPing.operatorEmail) : '(sin operatorEmail en ping)';
-            var dev2 = lastPing.deviceId ? escapeHtml(String(lastPing.deviceId).slice(0, 36)) : '—';
-            liveBody.innerHTML = '<span style="font-size:10px;color:var(--t3);">Sin ubicación viva reciente; mostrando último ping histórico.</span>'
+        } else if (sig.lastPing && sig.lastPing.lat != null) {
+            var lp = sig.lastPing;
+            var pingTier = adminStaleTierFromMs(lp.capturedAtMs);
+            var badgeP = pingTier === 0
+                ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(34,197,94,.25);color:#86efac;font-size:10px;font-weight:700;">PING MUY RECIENTE</span>'
+                : pingTier === 1
+                    ? '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(250,204,21,.2);color:#fde047;font-size:10px;font-weight:700;">PING RECIENTE (histórico)</span>'
+                    : '<span id="admin-live-fresh-badge" style="display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:100px;background:rgba(239,68,68,.22);color:#fecaca;font-size:10px;font-weight:700;">PING ANTIGUO (&gt;15 min)</span>';
+            var tStr2 = new Date(lp.capturedAtMs).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var acc2 = lp.accuracyM != null ? lp.accuracyM + ' m' : '—';
+            var mail2 = lp.operatorEmail ? escapeHtml(lp.operatorEmail) : '(sin operatorEmail en ping)';
+            var dev2 = lp.deviceId ? escapeHtml(String(lp.deviceId).slice(0, 36)) : '—';
+            liveBody.innerHTML = badgeP + '<span style="font-size:10px;color:var(--t3);display:block;margin-bottom:6px;">Sin ubicación viva reciente; mostrando último ping histórico filtrado.</span>'
                 + '<div style="font-weight:700;color:var(--t1);margin:8px 0 6px;">' + tStr2 + '</div>'
                 + '<div class="visit-meta">Operador: ' + mail2 + '</div>'
-                + '<div class="visit-meta">Lat ' + Number(lastPing.lat).toFixed(5) + ' · Lng ' + Number(lastPing.lng).toFixed(5)
+                + '<div class="visit-meta">Lat ' + Number(lp.lat).toFixed(5) + ' · Lng ' + Number(lp.lng).toFixed(5)
                 + ' · Precisión ±' + escapeHtml(String(acc2)) + '</div>'
                 + '<div class="visit-meta" style="font-size:10px;">Dispositivo: ' + dev2 + '</div>';
         } else {
-            liveBody.innerHTML = '<span style="color:var(--t2);">No hay posición para hoy. El comercial debe abrir la app, iniciar sesión y dejar el GPS activo (indicador verde); en ~18 s debería aparecer la primera marca en el mapa.</span>';
+            liveBody.innerHTML = '<span style="color:var(--t2);">No hay posición para hoy'
+                + (_adminOperatorFilter ? ' con el operador seleccionado' : '')
+                + '. El comercial debe abrir la app, iniciar sesión y dejar el GPS activo (indicador verde); en ~18 s debería aparecer la primera marca en el mapa.</span>';
         }
     }
     var bot = document.getElementById('admin-bot-txt');
+    refreshAdminFreshnessUI();
+    if (_adminMainTab === 'timeline') renderAdminTimeline(todayKey);
+    if (_adminMainTab === 'summary') maybeRedrawAdminMap();
     if (bot) {
-        bot.textContent = rows.length + ' visitas · ' + pr.length + ' pings · km entre visitas (GPS guardado) ~ '
+        var bt = rows.length + ' visitas · ' + pr.length + ' pings · km entre visitas (GPS guardado) ~ '
             + (Math.round(kmV * 10) / 10) + ' km · km recorrido por pings ~ ' + (pr.length > 1 ? (Math.round(kmP * 10) / 10) + ' km' : '—');
+        if (_adminOperatorFilter) bt += ' · Filtro: ' + _adminOperatorFilter;
+        bot.textContent = bt;
     }
-    maybeRedrawAdminMap();
 }
 
 function loadAdminDashboard() {
@@ -667,6 +976,15 @@ function loadAdminDashboard() {
         redrawAdminDashboardUI(todayKey);
     });
     adminDashboardUnsubs.push(function() { unLive(); });
+    _adminTickTimer = setInterval(function() {
+        try { refreshAdminFreshnessUI(); } catch (eT) {}
+    }, 15000);
+    adminDashboardUnsubs.push(function() {
+        if (_adminTickTimer) {
+            clearInterval(_adminTickTimer);
+            _adminTickTimer = null;
+        }
+    });
 }
 
 function applyAdminUser(name, email, picture) {
