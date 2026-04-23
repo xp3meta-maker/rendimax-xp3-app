@@ -360,8 +360,12 @@
 <script src="xp3_route_data_admin.js"></script>
 <script>
 var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
-/** Opcional: correo del comercial ORC (Costa) para abrir el panel ya filtrado en mapa + checklist. Ej. 'comercial@...'. Dejar '' para ver todos. */
-var XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL = '';
+/**
+ * Comercial ORC por defecto (Costa Norte). Al cargar datos, el panel aplica este filtro en mapa + checklist + KPIs de seguimiento.
+ * Para otra regional / zona: cambiá solo este correo (o dejalo en '' para abrir en «Todos»).
+ * Siempre podés usar el selector «Operador» arriba para ver otro comercial o «Todos los operadores».
+ */
+var XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL = 'Xp3costa@rendimax.com.co';
 var _adminDefaultOpApplied = false;
 
 function escapeHtml(s) {
