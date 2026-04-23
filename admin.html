@@ -175,6 +175,23 @@
         .admin-route-status-box.incomplete { border-color: rgba(250, 204, 21, 0.45); background: rgba(250, 204, 21, 0.09); }
         .admin-route-status-title { font-size: 14px; font-weight: 800; margin-bottom: 6px; color: var(--t1); }
         .admin-route-status-sub { font-size: 11px; color: var(--t2); line-height: 1.45; }
+        .admin-route-details {
+            border: 1px solid var(--border); border-radius: 12px; background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 4px; overflow: hidden;
+        }
+        .admin-route-details > summary {
+            list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 700; color: var(--t1);
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px; user-select: none;
+        }
+        .admin-route-details > summary::-webkit-details-marker { display: none; }
+        .admin-route-details[open] > summary { border-bottom: 1px solid var(--border); background: rgba(0, 0, 0, 0.15); }
+        .admin-route-details-body { padding: 12px 14px 14px; }
+        .admin-route-sum-chip {
+            font-size: 10px; font-weight: 800; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 100px;
+        }
+        .admin-route-sum-chip.ok { background: rgba(34, 197, 94, 0.25); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.35); }
+        .admin-route-sum-chip.pend { background: rgba(250, 204, 21, 0.18); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.35); }
+        .admin-route-sum-text { font-size: 12px; font-weight: 600; color: var(--t2); flex: 1; min-width: 120px; line-height: 1.35; }
         #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
         #dash-root.visible { display: block; }
         .dash-top {
@@ -366,6 +383,8 @@ var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
  * Siempre podés usar el selector «Operador» arriba para ver otro comercial o «Todos los operadores».
  */
 var XP3_ORC_PANEL_DEFAULT_OPERATOR_EMAIL = 'Xp3costa@rendimax.com.co';
+/** Siempre aparecen en «Operador» aunque aún no haya pings (nuevas zonas: agregar correos aquí). */
+var XP3_ORC_TRACKING_OPERATOR_EMAILS = ['Xp3costa@rendimax.com.co'];
 var _adminDefaultOpApplied = false;
 
 function escapeHtml(s) {
@@ -490,18 +509,18 @@ function renderAdminRouteChecklist(todayKey) {
         ? ('Visitas contadas solo para <strong>' + escapeHtml(_adminOperatorFilter) + '</strong> (device → correo).')
         : ('Visitas de <strong>todos</strong> los operadores del día (sin filtro).');
     var statusClass = complete ? 'admin-route-status-box complete' : 'admin-route-status-box incomplete';
-    var statusTitle = complete ? '✅ Ruta del día: COMPLETA' : '⏳ Ruta del día: INCOMPLETA';
+    var statusTitle = complete ? 'Ruta del día: COMPLETA' : 'Ruta del día: INCOMPLETA';
     var statusSub = complete
         ? ('Todas las paradas activas del plan (' + nTotal + ') tienen visita registrada hoy.')
         : ('Faltan <strong>' + nPend + '</strong> cliente(s) activo(s) por visitar de <strong>' + nTotal + '</strong>. Visitadas: ' + nDone + '.');
-    var head = '<div class="' + statusClass + '">'
-        + '<div class="admin-route-status-title">' + statusTitle + '</div>'
-        + '<div class="admin-route-status-sub">' + statusSub + '</div>'
-        + '<div class="admin-route-status-sub" style="margin-top:8px;">' + filtNote + '</div>'
-        + '</div>'
-        + '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:10px;">Plan ORC · '
-        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + '</div>';
-    host.innerHTML = head + stops.map(function(c) {
+    var chipClass = complete ? 'admin-route-sum-chip ok' : 'admin-route-sum-chip pend';
+    var chipTxt = complete ? 'COMPLETA' : 'INCOMPLETA';
+    var planShort = escapeHtml(plan.routeName || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + ' · ' + nDone + '/' + nTotal + ' visitadas';
+    var sumHint = complete
+        ? ('Tocá para ver la lista de clientes del plan con OK de visita.')
+        : ('Desplegado: clientes del plan y estado de visita. Tocá el encabezado para plegar.');
+    var detailsOpen = complete ? '' : ' open';
+    var rowsHtml = stops.map(function(c) {
         var ok = !!visited[c.num];
         var nm = (c.name || c.company || ('#' + c.num)) + '';
         var sub = (c.subzone || '').trim();
@@ -511,6 +530,19 @@ function renderAdminRouteChecklist(todayKey) {
             + (sub ? '<div class="meta">' + escapeHtml(sub.length > 120 ? sub.slice(0, 118) + '…' : sub) + '</div>' : '')
             + '</div></div>';
     }).join('');
+    host.innerHTML = '<details class="admin-route-details"' + detailsOpen + '>'
+        + '<summary><span class="' + chipClass + '">' + chipTxt + '</span>'
+        + '<span class="admin-route-sum-text">' + planShort + ' — <span style="opacity:.85;font-weight:600;">' + sumHint + '</span></span></summary>'
+        + '<div class="admin-route-details-body">'
+        + '<div class="' + statusClass + '">'
+        + '<div class="admin-route-status-title">' + escapeHtml(statusTitle) + '</div>'
+        + '<div class="admin-route-status-sub">' + statusSub + '</div>'
+        + '<div class="admin-route-status-sub" style="margin-top:8px;">' + filtNote + '</div>'
+        + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin:12px 0 8px;">Plan ORC · '
+        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · día ' + escapeHtml(String(plan.dayKey || '')) + '</div>'
+        + rowsHtml
+        + '</div></details>';
 }
 
 var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
@@ -672,16 +704,19 @@ function _adminBuildDeviceEmailMap() {
 }
 function adminPingMatchesFilter(p, devMap) {
     if (!_adminOperatorFilter) return true;
+    var want = normalizeEmail(_adminOperatorFilter);
     var em = (p.operatorEmail && String(p.operatorEmail).trim()) || '';
-    if (em === _adminOperatorFilter) return true;
-    if (p.deviceId && devMap && devMap[String(p.deviceId)] === _adminOperatorFilter) return true;
+    if (em && normalizeEmail(em) === want) return true;
+    if (p.deviceId && devMap && devMap[String(p.deviceId)] && normalizeEmail(devMap[String(p.deviceId)]) === want) return true;
     return false;
 }
 function adminVisitMatchesFilter(row, devMap) {
     if (!_adminOperatorFilter) return true;
+    var want = normalizeEmail(_adminOperatorFilter);
     var did = row.d && row.d.deviceId;
     if (!did) return false;
-    return (devMap[String(did)] || '') === _adminOperatorFilter;
+    var mapped = devMap[String(did)] || '';
+    return mapped && normalizeEmail(mapped) === want;
 }
 
 function adminFilteredData() {
@@ -713,28 +748,59 @@ function rebuildAdminOperatorFilterOptions() {
     var sel = document.getElementById('admin-filter-operator');
     if (!sel) return;
     var devMap = _adminBuildDeviceEmailMap();
-    var emails = {};
+    var byKey = {};
+    function addEmail(raw) {
+        var em = String(raw || '').trim();
+        if (!em) return;
+        if (normalizeEmail(em) === normalizeEmail(XP3_ADMIN_DASHBOARD_EMAIL)) return;
+        var k = normalizeEmail(em);
+        if (!byKey[k]) byKey[k] = em;
+    }
+    (XP3_ORC_TRACKING_OPERATOR_EMAILS || []).forEach(addEmail);
     Object.keys(devMap).forEach(function(k) {
-        var e = devMap[k];
-        if (e) emails[e] = 1;
+        addEmail(devMap[k]);
     });
     (_adminLastPings || []).forEach(function(p) {
         if (!adminTrackingRowAllowedForMap(p)) return;
-        var e = (p.operatorEmail && String(p.operatorEmail).trim());
-        if (e) emails[e] = 1;
+        addEmail(p.operatorEmail);
     });
     (_adminLiveLocations || []).forEach(function(L) {
         if (!adminTrackingRowAllowedForMap(L)) return;
-        var e = (L.operatorEmail && String(L.operatorEmail).trim());
-        if (e) emails[e] = 1;
+        addEmail(L.operatorEmail);
     });
-    var list = Object.keys(emails).sort(function(a, b) { return a.localeCompare(b); });
+    var preferred = [];
+    (XP3_ORC_TRACKING_OPERATOR_EMAILS || []).forEach(function(raw) {
+        var k = normalizeEmail(String(raw || '').trim());
+        if (k && byKey[k]) {
+            preferred.push(byKey[k]);
+            delete byKey[k];
+        }
+    });
+    var rest = Object.keys(byKey).map(function(k) { return byKey[k]; }).sort(function(a, b) { return a.localeCompare(b); });
+    var list = preferred.concat(rest);
     var keep = _adminOperatorFilter;
+    var keepNorm = keep ? normalizeEmail(keep) : '';
     sel.innerHTML = '<option value="">Todos los operadores</option>' + list.map(function(e) {
         return '<option value="' + escapeHtml(e).replace(/"/g, '&quot;') + '">' + escapeHtml(e) + '</option>';
     }).join('');
-    if (keep && list.indexOf(keep) >= 0) sel.value = keep;
-    else { sel.value = ''; _adminOperatorFilter = ''; }
+    if (keepNorm) {
+        var matched = null;
+        for (var i = 0; i < list.length; i++) {
+            if (normalizeEmail(list[i]) === keepNorm) {
+                matched = list[i];
+                break;
+            }
+        }
+        if (matched) {
+            sel.value = matched;
+            _adminOperatorFilter = matched;
+        } else {
+            sel.value = '';
+            _adminOperatorFilter = '';
+        }
+    } else {
+        sel.value = '';
+    }
 }
 
 function refreshAdminFreshnessUI() {
