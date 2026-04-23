@@ -156,6 +156,17 @@
         .tl-time { font-size: 10px; color: var(--t3); font-weight: 700; letter-spacing: 0.04em; }
         .tl-title { font-size: 13px; font-weight: 700; color: var(--t1); margin-top: 2px; }
         .tl-body { font-size: 11px; color: var(--t2); margin-top: 4px; line-height: 1.45; }
+        .admin-route-card { margin-bottom: 18px; }
+        .admin-route-head { font-size: 11px; color: var(--t3); margin-bottom: 10px; line-height: 1.45; }
+        .admin-route-row {
+            display: flex; gap: 10px; align-items: flex-start; padding: 8px 0;
+            border-bottom: 1px solid var(--border); font-size: 12px;
+        }
+        .admin-route-row:last-child { border-bottom: none; }
+        .admin-route-row.done { color: var(--t2); }
+        .admin-route-row .chk { font-size: 15px; flex-shrink: 0; line-height: 1.2; }
+        .admin-route-row .nm { font-weight: 600; color: var(--t1); }
+        .admin-route-row .meta { font-size: 10px; color: var(--t3); margin-top: 2px; }
         #dash-root { display: none; max-width: 1320px; margin: 0 auto; padding: 20px 24px 48px; }
         #dash-root.visible { display: block; }
         .dash-top {
@@ -283,6 +294,12 @@
         <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
     </div>
 
+    <div class="card admin-route-card" id="admin-route-plan-wrap">
+        <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
+        <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
+        <div id="admin-route-checklist" class="sub">Cargando plan…</div>
+    </div>
+
     <div id="admin-panel-summary">
     <div class="dash-grid">
         <div>
@@ -330,6 +347,7 @@
     </div>
 </div>
 
+<script src="xp3_route_data_admin.js"></script>
 <script>
 var XP3_ADMIN_DASHBOARD_EMAIL = 'xp3meta@rendimax.com.co';
 
@@ -357,6 +375,102 @@ function getDistance(lat1, lon1, lat2, lon2) {
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function adminNormOrcRouteKey(s) {
+    return String(s || '').toLowerCase().replace(/\u2013/g, '-').replace(/\s+/g, ' ').trim();
+}
+function adminGetClientRouteKeysForMatch(c) {
+    var keys = [];
+    if (c.orcRouteName && String(c.orcRouteName).trim()) keys.push(adminNormOrcRouteKey(c.orcRouteName));
+    keys.push(adminNormOrcRouteKey((c.subzone || '').split(' · ')[0].trim()));
+    return keys.filter(Boolean);
+}
+function adminClientMatchesOrcRouteName(want, k) {
+    if (!k) return false;
+    if (k === want) return true;
+    if (want === 'barranquilla norte' && k.indexOf('barranquilla norte') !== -1) return true;
+    if (want === 'ruta barranquilla sur' && k.indexOf('barranquilla sur') !== -1) return true;
+    if (want === 'metropolitana centro-occidente') {
+        if (k.indexOf('centro occidente') !== -1) return true;
+        if (k.indexOf('metropolitana') !== -1 && k.indexOf('occidente') !== -1) return true;
+    }
+    if (want === 'metropolitana centro-oriente') {
+        if (k.indexOf('centro oriente') !== -1) return true;
+        if (k.indexOf('metropolitana') !== -1 && k.indexOf('oriente') !== -1) return true;
+    }
+    if (want === 'cartagena' && k.indexOf('cartagena') !== -1) return true;
+    if (want === 'santa marta' && k.indexOf('santa marta') !== -1) return true;
+    if (want === 'ruta sabanalarga' && k.indexOf('sabanalarga') !== -1) return true;
+    return false;
+}
+function adminGetClientsForRouteName(routeName) {
+    var want = adminNormOrcRouteKey(routeName);
+    var list = window.XP3_ROUTE_COMPACT || [];
+    return list.filter(function(c) {
+        if (!c || !c.day) return false;
+        var keys = adminGetClientRouteKeysForMatch(c);
+        for (var i = 0; i < keys.length; i++) {
+            if (adminClientMatchesOrcRouteName(want, keys[i])) return true;
+        }
+        return false;
+    });
+}
+function adminGetTodayRoutePlan(isoKey) {
+    var cal = window.XP3_ROUTE_CALENDAR_ORC_2026;
+    if (!cal) return { stops: [] };
+    var entry = cal[isoKey];
+    if (!entry || entry.type !== 'route' || !entry.routeName) return { entry: entry, stops: [] };
+    var all = adminGetClientsForRouteName(entry.routeName);
+    var dayKey = entry.dayKey;
+    var stops = all.filter(function(c) { return c && c.day === dayKey; });
+    stops = stops.filter(function(c) { return c.status === 'ACTIVO'; });
+    stops.sort(function(a, b) {
+        var oa = a.stopOrder != null ? Number(a.stopOrder) : 999;
+        var ob = b.stopOrder != null ? Number(b.stopOrder) : 999;
+        if (oa !== ob) return oa - ob;
+        return (Number(a.num) || 0) - (Number(b.num) || 0);
+    });
+    return { entry: entry, routeName: entry.routeName, label: entry.label, dayKey: dayKey, stops: stops };
+}
+
+function renderAdminRouteChecklist(todayKey) {
+    var host = document.getElementById('admin-route-checklist');
+    if (!host) return;
+    if (!window.XP3_ROUTE_COMPACT || !window.XP3_ROUTE_CALENDAR_ORC_2026) {
+        host.innerHTML = '<span style="color:var(--t3);">Falta <code>xp3_route_data_admin.js</code>. En el repo regional: <code>python tools/build_admin_route_data.py</code> y desplegar de nuevo.</span>';
+        return;
+    }
+    var plan = adminGetTodayRoutePlan(todayKey);
+    var stops = plan.stops || [];
+    if (!stops.length) {
+        host.innerHTML = '<span style="color:var(--t2);">Sin paradas <strong>ACTIVAS</strong> para '
+            + escapeHtml(plan.routeName || 'esta ruta') + ' · día ' + escapeHtml(String(plan.dayKey || ''))
+            + ' (revisá cartera o calendario).</span>';
+        return;
+    }
+    var devMap = _adminBuildDeviceEmailMap();
+    var visited = {};
+    (_adminLastVisitsRows || []).forEach(function(r) {
+        if (!r.d || r.d.clientNum == null) return;
+        if (_adminOperatorFilter && !adminVisitMatchesFilter(r, devMap)) return;
+        visited[r.d.clientNum] = true;
+    });
+    var nDone = 0;
+    stops.forEach(function(c) { if (visited[c.num]) nDone++; });
+    var head = '<div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:10px;">'
+        + escapeHtml(plan.routeName || '') + ' · ' + escapeHtml(plan.label || '') + ' · '
+        + nDone + ' / ' + stops.length + ' visitadas (activas)</div>';
+    host.innerHTML = head + stops.map(function(c) {
+        var ok = !!visited[c.num];
+        var nm = (c.name || c.company || ('#' + c.num)) + '';
+        var sub = (c.subzone || '').trim();
+        return '<div class="admin-route-row' + (ok ? ' done' : '') + '">'
+            + '<span class="chk">' + (ok ? '✅' : '⬜') + '</span>'
+            + '<div><div class="nm">#' + escapeHtml(String(c.num)) + ' · ' + escapeHtml(nm.length > 72 ? nm.slice(0, 70) + '…' : nm) + '</div>'
+            + (sub ? '<div class="meta">' + escapeHtml(sub.length > 120 ? sub.slice(0, 118) + '…' : sub) + '</div>' : '')
+            + '</div></div>';
+    }).join('');
 }
 
 var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
@@ -921,6 +1035,7 @@ function redrawAdminDashboardUI(todayKey) {
         if (_adminOperatorFilter) bt += ' · Filtro: ' + _adminOperatorFilter;
         bot.textContent = bt;
     }
+    renderAdminRouteChecklist(todayKey);
 }
 
 function loadAdminDashboard() {

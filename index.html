@@ -192,7 +192,7 @@
                  style="display:flex;justify-content:center;margin-bottom:4px;">
             </div>
             <p class="sub" style="text-align:center;font-size:10px;margin-top:10px;">APLICACIÓN MÓVIL COMERCIAL</p>
-            <p class="sub" style="text-align:center;font-size:10px;margin-top:6px;">Panel gerencia (PC): <a href="admin.html" style="color:var(--yellow);font-weight:700;">admin.html</a> · solo xp3meta@rendimax.com.co</p>
+            <p class="sub" style="text-align:center;font-size:10px;margin-top:6px;">Panel gerencia (PC): <a href="admin.html" style="color:var(--yellow);font-weight:700;">admin.html</a> · solo xp3meta@rendimax.com.co · si entrás con esa cuenta, el GPS <strong>no</strong> se envía al mapa en vivo (no mezcla con el comercial).</p>
         </div>
     </div>
 </div>
@@ -4416,6 +4416,12 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 function startGPS() {
     if (!navigator.geolocation) return;
+    try {
+        var gel0 = document.getElementById('gps-indicator');
+        if (gel0 && shouldSkipFirestoreTrackingForSession()) {
+            gel0.title = 'Cuenta gerencial: tu GPS no se publica al mapa en vivo. Abrí admin.html para ver al comercial.';
+        }
+    } catch (eG) {}
     navigator.geolocation.watchPosition(
         pos => {
             userLat = pos.coords.latitude;
@@ -4423,8 +4429,14 @@ function startGPS() {
             lastUserGpsAccuracy = pos.coords.accuracy != null ? pos.coords.accuracy : null;
             maybeWriteTrackingPing(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             maybeUpdateLiveLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-            document.getElementById('gps-indicator').className   = 'gps-pill gps-ok';
-            document.getElementById('gps-indicator').innerHTML   = '<span class="gpsdot"></span>GPS';
+            var gInd = document.getElementById('gps-indicator');
+            if (gInd) {
+                gInd.className = 'gps-pill gps-ok';
+                gInd.innerHTML = '<span class="gpsdot"></span>GPS';
+                if (shouldSkipFirestoreTrackingForSession()) {
+                    gInd.title = 'Cuenta gerencial: tu GPS no se publica al mapa en vivo. Abrí admin.html para ver al comercial.';
+                }
+            }
             checkGeofence();
             updateFichaDistance();
         },
@@ -4789,7 +4801,20 @@ function getOperatorEmailForPing() {
     } catch (e) { return null; }
 }
 
+/** Cuentas que solo usan panel gerencial: no escribir pings / ubicación viva (evita mezclar GPS con el comercial). */
+var XP3_GERENCIA_NO_TRACK_EMAILS = ['xp3meta@rendimax.com.co'];
+function shouldSkipFirestoreTrackingForSession() {
+    var oe = getOperatorEmailForPing();
+    if (!oe) return false;
+    var low = oe.trim().toLowerCase();
+    for (var i = 0; i < XP3_GERENCIA_NO_TRACK_EMAILS.length; i++) {
+        if (low === String(XP3_GERENCIA_NO_TRACK_EMAILS[i] || '').toLowerCase()) return true;
+    }
+    return false;
+}
+
 function maybeWriteTrackingPing(lat, lng, accuracy) {
+    if (shouldSkipFirestoreTrackingForSession()) return;
     if (typeof db === 'undefined' || !db || lat == null || lng == null) return;
     var now = Date.now();
     if (now - lastTrackingPingWriteMs < TRACKING_PING_MIN_MS) {
@@ -4816,6 +4841,7 @@ function maybeWriteTrackingPing(lat, lng, accuracy) {
 }
 
 function maybeUpdateLiveLocation(lat, lng, accuracy) {
+    if (shouldSkipFirestoreTrackingForSession()) return;
     if (typeof db === 'undefined' || !db || lat == null || lng == null) return;
     var now = Date.now();
     if (now - lastLiveLocWriteMs < LIVE_LOC_WRITE_MIN_MS) return;
@@ -4839,6 +4865,7 @@ function maybeUpdateLiveLocation(lat, lng, accuracy) {
 
 /** Al bloquear teléfono o cambiar de app el SO suele cortar el GPS; intentamos una última escritura con la última posición conocida. */
 function flushSeguimientoSnapshotBeforeSuspend() {
+    if (shouldSkipFirestoreTrackingForSession()) return;
     if (typeof db === 'undefined' || !db || userLat == null || userLon == null) return;
     try {
         lastLiveLocWriteMs = 0;
