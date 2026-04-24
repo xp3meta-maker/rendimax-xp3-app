@@ -301,7 +301,8 @@
         <p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">
             Colecciones: <code style="font-size:10px;color:var(--t2);">visitas</code>,
             <code style="font-size:10px;color:var(--t2);">xp3_seguimiento_pings</code>,
-            <code style="font-size:10px;color:var(--t2);">xp3_ubicacion_operador</code> — reglas Firestore: lectura gerencial + escritura app en pings y ubicación viva.
+            <code style="font-size:10px;color:var(--t2);">xp3_ubicacion_operador</code>,
+            <code style="font-size:10px;color:var(--t2);">xp3_config/pricing_v1</code> — reglas Firestore: lectura gerencial + escritura app en pings/ubicación y configuración comercial.
         </p>
     </div>
 
@@ -326,6 +327,16 @@
         <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
         <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
         <div id="admin-route-checklist" class="sub">Cargando plan…</div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.08);">
+        <p class="lbl" style="margin-bottom:8px;">Catálogo comercial · precios y bonificación</p>
+        <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Cambios aquí se publican al documento global y la app comercial los toma en tiempo real en la visita/cotización.</p>
+        <div id="admin-pricing-editor" class="sub">Cargando catálogo...</div>
+        <div class="g2" style="margin-top:12px;">
+            <button type="button" class="btn btn-gh" onclick="loadAdminPricingConfig()">Recargar catálogo</button>
+            <button type="button" class="btn btn-p" style="box-shadow:none;" onclick="saveAdminPricingConfig()">Publicar cambios</button>
+        </div>
     </div>
 
     <div id="admin-panel-summary">
@@ -581,6 +592,8 @@ function renderAdminRouteChecklist(todayKey) {
 
 var XP3_PINGS_COLLECTION = 'xp3_seguimiento_pings';
 var XP3_LIVE_LOC_COLLECTION = 'xp3_ubicacion_operador';
+var XP3_PRICING_COLLECTION = 'xp3_config';
+var XP3_PRICING_DOC_ID = 'pricing_v1';
 var adminDashboardUnsubs = [];
 var adminTrackingMapInstance = null;
 var _adminLastVisitsRows = [];
@@ -589,6 +602,123 @@ var _adminLiveLocations = [];
 var _adminMainTab = 'summary';
 var _adminOperatorFilter = '';
 var _adminTickTimer = null;
+var _adminPricingConfigCache = null;
+
+function adminDefaultPricingConfig() {
+    return {
+        items: [
+            { id:'d110', name:'XP3 Diesel 110ml', priceCOP:18698, bonusPct:8, dotClass:'d110', icon:'🚛', active:true },
+            { id:'d60', name:'XP3 Diesel 60ml', priceCOP:13432, bonusPct:8, dotClass:'d60', icon:'🚛', active:true },
+            { id:'gas60', name:'XP3 Gasolina 60ml', priceCOP:13432, bonusPct:8, dotClass:'gas20', icon:'⛽', active:true },
+            { id:'d20', name:'XP3 Diesel 20ml', priceCOP:8412, bonusPct:8, dotClass:'d20', icon:'🚛', active:true },
+            { id:'gas20', name:'XP3 Gasolina 20ml', priceCOP:8412, bonusPct:8, dotClass:'gas20', icon:'⛽', active:true },
+            { id:'gas6', name:'XP3 Motos 6ml', priceCOP:4443, bonusPct:8, dotClass:'gas6', icon:'🏍️', active:true }
+        ],
+        templates: {
+            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nTotal estimado: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
+            propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
+            brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
+        }
+    };
+}
+
+function renderAdminPricingEditor(cfg) {
+    var host = document.getElementById('admin-pricing-editor');
+    if (!host) return;
+    var c = cfg && typeof cfg === 'object' ? cfg : adminDefaultPricingConfig();
+    var items = Array.isArray(c.items) ? c.items : [];
+    var t = c.templates || {};
+    if (!items.length) items = adminDefaultPricingConfig().items.slice();
+    var rows = items.map(function(it, idx) {
+        var id = escapeHtml(String(it.id || ''));
+        var nm = escapeHtml(String(it.name || ''));
+        var p = Number(it.priceCOP || 0);
+        var b = Number(it.bonusPct || 0);
+        var a = it.active !== false;
+        return '<div style="display:grid;grid-template-columns:1.1fr 1.2fr .8fr .6fr .5fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">'
+            + '<input data-price-field="id" data-row="' + idx + '" value="' + id + '" style="padding:8px;">'
+            + '<input data-price-field="name" data-row="' + idx + '" value="' + nm + '" style="padding:8px;">'
+            + '<input data-price-field="priceCOP" data-row="' + idx + '" type="number" min="0" value="' + (isNaN(p) ? 0 : p) + '" style="padding:8px;">'
+            + '<input data-price-field="bonusPct" data-row="' + idx + '" type="number" min="0" max="100" value="' + (isNaN(b) ? 0 : b) + '" style="padding:8px;">'
+            + '<label class="sub" style="display:flex;gap:5px;align-items:center;justify-content:center;"><input data-price-field="active" data-row="' + idx + '" type="checkbox" ' + (a ? 'checked' : '') + '>Act</label>'
+            + '</div>';
+    }).join('');
+    host.innerHTML = '<div class="sub" style="font-size:10px;color:var(--t3);margin-bottom:6px;">ID · Referencia · Precio COP · Bono % · Activo</div>'
+        + rows
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla cotización</p>'
+        + '<textarea id="admin-template-cotizacion" style="height:80px;">' + escapeHtml(String(t.cotizacion || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla propuesta</p>'
+        + '<textarea id="admin-template-propuesta" style="height:80px;">' + escapeHtml(String(t.propuesta || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla brochure</p>'
+        + '<textarea id="admin-template-brochure" style="height:80px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>';
+}
+
+function readAdminPricingFromForm() {
+    var host = document.getElementById('admin-pricing-editor');
+    if (!host) return adminDefaultPricingConfig();
+    var map = {};
+    var fields = host.querySelectorAll('[data-price-field]');
+    fields.forEach(function(el) {
+        var r = parseInt(el.getAttribute('data-row') || '0', 10);
+        if (!map[r]) map[r] = {};
+        var k = el.getAttribute('data-price-field');
+        if (k === 'active') map[r][k] = !!el.checked;
+        else map[r][k] = String(el.value || '').trim();
+    });
+    var items = Object.keys(map).map(function(k) {
+        var it = map[k];
+        return {
+            id: String(it.id || '').trim(),
+            name: String(it.name || '').trim(),
+            priceCOP: Math.max(0, parseInt(it.priceCOP || '0', 10) || 0),
+            bonusPct: Math.max(0, Math.min(100, parseFloat(it.bonusPct || '0') || 0)),
+            active: it.active !== false
+        };
+    }).filter(function(it) { return it.id && it.name && it.priceCOP > 0; });
+    var tCot = (document.getElementById('admin-template-cotizacion') || {}).value || '';
+    var tPro = (document.getElementById('admin-template-propuesta') || {}).value || '';
+    var tBro = (document.getElementById('admin-template-brochure') || {}).value || '';
+    return {
+        items: items,
+        templates: {
+            cotizacion: String(tCot).trim(),
+            propuesta: String(tPro).trim(),
+            brochure: String(tBro).trim()
+        }
+    };
+}
+
+function loadAdminPricingConfig() {
+    if (typeof db === 'undefined' || !db) return;
+    db.collection(XP3_PRICING_COLLECTION).doc(XP3_PRICING_DOC_ID).get().then(function(doc) {
+        var d = doc.exists ? doc.data() : adminDefaultPricingConfig();
+        _adminPricingConfigCache = d;
+        renderAdminPricingEditor(d);
+    }).catch(function() {
+        _adminPricingConfigCache = adminDefaultPricingConfig();
+        renderAdminPricingEditor(_adminPricingConfigCache);
+    });
+}
+
+function saveAdminPricingConfig() {
+    if (typeof db === 'undefined' || !db) {
+        alert('Firestore no está listo.');
+        return;
+    }
+    var cfg = readAdminPricingFromForm();
+    if (!cfg.items.length) {
+        alert('Debes dejar al menos una referencia activa con precio.');
+        return;
+    }
+    cfg.updatedAtMs = Date.now();
+    cfg.updatedBy = normalizeEmail((_adminOperatorFilter || XP3_ADMIN_DASHBOARD_EMAIL));
+    db.collection(XP3_PRICING_COLLECTION).doc(XP3_PRICING_DOC_ID).set(cfg, { merge: true }).then(function() {
+        _adminPricingConfigCache = cfg;
+        alert('Catálogo publicado. La app comercial lo recibirá en tiempo real.');
+    }).catch(function(e) {
+        alert('Error guardando catálogo: ' + (e && e.message ? e.message : e));
+    });
+}
 
 function orcVentasMesStorageKey() {
     var d = new Date();
@@ -1338,6 +1468,7 @@ function showDashboardAfterAuth(name, email, picture) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('dash-root').classList.add('visible');
     loadAdminVentasMesField();
+    loadAdminPricingConfig();
     loadAdminDashboard();
 }
 

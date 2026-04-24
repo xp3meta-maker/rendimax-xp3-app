@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thin...png">
     <title>Rendimax XP3 · App Comercial Costa Norte</title>
     <meta name="description" content="App comercial Rendimax XP3 · Regional Costa Norte · ORC 2026">
-    <meta name="xp3-build" content="2026-04-20-productivity-gap-alert">
+    <meta name="xp3-build" content="2026-04-24-visit-quote-share-v1">
     <meta name="google-signin-client_id" content="444963601333-fp29h00llm1qnm2dijne92rr6i0oqk57.apps.googleusercontent.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -163,6 +163,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -813,10 +814,47 @@
                 <div class="tag" id="r4" onclick="selR(this)">❌ Rechazado</div>
             </div>
 
-            <div class="slbl">Unidades pedidas</div>
-            <div class="g2" style="margin-bottom:18px;">
-                <input type="number" placeholder="XP3 Gas 20ml" min="0">
-                <input type="number" placeholder="XP3 Motos 6ml" min="0">
+            <div class="slbl">Cotización en visita</div>
+            <div class="card" style="margin-bottom:18px;">
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);">Armá la propuesta aquí mismo durante la visita y compartí por WhatsApp o correo.</p>
+                <div id="visit-products-list"></div>
+                <div class="calc-total" style="margin-top:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <span class="lbl">RESUMEN COTIZACIÓN</span>
+                        <span class="badge by" id="visit-total-units-badge">0 unidades</span>
+                    </div>
+                    <div id="visit-calc-breakdown" style="margin-bottom:10px;"></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid rgba(255,179,0,.2);">
+                        <span style="font-weight:700;font-size:12px;color:var(--t1);">Total Estimado</span>
+                        <span style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--yellow);" id="visit-calc-total-val">$0</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="sub" style="font-size:10px;">Bonificación estimada</span>
+                        <span style="font-weight:700;color:var(--green);font-size:12px;" id="visit-calc-bonus">$0</span>
+                    </div>
+                </div>
+                <div class="g2" style="margin-top:12px;">
+                    <button type="button" class="btn btn-gh btn-sm" onclick="clearCalc()">🔄 Limpiar</button>
+                    <button type="button" class="btn btn-gh btn-sm" onclick="prefillVisitShareMessage()">✍️ Preparar mensaje</button>
+                </div>
+                <div class="div" style="margin:12px 0;"></div>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:4px;">Tipo de documento</label>
+                <select id="visit-doc-type" style="margin-bottom:8px;">
+                    <option value="cotizacion">Cotización</option>
+                    <option value="propuesta">Propuesta comercial</option>
+                    <option value="brochure">Brochure</option>
+                </select>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:4px;">Canal</label>
+                <select id="visit-share-channel" style="margin-bottom:8px;">
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Correo</option>
+                </select>
+                <label class="sub" style="font-size:10px;display:block;margin-bottom:4px;">Mensaje personalizado</label>
+                <textarea id="visit-share-message" style="height:90px;margin-bottom:8px;" placeholder="Texto para enviar al cliente..."></textarea>
+                <div class="g2">
+                    <button type="button" class="btn btn-gh btn-sm" onclick="downloadVisitQuotePdf()">📄 Descargar PDF</button>
+                    <button type="button" class="btn btn-p btn-sm" style="box-shadow:none;" onclick="shareVisitDocument()">📤 Compartir</button>
+                </div>
             </div>
 
             <div class="slbl">Observaciones <span style="color:var(--red);">*</span> obligatorias</div>
@@ -850,13 +888,36 @@
 // DATA — RENDIMAX XP3 COSTA NORTE 2026
 // GPS Coordinates: real city-center coordinates for each EDS city
 // ================================================================
-const PRODUCTS = [
-    { id:'gas20', name:'XP3 Gasolina 20ml', price:6505,  dotClass:'gas20', icon:'⛽' },
-    { id:'gas6',  name:'XP3 Motos 6ml',     price:2932,  dotClass:'gas6',  icon:'🏍️' },
-    { id:'d110',  name:'XP3 Diesel 110ml',  price:13597, dotClass:'d110',  icon:'🚛' },
-    { id:'d60',   name:'XP3 Diesel 60ml',   price:12211, dotClass:'d60',   icon:'🚛' },
-    { id:'d20',   name:'XP3 Diesel 20ml',   price:6118,  dotClass:'d20',   icon:'🚛' },
-];
+var XP3_PRICING_COLLECTION = 'xp3_config';
+var XP3_PRICING_DOC_ID = 'pricing_v1';
+var xp3PricingUnsub = null;
+
+function getDefaultPricingConfig() {
+    return {
+        items: [
+            { id:'d110', name:'XP3 Diesel 110ml', priceCOP:18698, bonusPct:8, dotClass:'d110', icon:'🚛', active:true },
+            { id:'d60', name:'XP3 Diesel 60ml', priceCOP:13432, bonusPct:8, dotClass:'d60', icon:'🚛', active:true },
+            { id:'gas60', name:'XP3 Gasolina 60ml', priceCOP:13432, bonusPct:8, dotClass:'gas20', icon:'⛽', active:true },
+            { id:'d20', name:'XP3 Diesel 20ml', priceCOP:8412, bonusPct:8, dotClass:'d20', icon:'🚛', active:true },
+            { id:'gas20', name:'XP3 Gasolina 20ml', priceCOP:8412, bonusPct:8, dotClass:'gas20', icon:'⛽', active:true },
+            { id:'gas6', name:'XP3 Motos 6ml', priceCOP:4443, bonusPct:8, dotClass:'gas6', icon:'🏍️', active:true },
+            { id:'rv14', name:'Refrigerante verde 1/4', priceCOP:7500, bonusPct:6, dotClass:'d20', icon:'🧪', active:true },
+            { id:'rr14', name:'Refrigerante rojo 1/4', priceCOP:7500, bonusPct:6, dotClass:'d20', icon:'🧪', active:true },
+            { id:'rvg', name:'Refrigerante verde galón', priceCOP:15500, bonusPct:6, dotClass:'d20', icon:'🧪', active:true },
+            { id:'rrg', name:'Refrigerante rojo galón', priceCOP:15500, bonusPct:6, dotClass:'d20', icon:'🧪', active:true },
+            { id:'parabrisas', name:'Limpia parabrisas', priceCOP:5000, bonusPct:5, dotClass:'d20', icon:'🧴', active:true },
+            { id:'impermeable', name:'Impermeables', priceCOP:9500, bonusPct:5, dotClass:'d20', icon:'🦺', active:true }
+        ],
+        templates: {
+            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nTotal estimado: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
+            propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
+            brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
+        }
+    };
+}
+
+var ACTIVE_PRICING_CONFIG = getDefaultPricingConfig();
+var PRODUCTS = [];
 
 // ROUTE: cartera Costa Norte (coords por ciudad/EDS); la calculadora lista todos vía populateCalcClientSelect().
 const ROUTE = [
@@ -4412,6 +4473,10 @@ function doLogout() {
     if (confirm('¿Cerrar sesión de Rendimax XP3?')) {
         hideFieldZonePolicyBanner();
         hideProductivityGapBanner();
+        if (xp3PricingUnsub) {
+            try { xp3PricingUnsub(); } catch (eP) {}
+            xp3PricingUnsub = null;
+        }
         localStorage.removeItem('rendimax_session');
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('login-email').value = '';
@@ -4422,6 +4487,7 @@ function doLogout() {
 
 function postLogin() {
     console.log('Post Login sequence started');
+    loadPricingConfigLive();
     buildAgenda();
     pollCapacitacionReminders();
     updateHomeVentasMeta();
@@ -4973,6 +5039,7 @@ function onVisitScreenOpened() {
     }
     var num = currentFicha.num;
     hydrateVisitClientEditPanel();
+    try { prefillVisitShareMessage(); } catch (eShareMsg) {}
     setTimeout(function() {
         var sec = document.getElementById('visit-client-data-section');
         if (sec) {
@@ -6574,46 +6641,147 @@ function openCalcForCurrentFicha() {
     showScreen('s-calc', 'nb-calc');
 }
 
-const prodListEl = document.getElementById('products-list');
 const qtys = {};
-PRODUCTS.forEach(p => {
-    qtys[p.id] = 0;
-    const el = document.createElement('div');
-    el.className = 'calc-prod';
-    el.innerHTML =
-        '<div style="display:flex;align-items:center;gap:8px;">'
+
+function formatCOP(n) {
+    var v = Math.round(Number(n) || 0);
+    return '$' + v.toLocaleString('es-CO');
+}
+
+function getOperatorDisplaySignature() {
+    var raw = localStorage.getItem('rendimax_session');
+    var s = raw ? JSON.parse(raw) : {};
+    var name = String(s && s.name ? s.name : 'Asesor XP3').trim();
+    var email = String(s && s.email ? s.email : '').trim();
+    var phone = currentFicha && currentFicha.phone && currentFicha.phone !== 'N/A' ? String(currentFicha.phone).trim() : '';
+    return { name: name, email: email, phone: phone };
+}
+
+function pricingBonusPctForProduct(p) {
+    return typeof p.bonusPct === 'number' ? p.bonusPct : 8;
+}
+
+function getActiveProductsFromConfig(cfg) {
+    var inItems = (cfg && Array.isArray(cfg.items)) ? cfg.items : [];
+    return inItems.filter(function(it) {
+        return it && it.active !== false && it.id && it.name && Number(it.priceCOP) > 0;
+    }).map(function(it) {
+        return {
+            id: String(it.id),
+            name: String(it.name),
+            price: Number(it.priceCOP),
+            bonusPct: Number(it.bonusPct || 0),
+            dotClass: it.dotClass || 'd20',
+            icon: it.icon || '⛽'
+        };
+    });
+}
+
+function applyPricingConfig(cfg, sourceLabel) {
+    var nextCfg = cfg && typeof cfg === 'object' ? cfg : getDefaultPricingConfig();
+    var nextProducts = getActiveProductsFromConfig(nextCfg);
+    if (!nextProducts.length) nextProducts = getActiveProductsFromConfig(getDefaultPricingConfig());
+    ACTIVE_PRICING_CONFIG = nextCfg;
+    PRODUCTS = nextProducts;
+    var keep = {};
+    PRODUCTS.forEach(function(p) {
+        if (qtys[p.id] == null) qtys[p.id] = 0;
+        keep[p.id] = true;
+    });
+    Object.keys(qtys).forEach(function(k) { if (!keep[k]) delete qtys[k]; });
+    renderProductControls();
+    updateCalcTotal();
+    var banner = document.getElementById('online-status-banner');
+    if (banner && sourceLabel) {
+        banner.textContent = '🟢 Precios sincronizados (' + sourceLabel + ')';
+    }
+}
+
+function loadPricingConfigLive() {
+    if (typeof db === 'undefined' || !db) return;
+    if (xp3PricingUnsub) {
+        try { xp3PricingUnsub(); } catch (eU) {}
+        xp3PricingUnsub = null;
+    }
+    xp3PricingUnsub = db.collection(XP3_PRICING_COLLECTION).doc(XP3_PRICING_DOC_ID).onSnapshot(function(doc) {
+        if (doc.exists) applyPricingConfig(doc.data(), 'admin');
+        else applyPricingConfig(getDefaultPricingConfig(), 'base local');
+    }, function() {
+        applyPricingConfig(getDefaultPricingConfig(), 'base local');
+    });
+}
+
+function buildProductRowHtml(p, suffix) {
+    var sid = suffix || '';
+    return '<div class="calc-prod">'
+        + '<div style="display:flex;align-items:center;gap:8px;">'
         + '<div class="prod-dot ' + p.dotClass + '"></div>'
-        + '<div><div style="font-weight:600;font-size:12px;color:var(--t1);">' + p.icon + ' ' + p.name + '</div>'
-        + '<div class="sub" style="font-size:10px;">$' + p.price.toLocaleString('es-CO') + ' / unidad</div></div>'
+        + '<div><div style="font-weight:600;font-size:12px;color:var(--t1);">' + p.icon + ' ' + escapeHtml(p.name) + '</div>'
+        + '<div class="sub" style="font-size:10px;">' + formatCOP(p.price) + ' / unidad · bono ' + Math.round(pricingBonusPctForProduct(p)) + '%</div></div>'
         + '</div>'
         + '<div class="qty-ctrl">'
         + '<button class="qty-btn" onclick="changeQty(\'' + p.id + '\',-1)">−</button>'
-        + '<span class="qty-val" id="qty-' + p.id + '">0</span>'
+        + '<span class="qty-val" id="qty' + sid + '-' + p.id + '">0</span>'
         + '<button class="qty-btn" onclick="changeQty(\'' + p.id + '\',1)">+</button>'
-        + '</div>';
-    prodListEl.appendChild(el);
-});
+        + '</div></div>';
+}
+
+function renderProductControls() {
+    var a = document.getElementById('products-list');
+    var b = document.getElementById('visit-products-list');
+    if (a) a.innerHTML = '';
+    if (b) b.innerHTML = '';
+    PRODUCTS.forEach(function(p) {
+        if (a) a.insertAdjacentHTML('beforeend', buildProductRowHtml(p, ''));
+        if (b) b.insertAdjacentHTML('beforeend', buildProductRowHtml(p, 'v'));
+    });
+    PRODUCTS.forEach(function(p) {
+        var q = qtys[p.id] || 0;
+        var e1 = document.getElementById('qty-' + p.id);
+        var e2 = document.getElementById('qtyv-' + p.id);
+        if (e1) e1.textContent = q;
+        if (e2) e2.textContent = q;
+    });
+}
 
 function changeQty(id, delta) {
     qtys[id] = Math.max(0, (qtys[id] || 0) + delta);
-    document.getElementById('qty-' + id).textContent = qtys[id];
+    var e1 = document.getElementById('qty-' + id);
+    var e2 = document.getElementById('qtyv-' + id);
+    if (e1) e1.textContent = qtys[id];
+    if (e2) e2.textContent = qtys[id];
     updateCalcTotal();
 }
 
 function updateCalcTotal() {
-    let total = 0, units = 0, bd = '';
+    let total = 0, units = 0, bd = '', bonus = 0;
     PRODUCTS.forEach(p => {
         const q = qtys[p.id] || 0;
         if (q > 0) {
             const sub = q * p.price; total += sub; units += q;
+            bonus += sub * (pricingBonusPctForProduct(p) / 100);
             bd += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0;"><span>'
                 + p.icon + ' ' + p.name + ' × ' + q + '</span><span>$' + sub.toLocaleString('es-CO') + '</span></div>';
         }
     });
-    document.getElementById('calc-total-val').textContent    = '$' + total.toLocaleString('es-CO');
-    document.getElementById('calc-savings').textContent      = '$' + Math.round(total * 0.08).toLocaleString('es-CO');
-    document.getElementById('total-units-badge').textContent = units + ' unidades';
-    document.getElementById('calc-breakdown').innerHTML      = bd || '<p class="sub" style="font-size:11px;">Seleccione productos para calcular</p>';
+    var emptyHtml = '<p class="sub" style="font-size:11px;">Seleccione productos para calcular</p>';
+    var t1 = document.getElementById('calc-total-val');
+    var s1 = document.getElementById('calc-savings');
+    var u1 = document.getElementById('total-units-badge');
+    var b1 = document.getElementById('calc-breakdown');
+    if (t1) t1.textContent = formatCOP(total);
+    if (s1) s1.textContent = formatCOP(Math.round(bonus));
+    if (u1) u1.textContent = units + ' unidades';
+    if (b1) b1.innerHTML = bd || emptyHtml;
+
+    var t2 = document.getElementById('visit-calc-total-val');
+    var s2 = document.getElementById('visit-calc-bonus');
+    var u2 = document.getElementById('visit-total-units-badge');
+    var b2 = document.getElementById('visit-calc-breakdown');
+    if (t2) t2.textContent = formatCOP(total);
+    if (s2) s2.textContent = formatCOP(Math.round(bonus));
+    if (u2) u2.textContent = units + ' unidades';
+    if (b2) b2.innerHTML = bd || emptyHtml;
 }
 
 function updateCalcClient() {
@@ -6630,25 +6798,207 @@ function updateCalcClient() {
 }
 
 function sendQuote() {
-    var val = document.getElementById('calc-client').value;
-    var total = document.getElementById('calc-total-val').textContent;
-    if (!val || total === '$0') { alert('Seleccione un cliente y agregue productos.'); return; }
+    prefillVisitShareMessage();
+    shareVisitDocument();
+}
 
-    var cObj = getCalcClientBySelectValue(val);
-    var clientName = val === 'otro'
-        ? 'su estación'
-        : (cObj ? (cObj.company || cObj.name) : 'Cliente');
-    var phone = '573000000000';
-    if (cObj && cObj.phone && String(cObj.phone).trim() !== '' && cObj.phone !== 'N/A') {
-        var digits = String(cObj.phone).replace(/[^0-9]/g, '');
-        if (digits.length >= 10) phone = (digits.indexOf('57') === 0 ? '' : '57') + digits;
+function currentQuoteSummary() {
+    var items = [];
+    var total = 0;
+    var bonus = 0;
+    PRODUCTS.forEach(function(p) {
+        var q = qtys[p.id] || 0;
+        if (!q) return;
+        var line = q * p.price;
+        var b = line * (pricingBonusPctForProduct(p) / 100);
+        items.push({
+            id: p.id,
+            name: p.name,
+            qty: q,
+            unitPriceCOP: Math.round(p.price),
+            lineTotalCOP: Math.round(line),
+            bonusPct: Math.round(pricingBonusPctForProduct(p)),
+            bonusCOP: Math.round(b)
+        });
+        total += line;
+        bonus += b;
+    });
+    return {
+        items: items,
+        totalCOP: Math.round(total),
+        totalBonusCOP: Math.round(bonus)
+    };
+}
+
+function normalizeWhatsAppNumber(rawPhone) {
+    var digits = String(rawPhone || '').replace(/[^0-9]/g, '');
+    if (!digits) return '573000000000';
+    if (digits.length === 10) return '57' + digits;
+    if (digits.length === 12 && digits.indexOf('57') === 0) return digits;
+    return digits;
+}
+
+function getVisitShareContext() {
+    var c = currentFicha || {};
+    var ss = getOperatorDisplaySignature();
+    var sum = currentQuoteSummary();
+    var today = new Date();
+    var fecha = today.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return {
+        clientName: (c.company || c.name || 'Cliente'),
+        adminName: (document.getElementById('visit-edit-admin-name') || {}).value || '',
+        city: c.city || 'Costa Norte',
+        dateText: fecha,
+        totalText: formatCOP(sum.totalCOP),
+        bonusText: formatCOP(sum.totalBonusCOP),
+        itemsText: sum.items.length
+            ? sum.items.map(function(it) { return '- ' + it.name + ' x' + it.qty + ' (' + formatCOP(it.lineTotalCOP) + ')'; }).join('\n')
+            : '- Sin productos seleccionados',
+        advisorName: ss.name,
+        advisorPhone: ss.phone || '—',
+        advisorEmail: ss.email || '—',
+        clientPhone: (document.getElementById('visit-edit-admin-phone') || {}).value || c.phone || '',
+        clientEmail: (document.getElementById('visit-edit-email') || {}).value || c.email || ''
+    };
+}
+
+function buildTemplateMessage(templateText, ctx) {
+    var t = String(templateText || '');
+    return t
+        .replace(/\{\{cliente\}\}/g, ctx.clientName)
+        .replace(/\{\{encargado\}\}/g, ctx.adminName || ctx.clientName)
+        .replace(/\{\{fecha\}\}/g, ctx.dateText)
+        .replace(/\{\{ciudad\}\}/g, ctx.city)
+        .replace(/\{\{total\}\}/g, ctx.totalText)
+        .replace(/\{\{bono\}\}/g, ctx.bonusText)
+        .replace(/\{\{items\}\}/g, ctx.itemsText)
+        .replace(/\{\{asesor\}\}/g, ctx.advisorName)
+        .replace(/\{\{telefono\}\}/g, ctx.advisorPhone)
+        .replace(/\{\{correo\}\}/g, ctx.advisorEmail);
+}
+
+function prefillVisitShareMessage() {
+    var docType = ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion');
+    var templates = (ACTIVE_PRICING_CONFIG && ACTIVE_PRICING_CONFIG.templates) ? ACTIVE_PRICING_CONFIG.templates : {};
+    var base = templates[docType] || getDefaultPricingConfig().templates[docType] || '';
+    var msg = buildTemplateMessage(base, getVisitShareContext());
+    var ta = document.getElementById('visit-share-message');
+    if (ta) ta.value = msg;
+}
+
+function getVisitShareMessage() {
+    var ta = document.getElementById('visit-share-message');
+    var msg = ta ? String(ta.value || '').trim() : '';
+    if (!msg) {
+        prefillVisitShareMessage();
+        msg = ta ? String(ta.value || '').trim() : '';
     }
-    var msg = '🚀 Hola, somos el equipo comercial de Rendimax XP3.\n' +
-        'Te contactamos para presentarte la propuesta oficial para *' + clientName + '*.\n\n' +
-        'El potencial estimado de inversión inteligente es de: *' + total + '*.\n\n' +
-        '¿A qué hora tienes disponibilidad para formalizar el pedido y despachar?';
-    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
-    alert('✅ Cotización lista para ' + clientName + '\nTotal: ' + total + '\n\n📤 En producción se envía por Gmail API desde xp3meta@rendimax.com.co');
+    return msg;
+}
+
+async function buildVisitPdfBlob(docType) {
+    if (docType === 'brochure') {
+        try {
+            var resp = await fetch('BROSHURE%20RDMX%202025%20COMP%20IMG%20(1).pdf', { cache: 'no-store' });
+            if (resp.ok) return await resp.blob();
+        } catch (eBro) {}
+    }
+    var jspdfRoot = window.jspdf;
+    if (!jspdfRoot || !jspdfRoot.jsPDF) throw new Error('jsPDF no disponible');
+    var jsPDF = jspdfRoot.jsPDF;
+    var ctx = getVisitShareContext();
+    var sum = currentQuoteSummary();
+    var doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    var y = 44;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    var title = docType === 'brochure' ? 'BROCHURE COMERCIAL RENDIMAX XP3' : (docType === 'propuesta' ? 'PROPUESTA COMERCIAL RENDIMAX XP3' : 'COTIZACION COMERCIAL RENDIMAX XP3');
+    doc.text(title, 40, y);
+    y += 24;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Bogota, ' + ctx.dateText, 40, y); y += 16;
+    doc.text('Dirigido a: ' + (ctx.adminName || ctx.clientName), 40, y); y += 16;
+    doc.text('EDS / Empresa: ' + ctx.clientName, 40, y); y += 16;
+    doc.text('Ciudad: ' + ctx.city, 40, y); y += 18;
+    if (docType !== 'brochure') {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Detalle', 40, y); y += 14;
+        doc.setFont('helvetica', 'normal');
+        var lines = sum.items.length ? sum.items : [{ name: 'Sin productos seleccionados', qty: 0, lineTotalCOP: 0, bonusPct: 0 }];
+        lines.forEach(function(it) {
+            doc.text((it.name + ' · Cantidad ' + it.qty + ' · Total ' + formatCOP(it.lineTotalCOP) + ' · Bono ' + it.bonusPct + '%'), 46, y);
+            y += 14;
+        });
+        y += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total estimado: ' + formatCOP(sum.totalCOP), 40, y); y += 15;
+        doc.text('Bonificacion estimada: ' + formatCOP(sum.totalBonusCOP), 40, y); y += 18;
+    }
+    doc.setFont('helvetica', 'normal');
+    var msgLines = doc.splitTextToSize(getVisitShareMessage(), 520);
+    doc.text(msgLines, 40, y); y += Math.max(40, msgLines.length * 13);
+    y += 16;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Atentamente,', 40, y); y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.text(ctx.advisorName, 40, y); y += 14;
+    doc.text('Tel: ' + ctx.advisorPhone + ' · Correo: ' + ctx.advisorEmail, 40, y);
+    var blob = doc.output('blob');
+    return blob;
+}
+
+async function shareVisitDocument() {
+    var docType = ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion');
+    var channel = ((document.getElementById('visit-share-channel') || {}).value || 'whatsapp');
+    var msg = getVisitShareMessage();
+    var ctx = getVisitShareContext();
+    var sum = currentQuoteSummary();
+    if (docType !== 'brochure' && !sum.items.length) {
+        alert('Agrega al menos una referencia antes de compartir la cotización/propuesta.');
+        return;
+    }
+    var blob = await buildVisitPdfBlob(docType);
+    var fileName = (docType + '_' + String(ctx.clientName || 'cliente').replace(/[^a-z0-9_-]+/gi, '_') + '_' + ctx.dateText.replace(/\//g, '-') + '.pdf').toLowerCase();
+    var file = new File([blob], fileName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                title: 'Rendimax XP3 · ' + (docType === 'cotizacion' ? 'Cotizacion' : docType === 'propuesta' ? 'Propuesta' : 'Brochure'),
+                text: msg,
+                files: [file]
+            });
+            return;
+        } catch (eShare) {}
+    }
+    if (channel === 'email') {
+        var em = String(ctx.clientEmail || '').trim();
+        if (!em || em === 'N/D') em = '';
+        var sub = encodeURIComponent('Rendimax XP3 - ' + (docType === 'cotizacion' ? 'Cotizacion' : docType === 'propuesta' ? 'Propuesta Comercial' : 'Brochure'));
+        var body = encodeURIComponent(msg + '\n\nAdjunto: ' + fileName + ' (si el navegador no adjunta automaticamente, usa Descargar PDF).');
+        window.location.href = 'mailto:' + em + '?subject=' + sub + '&body=' + body;
+    } else {
+        var wa = normalizeWhatsAppNumber(ctx.clientPhone);
+        window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
+    }
+    alert('Este dispositivo no soporta compartir archivos directo en web. Se envio el mensaje por canal seleccionado; si necesitas adjunto, usa "Descargar PDF".');
+}
+
+async function downloadVisitQuotePdf() {
+    var docType = ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion');
+    var blob = await buildVisitPdfBlob(docType);
+    var ctx = getVisitShareContext();
+    var fileName = (docType + '_' + String(ctx.clientName || 'cliente').replace(/[^a-z0-9_-]+/gi, '_') + '_' + ctx.dateText.replace(/\//g, '-') + '.pdf').toLowerCase();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+        try { URL.revokeObjectURL(url); } catch (eR) {}
+        try { a.remove(); } catch (eA) {}
+    }, 1000);
 }
 async function saveVisitToFirebase() {
     const btn = document.getElementById('btn-save-visit');
@@ -6676,8 +7026,8 @@ async function saveVisitToFirebase() {
             btn.disabled = true;
         }
 
-        var calcEl = document.getElementById('calc-total-val');
-        const calcVal = calcEl ? calcEl.textContent : '$0';
+        var quoteSum = currentQuoteSummary();
+        const calcVal = formatCOP(quoteSum.totalCOP || 0);
 
         var anchorPayload = null;
         if (currentFicha && currentFicha.num != null && VISIT_ANCHORS[currentFicha.num]) {
@@ -6695,6 +7045,14 @@ async function saveVisitToFirebase() {
             result: resVal.trim(),
             comment: comment,
             amountCalculated: calcVal,
+            quoteDetail: {
+                items: quoteSum.items,
+                totalCOP: quoteSum.totalCOP || 0,
+                totalBonusCOP: quoteSum.totalBonusCOP || 0,
+                docType: ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion'),
+                channel: ((document.getElementById('visit-share-channel') || {}).value || 'whatsapp'),
+                message: getVisitShareMessage()
+            },
             clientRef: currentFicha ? currentFicha.name : 'Ruta Generica',
             clientNum: currentFicha ? currentFicha.num : null,
             visitDurationSec: visitDurationSec,
@@ -6800,6 +7158,8 @@ document.getElementById('comment').addEventListener('input', function() {
     document.getElementById('ai-sug').style.display =
         kw.some(k => this.value.toLowerCase().includes(k)) ? 'block' : 'none';
 });
+var _visitDocTypeSel = document.getElementById('visit-doc-type');
+if (_visitDocTypeSel) _visitDocTypeSel.addEventListener('change', prefillVisitShareMessage);
 
 // ================================================================
 // RESULT SELECTOR
@@ -6833,6 +7193,7 @@ if (savedSession) {
 }
 
 buildRouteList();
+applyPricingConfig(getDefaultPricingConfig(), 'base local');
 populateCalcClientSelect(null);
 updateCalcTotal();
 buildAgenda();
