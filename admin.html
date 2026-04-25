@@ -620,7 +620,10 @@ function adminDefaultPricingConfig() {
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
         },
         pdfText: {
-            propuestaBody: 'Reciban un cordial saludo de parte de Rendimax XP3.\n\nPresentamos nuestra propuesta comercial de aditivos para combustibles diésel y gasolina con enfoque en eficiencia, protección del motor y reducción de emisiones.\n\nBeneficios clave:\n- Mejora del rendimiento operativo del combustible.\n- Reducción de residuos y mantenimiento correctivo.\n- Soporte comercial y acompañamiento en campo.\n\nQuedamos atentos para avanzar con piloto o pedido inicial.',
+            propuestaIntro: 'Reciban un cordial saludo de parte de Rendimax XP3. Agradecemos la oportunidad de presentar una propuesta comercial orientada a mejorar eficiencia operativa, rentabilidad y diferenciación en su estación de servicio.',
+            propuestaTecnica: 'RENDIMAX XP3 es una formulación para combustibles diésel y gasolina que contribuye a una combustión más eficiente, mejor aprovechamiento energético y reducción de residuos internos del motor.',
+            propuestaBeneficios: 'Beneficios clave:\n- Reducción de consumo en escenarios de operación comparables.\n- Disminución de residuos y costos de mantenimiento.\n- Mejor desempeño del combustible y apoyo comercial en campo.',
+            propuestaCierre: 'Quedamos atentos para activar piloto o pedido inicial y acompañar la implementación en su estación.',
             cotizacionCondiciones: 'Condiciones comerciales:\n- No se realizan cambios después de recibida la mercancía.\n- La entrega de mercancía no genera costo adicional.\n- Descuento por pago de contado según porcentaje vigente.'
         },
         quoteRules: {
@@ -670,8 +673,14 @@ function renderAdminPricingEditor(cfg) {
         + '<textarea id="admin-template-propuesta" style="height:80px;">' + escapeHtml(String(t.propuesta || '')) + '</textarea>'
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla brochure</p>'
         + '<textarea id="admin-template-brochure" style="height:80px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Texto base propuesta PDF</p>'
-        + '<textarea id="admin-pdf-propuesta-body" style="height:110px;">' + escapeHtml(String(ptxt.propuestaBody || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · intro</p>'
+        + '<textarea id="admin-pdf-propuesta-intro" style="height:90px;">' + escapeHtml(String(ptxt.propuestaIntro || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · presentación técnica</p>'
+        + '<textarea id="admin-pdf-propuesta-tecnica" style="height:90px;">' + escapeHtml(String(ptxt.propuestaTecnica || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · beneficios</p>'
+        + '<textarea id="admin-pdf-propuesta-beneficios" style="height:110px;">' + escapeHtml(String(ptxt.propuestaBeneficios || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · cierre</p>'
+        + '<textarea id="admin-pdf-propuesta-cierre" style="height:80px;">' + escapeHtml(String(ptxt.propuestaCierre || '')) + '</textarea>'
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Condiciones comerciales PDF cotización</p>'
         + '<textarea id="admin-pdf-cot-cond" style="height:100px;">' + escapeHtml(String(ptxt.cotizacionCondiciones || '')) + '</textarea>';
 }
@@ -701,7 +710,10 @@ function readAdminPricingFromForm() {
     var tCot = (document.getElementById('admin-template-cotizacion') || {}).value || '';
     var tPro = (document.getElementById('admin-template-propuesta') || {}).value || '';
     var tBro = (document.getElementById('admin-template-brochure') || {}).value || '';
-    var pBody = (document.getElementById('admin-pdf-propuesta-body') || {}).value || '';
+    var pIntro = (document.getElementById('admin-pdf-propuesta-intro') || {}).value || '';
+    var pTec = (document.getElementById('admin-pdf-propuesta-tecnica') || {}).value || '';
+    var pBen = (document.getElementById('admin-pdf-propuesta-beneficios') || {}).value || '';
+    var pClose = (document.getElementById('admin-pdf-propuesta-cierre') || {}).value || '';
     var pCond = (document.getElementById('admin-pdf-cot-cond') || {}).value || '';
     var ivaPct = parseFloat((document.getElementById('admin-quote-iva') || {}).value || '19');
     var retPct = parseFloat((document.getElementById('admin-quote-ret') || {}).value || '0');
@@ -714,7 +726,10 @@ function readAdminPricingFromForm() {
             brochure: String(tBro).trim()
         },
         pdfText: {
-            propuestaBody: String(pBody).trim(),
+            propuestaIntro: String(pIntro).trim(),
+            propuestaTecnica: String(pTec).trim(),
+            propuestaBeneficios: String(pBen).trim(),
+            propuestaCierre: String(pClose).trim(),
             cotizacionCondiciones: String(pCond).trim()
         },
         quoteRules: {

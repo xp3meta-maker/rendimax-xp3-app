@@ -851,6 +851,11 @@
                 </select>
                 <label class="sub" style="font-size:10px;display:block;margin-bottom:4px;">Mensaje personalizado</label>
                 <textarea id="visit-share-message" style="height:90px;margin-bottom:8px;" placeholder="Texto para enviar al cliente..."></textarea>
+                <button type="button" class="btn btn-gh btn-sm" style="width:100%;margin-bottom:8px;" onclick="renderVisitDocumentPreview()">👁️ Vista previa del documento</button>
+                <div id="visit-doc-preview" class="card" style="display:none;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,179,0,.25);">
+                    <p class="lbl" id="visit-doc-preview-title" style="margin-bottom:6px;">Vista previa</p>
+                    <div id="visit-doc-preview-body" class="sub" style="white-space:pre-wrap;font-size:10px;line-height:1.45;max-height:170px;overflow:auto;"></div>
+                </div>
                 <div class="g2">
                     <button type="button" class="btn btn-gh btn-sm" onclick="downloadVisitQuotePdf()">📄 Descargar PDF</button>
                     <button type="button" class="btn btn-p btn-sm" style="box-shadow:none;" onclick="shareVisitDocument()">📤 Compartir</button>
@@ -914,7 +919,10 @@ function getDefaultPricingConfig() {
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
         },
         pdfText: {
-            propuestaBody: 'Reciban un cordial saludo de parte de Rendimax XP3.\n\nPresentamos nuestra propuesta comercial de aditivos para combustibles diésel y gasolina con enfoque en eficiencia, protección del motor y reducción de emisiones.\n\nBeneficios clave:\n- Mejora del rendimiento operativo del combustible.\n- Reducción de residuos y mantenimiento correctivo.\n- Soporte comercial y acompañamiento en campo.\n\nQuedamos atentos para avanzar con piloto o pedido inicial.',
+            propuestaIntro: 'Reciban un cordial saludo de parte de Rendimax XP3. Agradecemos la oportunidad de presentar una propuesta comercial orientada a mejorar eficiencia operativa, rentabilidad y diferenciación en su estación de servicio.',
+            propuestaTecnica: 'RENDIMAX XP3 es una formulación para combustibles diésel y gasolina que contribuye a una combustión más eficiente, mejor aprovechamiento energético y reducción de residuos internos del motor.',
+            propuestaBeneficios: 'Beneficios clave:\n- Reducción de consumo en escenarios de operación comparables.\n- Disminución de residuos y costos de mantenimiento.\n- Mejor desempeño del combustible y apoyo comercial en campo.',
+            propuestaCierre: 'Quedamos atentos para activar piloto o pedido inicial y acompañar la implementación en su estación.',
             cotizacionCondiciones: 'Condiciones comerciales:\n- No se realizan cambios después de recibida la mercancía.\n- La entrega de mercancía no genera costo adicional.\n- Descuento por pago de contado según porcentaje vigente.'
         },
         quoteRules: {
@@ -6684,7 +6692,10 @@ function getPdfTextConfig(cfg) {
     var p = cfg && cfg.pdfText ? cfg.pdfText : {};
     var base = getDefaultPricingConfig().pdfText;
     return {
-        propuestaBody: String(p.propuestaBody != null ? p.propuestaBody : base.propuestaBody),
+        propuestaIntro: String(p.propuestaIntro != null ? p.propuestaIntro : base.propuestaIntro),
+        propuestaTecnica: String(p.propuestaTecnica != null ? p.propuestaTecnica : base.propuestaTecnica),
+        propuestaBeneficios: String(p.propuestaBeneficios != null ? p.propuestaBeneficios : base.propuestaBeneficios),
+        propuestaCierre: String(p.propuestaCierre != null ? p.propuestaCierre : base.propuestaCierre),
         cotizacionCondiciones: String(p.cotizacionCondiciones != null ? p.cotizacionCondiciones : base.cotizacionCondiciones)
     };
 }
@@ -6955,6 +6966,60 @@ function getVisitShareMessage() {
     return msg;
 }
 
+function buildVisitDocumentPreviewText(docType) {
+    var ctx = getVisitShareContext();
+    var sum = currentQuoteSummary();
+    var pdfTxt = getPdfTextConfig(ACTIVE_PRICING_CONFIG);
+    var out = [];
+    out.push('Documento: ' + (docType === 'cotizacion' ? 'Cotización' : docType === 'propuesta' ? 'Propuesta comercial' : 'Brochure'));
+    out.push('Fecha: ' + ctx.dateText + ' · Ciudad: ' + ctx.city);
+    out.push('Dirigido a: ' + (ctx.adminName || ctx.clientName));
+    out.push('EDS/Empresa: ' + ctx.clientName);
+    out.push('');
+    if (docType === 'cotizacion') {
+        out.push('RESUMEN ECONOMICO');
+        out.push('Base: ' + formatCOP(sum.baseCOP || 0));
+        out.push('IVA: ' + formatCOP(sum.ivaCOP || 0) + ' · Retención: ' + formatCOP(sum.retencionCOP || 0));
+        out.push('Descuento contado: ' + formatCOP(sum.descuentoContadoCOP || 0));
+        out.push('TOTAL NETO: ' + formatCOP(sum.totalCOP || 0));
+        out.push('Bonificación estimada: ' + formatCOP(sum.totalBonusCOP || 0));
+    } else if (docType === 'propuesta') {
+        out.push('RESUMEN PROPUESTA');
+        out.push(pdfTxt.propuestaIntro);
+        out.push('');
+        out.push('Presentación técnica: ' + pdfTxt.propuestaTecnica);
+        out.push('');
+        out.push(pdfTxt.propuestaBeneficios);
+        out.push('');
+        out.push('Cierre: ' + pdfTxt.propuestaCierre);
+    } else {
+        out.push('BROCHURE');
+        out.push('Se adjuntará el brochure corporativo PDF. Si el dispositivo no permite adjuntar directo, se enviará resumen comercial y opción de descarga.');
+    }
+    if (sum.items && sum.items.length) {
+        out.push('');
+        out.push('Referencias seleccionadas:');
+        sum.items.forEach(function(it) {
+            out.push('- ' + it.name + ' x' + it.qty + ' = ' + formatCOP(it.lineTotalCOP));
+        });
+    }
+    out.push('');
+    out.push('Mensaje al cliente:');
+    out.push(getVisitShareMessage() || '(vacío)');
+    return out.join('\n');
+}
+
+function renderVisitDocumentPreview() {
+    var docType = ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion');
+    var title = document.getElementById('visit-doc-preview-title');
+    var body = document.getElementById('visit-doc-preview-body');
+    var box = document.getElementById('visit-doc-preview');
+    if (!box || !body) return;
+    if (title) title.textContent = 'Vista previa · ' + (docType === 'cotizacion' ? 'Cotización' : docType === 'propuesta' ? 'Propuesta' : 'Brochure');
+    body.textContent = buildVisitDocumentPreviewText(docType);
+    box.style.display = 'block';
+}
+
 async function buildVisitPdfBlob(docType) {
     if (docType === 'brochure') {
         try {
@@ -6982,7 +7047,35 @@ async function buildVisitPdfBlob(docType) {
     doc.text('EDS / Empresa: ' + ctx.clientName, 40, y); y += 16;
     doc.text('Ciudad: ' + ctx.city, 40, y); y += 18;
     if (docType === 'propuesta') {
-        var propLines = doc.splitTextToSize(pdfTxt.propuestaBody || '', 520);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Ref: Propuesta comercial', 40, y); y += 16;
+        doc.setFont('helvetica', 'normal');
+        var propHeader = doc.splitTextToSize(pdfTxt.propuestaIntro || '', 520);
+        doc.text(propHeader, 40, y);
+        y += Math.max(50, propHeader.length * 13);
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Presentación del producto', 40, y); y += 14;
+        doc.setFont('helvetica', 'normal');
+        var techLines = doc.splitTextToSize(pdfTxt.propuestaTecnica || '', 520);
+        doc.text(techLines, 40, y);
+        y += Math.max(40, techLines.length * 13);
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Beneficios comerciales y operativos', 40, y); y += 14;
+        doc.setFont('helvetica', 'normal');
+        var benLines = doc.splitTextToSize(pdfTxt.propuestaBeneficios || '', 520);
+        doc.text(benLines, 40, y);
+        y += Math.max(50, benLines.length * 13);
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Cierre comercial', 40, y); y += 14;
+        doc.setFont('helvetica', 'normal');
+        var closeLines = doc.splitTextToSize(pdfTxt.propuestaCierre || '', 520);
+        doc.text(closeLines, 40, y);
+        y += Math.max(30, closeLines.length * 13);
+        y += 8;
+        var propLines = doc.splitTextToSize('Resumen para decisión comercial del cliente.', 520);
         doc.text(propLines, 40, y);
         y += Math.max(80, propLines.length * 13);
         y += 8;
@@ -7056,6 +7149,8 @@ async function shareVisitDocument() {
         alert('Agrega al menos una referencia antes de compartir la cotización/propuesta.');
         return;
     }
+    renderVisitDocumentPreview();
+    if (!confirm('¿Confirmas que la vista previa está correcta antes de compartir?')) return;
     var blob = await buildVisitPdfBlob(docType);
     var fileName = (docType + '_' + String(ctx.clientName || 'cliente').replace(/[^a-z0-9_-]+/gi, '_') + '_' + ctx.dateText.replace(/\//g, '-') + '.pdf').toLowerCase();
     var file = new File([blob], fileName, { type: 'application/pdf' });
@@ -7263,6 +7358,9 @@ document.getElementById('comment').addEventListener('input', function() {
 });
 var _visitDocTypeSel = document.getElementById('visit-doc-type');
 if (_visitDocTypeSel) _visitDocTypeSel.addEventListener('change', prefillVisitShareMessage);
+if (_visitDocTypeSel) _visitDocTypeSel.addEventListener('change', renderVisitDocumentPreview);
+var _visitShareChannelSel = document.getElementById('visit-share-channel');
+if (_visitShareChannelSel) _visitShareChannelSel.addEventListener('change', renderVisitDocumentPreview);
 
 // ================================================================
 // RESULT SELECTOR
