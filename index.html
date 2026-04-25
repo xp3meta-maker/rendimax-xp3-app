@@ -913,6 +913,10 @@ function getDefaultPricingConfig() {
             propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
         },
+        pdfText: {
+            propuestaBody: 'Reciban un cordial saludo de parte de Rendimax XP3.\n\nPresentamos nuestra propuesta comercial de aditivos para combustibles diésel y gasolina con enfoque en eficiencia, protección del motor y reducción de emisiones.\n\nBeneficios clave:\n- Mejora del rendimiento operativo del combustible.\n- Reducción de residuos y mantenimiento correctivo.\n- Soporte comercial y acompañamiento en campo.\n\nQuedamos atentos para avanzar con piloto o pedido inicial.',
+            cotizacionCondiciones: 'Condiciones comerciales:\n- No se realizan cambios después de recibida la mercancía.\n- La entrega de mercancía no genera costo adicional.\n- Descuento por pago de contado según porcentaje vigente.'
+        },
         quoteRules: {
             ivaPct: 19,
             retencionPct: 0,
@@ -6676,6 +6680,15 @@ function getQuoteRules(cfg) {
     };
 }
 
+function getPdfTextConfig(cfg) {
+    var p = cfg && cfg.pdfText ? cfg.pdfText : {};
+    var base = getDefaultPricingConfig().pdfText;
+    return {
+        propuestaBody: String(p.propuestaBody != null ? p.propuestaBody : base.propuestaBody),
+        cotizacionCondiciones: String(p.cotizacionCondiciones != null ? p.cotizacionCondiciones : base.cotizacionCondiciones)
+    };
+}
+
 function getActiveProductsFromConfig(cfg) {
     var inItems = (cfg && Array.isArray(cfg.items)) ? cfg.items : [];
     return inItems.filter(function(it) {
@@ -6954,6 +6967,7 @@ async function buildVisitPdfBlob(docType) {
     var jsPDF = jspdfRoot.jsPDF;
     var ctx = getVisitShareContext();
     var sum = currentQuoteSummary();
+    var pdfTxt = getPdfTextConfig(ACTIVE_PRICING_CONFIG);
     var doc = new jsPDF({ unit: 'pt', format: 'a4' });
     var y = 44;
     doc.setFont('helvetica', 'bold');
@@ -6967,7 +6981,25 @@ async function buildVisitPdfBlob(docType) {
     doc.text('Dirigido a: ' + (ctx.adminName || ctx.clientName), 40, y); y += 16;
     doc.text('EDS / Empresa: ' + ctx.clientName, 40, y); y += 16;
     doc.text('Ciudad: ' + ctx.city, 40, y); y += 18;
-    if (docType !== 'brochure') {
+    if (docType === 'propuesta') {
+        var propLines = doc.splitTextToSize(pdfTxt.propuestaBody || '', 520);
+        doc.text(propLines, 40, y);
+        y += Math.max(80, propLines.length * 13);
+        y += 8;
+        if (sum.items.length) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('Referencias consideradas en esta propuesta', 40, y); y += 14;
+            doc.setFont('helvetica', 'normal');
+            sum.items.forEach(function(it) {
+                doc.text('- ' + it.name + ' x' + it.qty + ' (' + formatCOP(it.lineTotalCOP) + ')', 46, y);
+                y += 13;
+            });
+            y += 8;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text('Valor referencial total: ' + formatCOP(sum.totalCOP), 40, y); y += 18;
+        doc.setFont('helvetica', 'normal');
+    } else if (docType === 'cotizacion') {
         doc.setFont('helvetica', 'bold');
         doc.text('Detalle', 40, y); y += 14;
         doc.setFont('helvetica', 'normal');
@@ -6986,6 +7018,20 @@ async function buildVisitPdfBlob(docType) {
         doc.text('Total neto del pedido: ' + formatCOP(sum.totalCOP), 40, y); y += 15;
         doc.text('Bonificacion estimada: ' + formatCOP(sum.totalBonusCOP), 40, y); y += 18;
         doc.setFont('helvetica', 'normal');
+        var condLines = doc.splitTextToSize(pdfTxt.cotizacionCondiciones || '', 520);
+        if (condLines.length) {
+            doc.text(condLines, 40, y);
+            y += Math.max(50, condLines.length * 13);
+        }
+    } else {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Brochure institucional', 40, y); y += 14;
+        doc.setFont('helvetica', 'normal');
+        var fallbackBro = 'No se pudo adjuntar el brochure PDF original en este dispositivo.\nSe comparte ficha resumen comercial para contacto inmediato.\n\n'
+            + (pdfTxt.propuestaBody || '');
+        var broLines = doc.splitTextToSize(fallbackBro, 520);
+        doc.text(broLines, 40, y);
+        y += Math.max(80, broLines.length * 13);
     }
     doc.setFont('helvetica', 'normal');
     var msgLines = doc.splitTextToSize(getVisitShareMessage(), 520);
@@ -7099,8 +7145,13 @@ async function saveVisitToFirebase() {
             amountCalculated: calcVal,
             quoteDetail: {
                 items: quoteSum.items,
+                baseCOP: quoteSum.baseCOP || 0,
+                ivaCOP: quoteSum.ivaCOP || 0,
+                retencionCOP: quoteSum.retencionCOP || 0,
+                descuentoContadoCOP: quoteSum.descuentoContadoCOP || 0,
                 totalCOP: quoteSum.totalCOP || 0,
                 totalBonusCOP: quoteSum.totalBonusCOP || 0,
+                quoteRules: quoteSum.quoteRules || getQuoteRules(ACTIVE_PRICING_CONFIG),
                 docType: ((document.getElementById('visit-doc-type') || {}).value || 'cotizacion'),
                 channel: ((document.getElementById('visit-share-channel') || {}).value || 'whatsapp'),
                 message: getVisitShareMessage()

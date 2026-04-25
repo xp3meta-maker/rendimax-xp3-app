@@ -619,6 +619,10 @@ function adminDefaultPricingConfig() {
             propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
         },
+        pdfText: {
+            propuestaBody: 'Reciban un cordial saludo de parte de Rendimax XP3.\n\nPresentamos nuestra propuesta comercial de aditivos para combustibles diésel y gasolina con enfoque en eficiencia, protección del motor y reducción de emisiones.\n\nBeneficios clave:\n- Mejora del rendimiento operativo del combustible.\n- Reducción de residuos y mantenimiento correctivo.\n- Soporte comercial y acompañamiento en campo.\n\nQuedamos atentos para avanzar con piloto o pedido inicial.',
+            cotizacionCondiciones: 'Condiciones comerciales:\n- No se realizan cambios después de recibida la mercancía.\n- La entrega de mercancía no genera costo adicional.\n- Descuento por pago de contado según porcentaje vigente.'
+        },
         quoteRules: {
             ivaPct: 19,
             retencionPct: 0,
@@ -633,6 +637,7 @@ function renderAdminPricingEditor(cfg) {
     var c = cfg && typeof cfg === 'object' ? cfg : adminDefaultPricingConfig();
     var items = Array.isArray(c.items) ? c.items : [];
     var t = c.templates || {};
+    var ptxt = c.pdfText || {};
     var q = c.quoteRules || {};
     var ivaPct = Number(q.ivaPct != null ? q.ivaPct : 19) || 0;
     var retPct = Number(q.retencionPct != null ? q.retencionPct : 0) || 0;
@@ -664,7 +669,11 @@ function renderAdminPricingEditor(cfg) {
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla propuesta</p>'
         + '<textarea id="admin-template-propuesta" style="height:80px;">' + escapeHtml(String(t.propuesta || '')) + '</textarea>'
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla brochure</p>'
-        + '<textarea id="admin-template-brochure" style="height:80px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>';
+        + '<textarea id="admin-template-brochure" style="height:80px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Texto base propuesta PDF</p>'
+        + '<textarea id="admin-pdf-propuesta-body" style="height:110px;">' + escapeHtml(String(ptxt.propuestaBody || '')) + '</textarea>'
+        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Condiciones comerciales PDF cotización</p>'
+        + '<textarea id="admin-pdf-cot-cond" style="height:100px;">' + escapeHtml(String(ptxt.cotizacionCondiciones || '')) + '</textarea>';
 }
 
 function readAdminPricingFromForm() {
@@ -692,6 +701,8 @@ function readAdminPricingFromForm() {
     var tCot = (document.getElementById('admin-template-cotizacion') || {}).value || '';
     var tPro = (document.getElementById('admin-template-propuesta') || {}).value || '';
     var tBro = (document.getElementById('admin-template-brochure') || {}).value || '';
+    var pBody = (document.getElementById('admin-pdf-propuesta-body') || {}).value || '';
+    var pCond = (document.getElementById('admin-pdf-cot-cond') || {}).value || '';
     var ivaPct = parseFloat((document.getElementById('admin-quote-iva') || {}).value || '19');
     var retPct = parseFloat((document.getElementById('admin-quote-ret') || {}).value || '0');
     var desPct = parseFloat((document.getElementById('admin-quote-desc') || {}).value || '5');
@@ -701,6 +712,10 @@ function readAdminPricingFromForm() {
             cotizacion: String(tCot).trim(),
             propuesta: String(tPro).trim(),
             brochure: String(tBro).trim()
+        },
+        pdfText: {
+            propuestaBody: String(pBody).trim(),
+            cotizacionCondiciones: String(pCond).trim()
         },
         quoteRules: {
             ivaPct: Math.max(0, Math.min(100, isNaN(ivaPct) ? 19 : ivaPct)),
