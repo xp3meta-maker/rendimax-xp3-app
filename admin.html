@@ -293,7 +293,7 @@
         <span style="color:var(--t3);">Misma sesión que la app si iniciaste con la misma cuenta en este navegador.</span>
     </p>
 
-    <div class="card" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);margin-bottom:18px;">
+    <div class="card" id="admin-summary-meta-card" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);margin-bottom:18px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <span style="font-weight:700;" id="admin-user">—</span>
         </div>
@@ -306,7 +306,7 @@
         </p>
     </div>
 
-    <div class="card" style="margin-bottom:18px;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
+    <div class="card" id="admin-live-wrap" style="margin-bottom:18px;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
         <p class="lbl" style="margin-bottom:8px;color:#fca5a5;">Dónde está ahora (última señal de la app)</p>
         <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
         <p class="muted-hint" id="admin-live-ping-hint">La app escribe <strong>xp3_ubicacion_operador</strong> cada ~18 s con GPS activo (misma pantalla con «GPS» en verde). Pings históricos ~2 min en <strong>xp3_seguimiento_pings</strong>. Si el teléfono duerme o niega ubicación, no hay señal nueva.</p>
@@ -320,7 +320,7 @@
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-timeline" onclick="setAdminMainTab('timeline')">Línea del tiempo del día</button>
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-config" onclick="setAdminMainTab('config')">Configuración comercial</button>
         <div style="flex:1;min-width:8px;"></div>
-        <label class="sub" for="admin-filter-operator" style="white-space:nowrap;">Operador</label>
+        <label class="sub" id="admin-filter-operator-label" for="admin-filter-operator" style="white-space:nowrap;">Operador</label>
         <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
     </div>
 
@@ -1072,10 +1072,20 @@ function setAdminMainTab(tab) {
     var pSum = document.getElementById('admin-panel-summary');
     var pTl = document.getElementById('admin-panel-timeline');
     var pCfg = document.getElementById('admin-panel-config');
+    var routeWrap = document.getElementById('admin-route-plan-wrap');
+    var liveWrap = document.getElementById('admin-live-wrap');
+    var metaCard = document.getElementById('admin-summary-meta-card');
+    var opSel = document.getElementById('admin-filter-operator');
+    var opLbl = document.getElementById('admin-filter-operator-label');
     var bSum = document.getElementById('tab-summary');
     var bTl = document.getElementById('tab-timeline');
     var bCfg = document.getElementById('tab-config');
     if (_adminMainTab === 'timeline') {
+        if (metaCard) metaCard.style.display = 'block';
+        if (liveWrap) liveWrap.style.display = 'block';
+        if (routeWrap) routeWrap.style.display = 'block';
+        if (opSel) opSel.style.display = 'inline-block';
+        if (opLbl) opLbl.style.display = 'inline-block';
         if (pSum) pSum.style.display = 'none';
         if (pTl) pTl.style.display = 'block';
         if (pCfg) pCfg.style.display = 'none';
@@ -1084,6 +1094,11 @@ function setAdminMainTab(tab) {
         if (bCfg) bCfg.classList.remove('admin-tab-active');
         renderAdminTimeline(orcDateKeyISO(new Date()));
     } else if (_adminMainTab === 'config') {
+        if (metaCard) metaCard.style.display = 'none';
+        if (liveWrap) liveWrap.style.display = 'none';
+        if (routeWrap) routeWrap.style.display = 'none';
+        if (opSel) opSel.style.display = 'none';
+        if (opLbl) opLbl.style.display = 'none';
         if (pSum) pSum.style.display = 'none';
         if (pTl) pTl.style.display = 'none';
         if (pCfg) pCfg.style.display = 'block';
@@ -1091,6 +1106,11 @@ function setAdminMainTab(tab) {
         if (bTl) bTl.classList.remove('admin-tab-active');
         if (bCfg) bCfg.classList.add('admin-tab-active');
     } else {
+        if (metaCard) metaCard.style.display = 'block';
+        if (liveWrap) liveWrap.style.display = 'block';
+        if (routeWrap) routeWrap.style.display = 'block';
+        if (opSel) opSel.style.display = 'inline-block';
+        if (opLbl) opLbl.style.display = 'inline-block';
         if (pSum) pSum.style.display = 'block';
         if (pTl) pTl.style.display = 'none';
         if (pCfg) pCfg.style.display = 'none';
@@ -1545,6 +1565,7 @@ function showDashboardAfterAuth(name, email, picture) {
     document.getElementById('dash-root').classList.add('visible');
     loadAdminVentasMesField();
     loadAdminPricingConfig();
+    setAdminMainTab('summary');
     loadAdminDashboard();
 }
 
