@@ -166,6 +166,9 @@
         @media (min-width: 900px) {
             .kpi-grid { grid-template-columns: repeat(3, 1fr); }
         }
+        @media (min-width: 1100px) {
+            .admin-col-center .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+        }
         .visit-block {
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             padding: 14px 0;
@@ -264,7 +267,7 @@
         .admin-route-sum-chip.ok { background: rgba(34, 197, 94, 0.25); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.35); }
         .admin-route-sum-chip.pend { background: rgba(250, 204, 21, 0.18); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.35); }
         .admin-route-sum-text { font-size: 12px; font-weight: 600; color: var(--textSoft); flex: 1; min-width: 120px; line-height: 1.35; }
-        #dash-root { display: none; max-width: 1760px; margin: 0 auto; padding: 24px 32px 56px; }
+        #dash-root { display: none; max-width: 1900px; margin: 0 auto; padding: 20px 20px 56px; }
         #dash-root.visible { display: block; }
         .dash-top {
             display: flex;
@@ -275,22 +278,59 @@
             margin-bottom: 20px;
         }
         .dash-links a { color: #7dd3fc; font-size: 13px; font-weight: 600; margin-right: 16px; }
-        .dash-grid {
+
+        /* ── 3-column summary layout ─────────────────────────────── */
+        .admin-3col {
             display: grid;
-            gap: 22px;
             grid-template-columns: 1fr;
+            gap: 18px;
+            align-items: start;
         }
-        @media (min-width: 1024px) {
-            .dash-grid { grid-template-columns: 1.02fr 1.2fr; align-items: start; }
-            #admin-tracking-map { height: min(58vh, 640px) !important; min-height: 420px; }
+        @media (min-width: 1100px) {
+            .admin-3col {
+                grid-template-columns: 300px 1fr 370px;
+            }
+            .admin-col-left {
+                position: sticky;
+                top: 80px;
+                max-height: calc(100vh - 100px);
+                overflow-y: auto;
+                scrollbar-width: thin;
+            }
+            .admin-col-right {
+                position: sticky;
+                top: 80px;
+                max-height: calc(100vh - 100px);
+                overflow-y: auto;
+                scrollbar-width: thin;
+            }
         }
         @media (min-width: 1400px) {
-            .dash-grid { grid-template-columns: 1fr 1.3fr; }
+            .admin-3col {
+                grid-template-columns: 320px 1fr 420px;
+            }
         }
-        #admin-tracking-map { width: 100%; height: 320px; border-radius: 16px; border: 1px solid var(--border); background: var(--bg2); }
-        #admin-visits-table { max-height: 280px; overflow-y: auto; font-size: 12px; line-height: 1.45; }
-        @media (min-width: 1024px) {
-            #admin-visits-table { max-height: min(68vh, 900px); }
+        @media (min-width: 1700px) {
+            .admin-3col {
+                grid-template-columns: 340px 1fr 460px;
+            }
+        }
+        #admin-tracking-map {
+            width: 100%;
+            height: 360px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--bg2);
+        }
+        @media (min-width: 1100px) {
+            #admin-tracking-map {
+                height: min(60vh, 680px);
+                min-height: 400px;
+            }
+        }
+        #admin-visits-table { max-height: 320px; overflow-y: auto; font-size: 12px; line-height: 1.45; }
+        @media (min-width: 1100px) {
+            #admin-visits-table { max-height: min(65vh, 860px); }
         }
         #admin-toolbar {
             position: sticky;
@@ -377,12 +417,13 @@
         <span style="color:var(--t3);">Misma sesión que la app si iniciaste con la misma cuenta en este navegador.</span>
     </p>
 
-    <div class="card" id="admin-summary-meta-card" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);margin-bottom:18px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+    <!-- ── Barra de estado (siempre visible) ─────────────────── -->
+    <div class="card" id="admin-summary-meta-card" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
             <span style="font-weight:700;" id="admin-user">—</span>
         </div>
         <p class="sub" id="admin-bot-txt">Cargando Firestore…</p>
-        <p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">
+        <p class="sub" style="font-size:10px;margin-top:6px;color:var(--t3);">
             Colecciones: <code style="font-size:10px;color:var(--t2);">visitas</code>,
             <code style="font-size:10px;color:var(--t2);">xp3_seguimiento_pings</code>,
             <code style="font-size:10px;color:var(--t2);">xp3_ubicacion_operador</code>,
@@ -390,15 +431,7 @@
         </p>
     </div>
 
-    <div class="card" id="admin-live-wrap" style="margin-bottom:18px;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
-        <p class="lbl" style="margin-bottom:8px;color:#fca5a5;">Dónde está ahora (última señal de la app)</p>
-        <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
-        <p class="muted-hint" id="admin-live-ping-hint">La app escribe <strong>xp3_ubicacion_operador</strong> cada ~18 s con GPS activo (misma pantalla con «GPS» en verde). Pings históricos ~2 min en <strong>xp3_seguimiento_pings</strong>. Si el teléfono duerme o niega ubicación, no hay señal nueva.</p>
-        <div id="admin-freshness-strip" class="fresh-strip f2" style="display:none;">Semáforo de frescura: —</div>
-        <button type="button" class="btn btn-gh" style="margin-top:12px;font-size:11px;" onclick="purgeAdminGerenciaSignalsToday()">Eliminar de Firestore señales GPS de la cuenta gerencial (hoy)</button>
-        <p class="muted-hint" style="margin-top:6px;">Quita pings y ubicación viva con correo <strong>xp3meta@rendimax.com.co</strong> para la fecha de hoy. No borra visitas. Requiere reglas Firestore actualizadas.</p>
-    </div>
-
+    <!-- ── Barra de pestañas (sticky) ────────────────────────── -->
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;" id="admin-toolbar">
         <button type="button" class="btn btn-gh admin-tab-btn admin-tab-active" id="tab-summary" onclick="setAdminMainTab('summary')">Resumen · mapa y KPIs</button>
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-timeline" onclick="setAdminMainTab('timeline')">Línea del tiempo del día</button>
@@ -408,49 +441,66 @@
         <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
     </div>
 
-    <div class="card admin-route-card" id="admin-route-plan-wrap">
-        <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
-        <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
-        <div id="admin-route-checklist" class="sub">Cargando plan…</div>
-    </div>
-
+    <!-- ══ PANEL RESUMEN (3 columnas) ════════════════════════════ -->
     <div id="admin-panel-summary">
-    <div class="dash-grid">
-        <div>
-            <div class="card" style="margin-bottom:18px;">
+    <div class="admin-3col">
+
+        <!-- Col 1 – señal viva + checklist ruta -->
+        <div class="admin-col-left">
+            <div class="card" id="admin-live-wrap" style="margin-bottom:14px;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
+                <p class="lbl" style="margin-bottom:8px;color:#fca5a5;">Dónde está ahora (última señal)</p>
+                <div id="admin-live-ping-body" class="sub">Esperando datos…</div>
+                <p class="muted-hint" id="admin-live-ping-hint">GPS activo (&lt;2 min verde · 2-15 min amarillo · &gt;15 min rojo). Pings históricos ~2 min en xp3_seguimiento_pings.</p>
+                <div id="admin-freshness-strip" class="fresh-strip f2" style="display:none;">Semáforo de frescura: —</div>
+                <button type="button" class="btn btn-gh" style="margin-top:10px;font-size:11px;width:100%;" onclick="purgeAdminGerenciaSignalsToday()">Eliminar señales GPS gerencial (hoy)</button>
+            </div>
+
+            <div class="card admin-route-card" id="admin-route-plan-wrap" style="margin-bottom:0;">
+                <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
+                <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
+                <div id="admin-route-checklist" class="sub">Cargando plan…</div>
+            </div>
+        </div>
+
+        <!-- Col 2 – KPIs + tabla de visitas -->
+        <div class="admin-col-center">
+            <div class="card" style="margin-bottom:14px;">
                 <p class="lbl" style="margin-bottom:12px;">KPIs hoy (Firestore)</p>
                 <div class="kpi-grid">
                     <div class="kpi"><div class="kv" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-avg">—</div><div class="kl">Prom. tiempo en EDS</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-km">—</div><div class="kl">Km trayecto (pings)</div></div>
-                    <div class="kpi"><div class="kv" id="admin-kpi-km-visits">—</div><div class="kl">Km entre visitas (GPS al guardar)</div></div>
+                    <div class="kpi"><div class="kv" id="admin-kpi-km-visits">—</div><div class="kl">Km entre visitas (GPS guardado)</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-last-ping">—</div><div class="kl">Último ping (hora)</div></div>
                 </div>
             </div>
-            <div class="card">
+            <div class="card" style="margin-bottom:0;">
                 <p class="lbl" style="margin-bottom:10px;">Visitas del día · detalle por cliente</p>
                 <p class="sub" style="font-size:10px;margin-bottom:10px;color:var(--t3);">Incluye observaciones del comercial, resultado, tiempo en estación y cotización calculada en pantalla.</p>
                 <div id="admin-visits-table" class="sub">—</div>
             </div>
         </div>
-        <div>
-            <div class="card" style="margin-bottom:18px;">
-                <p class="lbl" style="margin-bottom:10px;">Mapa · trayectoria</p>
-                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);"><strong style="color:#22c55e;">●</strong> Verde / <strong style="color:#eab308;">●</strong> amarillo / <strong style="color:#ef4444;">●</strong> rojo: ubicación viva por antigüedad (&lt;2 min · 2–15 min · &gt;15 min). Naranja: visitas. Azul / calor: pings históricos ~2 min.</p>
+
+        <!-- Col 3 – mapa (sticky) + meta ventas -->
+        <div class="admin-col-right">
+            <div class="card" style="margin-bottom:14px;">
+                <p class="lbl" style="margin-bottom:8px;">Mapa · trayectoria</p>
+                <p class="sub" style="font-size:10px;margin-bottom:8px;color:var(--t3);"><strong style="color:#22c55e;">●</strong> Vivo &lt;2 min &nbsp;<strong style="color:#eab308;">●</strong> 2-15 min &nbsp;<strong style="color:#ef4444;">●</strong> &gt;15 min · Naranja: visitas · Azul: pings.</p>
                 <div id="admin-tracking-map"></div>
                 <p class="sub" style="font-size:11px;margin-top:10px;" id="admin-map-hint">—</p>
             </div>
-            <div class="card">
+            <div class="card" style="margin-bottom:0;">
                 <p class="lbl" style="margin-bottom:8px;">Objetivo de ventas · mes (local)</p>
-                <p class="sub" style="margin-bottom:12px;">Meta regional referencia <strong style="color:var(--t1);">$10.000.000</strong>. El acumulado se guarda en este navegador y alimenta el avance en el Home de la app comercial.</p>
+                <p class="sub" style="margin-bottom:12px;">Meta regional referencia <strong style="color:var(--t1);">$10.000.000</strong>. El acumulado alimenta el avance en la app comercial.</p>
                 <label class="sub" for="admin-ventas-mes-input" style="display:block;margin-bottom:6px;">Acumulado del mes (COP)</label>
                 <input type="text" inputmode="numeric" id="admin-ventas-mes-input" placeholder="Ej. 2500000" autocomplete="off" style="margin-bottom:12px;">
                 <button type="button" class="btn btn-p" style="width:100%;box-shadow:none;font-size:13px;" onclick="saveOrcVentasMesFromAdmin()">Guardar acumulado</button>
             </div>
         </div>
-    </div>
-    </div>
+
+    </div><!-- /.admin-3col -->
+    </div><!-- /#admin-panel-summary -->
 
     <div id="admin-panel-timeline" style="display:none;">
         <div class="card" style="margin-bottom:20px;">
@@ -1156,8 +1206,6 @@ function setAdminMainTab(tab) {
     var pSum = document.getElementById('admin-panel-summary');
     var pTl = document.getElementById('admin-panel-timeline');
     var pCfg = document.getElementById('admin-panel-config');
-    var routeWrap = document.getElementById('admin-route-plan-wrap');
-    var liveWrap = document.getElementById('admin-live-wrap');
     var metaCard = document.getElementById('admin-summary-meta-card');
     var opSel = document.getElementById('admin-filter-operator');
     var opLbl = document.getElementById('admin-filter-operator-label');
@@ -1166,8 +1214,6 @@ function setAdminMainTab(tab) {
     var bCfg = document.getElementById('tab-config');
     if (_adminMainTab === 'timeline') {
         if (metaCard) metaCard.style.display = 'block';
-        if (liveWrap) liveWrap.style.display = 'block';
-        if (routeWrap) routeWrap.style.display = 'block';
         if (opSel) opSel.style.display = 'inline-block';
         if (opLbl) opLbl.style.display = 'inline-block';
         if (pSum) pSum.style.display = 'none';
@@ -1179,8 +1225,6 @@ function setAdminMainTab(tab) {
         renderAdminTimeline(orcDateKeyISO(new Date()));
     } else if (_adminMainTab === 'config') {
         if (metaCard) metaCard.style.display = 'none';
-        if (liveWrap) liveWrap.style.display = 'none';
-        if (routeWrap) routeWrap.style.display = 'none';
         if (opSel) opSel.style.display = 'none';
         if (opLbl) opLbl.style.display = 'none';
         if (pSum) pSum.style.display = 'none';
@@ -1191,8 +1235,6 @@ function setAdminMainTab(tab) {
         if (bCfg) bCfg.classList.add('admin-tab-active');
     } else {
         if (metaCard) metaCard.style.display = 'block';
-        if (liveWrap) liveWrap.style.display = 'block';
-        if (routeWrap) routeWrap.style.display = 'block';
         if (opSel) opSel.style.display = 'inline-block';
         if (opLbl) opLbl.style.display = 'inline-block';
         if (pSum) pSum.style.display = 'block';
