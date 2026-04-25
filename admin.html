@@ -15,20 +15,28 @@
         :root {
             --accent: #38bdf8;
             --accent2: #6366f1;
-            --accentSoft: rgba(56,189,248,.24);
+            --accent3: #a78bfa;
+            --accentSoft: rgba(56,189,248,.18);
             --ok: #22c55e;
+            --okSoft: rgba(34,197,94,.15);
             --warn: #f59e0b;
+            --warnSoft: rgba(245,158,11,.12);
             --danger: #ef4444;
-            --bg0: #050915;
-            --bg1: #0a1225;
-            --bg2: #101a31;
-            --panel: rgba(15, 23, 42, 0.72);
-            --panelStrong: rgba(15, 23, 42, 0.9);
-            --border: rgba(148, 163, 184, 0.2);
-            --text: #e6edf8;
-            --textSoft: #9fb0cd;
-            --textMuted: #6f86ab;
-            /* Compatibilidad con estilos inline existentes */
+            --dangerSoft: rgba(239,68,68,.12);
+            --purple: #a78bfa;
+            --purpleSoft: rgba(167,139,250,.13);
+            --bg0: #030c1e;
+            --bg1: #071020;
+            --bg2: #0d1a30;
+            --bg3: #12223c;
+            --panel: rgba(10,20,40,.75);
+            --panelStrong: rgba(7,16,32,.92);
+            --border: rgba(148,163,184,.15);
+            --borderHover: rgba(56,189,248,.4);
+            --text: #e8f0fb;
+            --textSoft: #8faabf;
+            --textMuted: #56718a;
+            /* compatibilidad estilos inline */
             --yellow: #38bdf8;
             --dark: var(--bg0);
             --dark2: var(--bg1);
@@ -45,11 +53,12 @@
             color: var(--text);
             min-height: 100vh;
             background:
-                radial-gradient(1200px 700px at 8% -10%, rgba(56,189,248,.22), transparent 65%),
-                radial-gradient(900px 640px at 92% 0%, rgba(99,102,241,.2), transparent 62%),
-                linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 65%);
+                radial-gradient(1400px 800px at 5% -15%, rgba(56,189,248,.18), transparent 60%),
+                radial-gradient(1000px 700px at 95% 0%, rgba(99,102,241,.16), transparent 58%),
+                radial-gradient(600px 600px at 50% 100%, rgba(167,139,250,.06), transparent 70%),
+                linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%);
             background-attachment: fixed;
-            letter-spacing: .01em;
+            letter-spacing: .012em;
         }
         body::before {
             content: '';
@@ -57,10 +66,10 @@
             inset: 0;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148,163,184,.04) 1px, transparent 1px);
-            background-size: 26px 26px;
-            opacity: .25;
+                linear-gradient(rgba(148,163,184,.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148,163,184,.035) 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: .3;
             z-index: 0;
         }
         #dash-root, #login-screen { position: relative; z-index: 1; }
@@ -97,71 +106,100 @@
         .login-logo-main { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; color: #031526; }
         .login-logo-xp3 { font-family: 'Outfit', sans-serif; font-size: 44px; font-weight: 800; color: #f8fbff; text-shadow: 0 4px 18px rgba(3, 21, 38, 0.35); }
         .card {
-            background: linear-gradient(160deg, rgba(30,41,59,.88), rgba(15,23,42,.72));
+            background: linear-gradient(160deg, rgba(18,34,60,.9), rgba(10,20,40,.78));
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 18px 22px;
-            margin-bottom: 18px;
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
             box-shadow:
-                0 20px 44px rgba(2, 6, 23, 0.45),
-                inset 0 1px 0 rgba(255,255,255,.05);
-            backdrop-filter: blur(10px);
+                0 4px 6px rgba(0,0,0,.2),
+                0 16px 40px rgba(2,6,23,.4),
+                inset 0 1px 0 rgba(255,255,255,.04);
+            backdrop-filter: blur(12px);
+            transition: border-color .2s;
         }
-        .card:hover {
-            border-color: rgba(99,102,241,.34);
+        .card:hover { border-color: rgba(56,189,248,.25); }
+        .lbl {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--textMuted);
         }
-        .lbl { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--textMuted); }
-        .sub { font-size: 12px; color: var(--textSoft); line-height: 1.5; }
-        h1 { font-family: 'Outfit', sans-serif; font-size: 1.75rem; font-weight: 800; }
-        h2 { font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 700; }
-        input {
+        .sub { font-size: 12px; color: var(--textSoft); line-height: 1.55; }
+        h1 { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--text); }
+        h2 { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 700; }
+        input, select, textarea {
             width: 100%;
-            background: rgba(15,23,42,.9);
+            background: rgba(7,16,32,.85);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text);
-            font-size: 14px;
-            padding: 12px 14px;
-            margin-bottom: 12px;
+            font-size: 13px;
+            font-family: inherit;
+            padding: 9px 12px;
+            margin-bottom: 10px;
             outline: none;
+            transition: border-color .18s, box-shadow .18s;
         }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,.18); }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56,189,248,.14);
+        }
+        select { cursor: pointer; }
+        textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
         .btn {
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
-            transition: .2s;
-        }
-        .btn-p {
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            color: #f8fbff;
-            padding: 12px 18px;
-            width: 100%;
-            font-weight: 700;
-            box-shadow: 0 12px 28px rgba(37,99,235,.32);
+            font-size: 13px;
+            transition: transform .15s, box-shadow .15s, background .15s;
         }
         .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-p {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            color: #f0f8ff;
+            padding: 11px 20px;
+            width: 100%;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(14,165,233,.3);
+        }
+        .btn-p:hover { box-shadow: 0 12px 32px rgba(14,165,233,.45); }
         .btn-gh {
-            background: rgba(15,23,42,.72);
+            background: rgba(12,24,48,.7);
             border: 1px solid var(--border);
-            color: var(--text);
+            color: var(--textSoft);
             padding: 8px 14px;
             font-size: 12px;
         }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
-        .bg { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+        .btn-gh:hover { border-color: var(--accent); color: var(--text); background: rgba(56,189,248,.08); }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+        .bg { background: rgba(34,197,94,.14); color: #86efac; border: 1px solid rgba(34,197,94,.32); }
+        /* ── KPI cards ──────────────────────── */
         .kpi {
-            padding: 16px;
-            border-radius: 16px;
-            background: linear-gradient(150deg, rgba(15,23,42,.95), rgba(30,41,59,.82));
-            border: 1px solid rgba(99,102,241,.22);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+            padding: 16px 14px 14px;
+            border-radius: 14px;
+            background: linear-gradient(140deg, rgba(10,20,40,.98), rgba(18,34,60,.88));
+            border: 1px solid rgba(56,189,248,.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 4px 14px rgba(0,0,0,.2);
+            border-top: 2px solid rgba(56,189,248,.45);
+            position: relative;
+            overflow: hidden;
         }
-        .kv { font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; color: #f8fbff; }
-        .kl { font-size: 10px; color: var(--textMuted); margin-top: 4px; letter-spacing: .06em; text-transform: uppercase; }
-        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .kpi::before {
+            content:'';
+            position:absolute;
+            top:-30px; right:-20px;
+            width:80px; height:80px;
+            border-radius:50%;
+            background: radial-gradient(rgba(56,189,248,.07), transparent 70%);
+        }
+        .kv { font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #f0f8ff; line-height: 1.1; }
+        .kl { font-size: 9px; color: var(--textMuted); margin-top: 5px; letter-spacing: .08em; text-transform: uppercase; }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         @media (min-width: 900px) {
             .kpi-grid { grid-template-columns: repeat(3, 1fr); }
@@ -342,8 +380,188 @@
             border: 1px solid var(--border);
             backdrop-filter: blur(10px);
         }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,.35); border-radius: 8px; }
+        /* ── Config tab sections ────────────────────────── */
+        .cfg-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 22px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cfg-page-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cfg-page-title span.icon {
+            font-size: 1.5rem;
+        }
+        .cfg-page-desc {
+            font-size: 11px;
+            color: var(--textMuted);
+            margin-top: 3px;
+        }
+        .cfg-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+        @media (min-width: 1000px) {
+            .cfg-layout { grid-template-columns: 1.1fr 0.9fr; }
+        }
+        .cfg-section {
+            background: linear-gradient(160deg, rgba(18,34,60,.88), rgba(10,20,40,.72));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+        }
+        .cfg-section-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cfg-section-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .cfg-section-icon.blue { background: rgba(56,189,248,.15); border: 1px solid rgba(56,189,248,.3); }
+        .cfg-section-icon.green { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.28); }
+        .cfg-section-icon.purple { background: rgba(167,139,250,.12); border: 1px solid rgba(167,139,250,.28); }
+        .cfg-section-icon.amber { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.28); }
+        .cfg-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+        .cfg-section-subtitle {
+            font-size: 10px;
+            color: var(--textMuted);
+            margin-top: 1px;
+        }
+        /* product table */
+        .cfg-table-head {
+            display: grid;
+            grid-template-columns: 90px 1fr 110px 80px 56px;
+            gap: 6px;
+            padding: 0 4px 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+        .cfg-th {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--textMuted);
+        }
+        .cfg-product-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 110px 80px 56px;
+            gap: 6px;
+            align-items: center;
+            padding: 6px 4px;
+            border-radius: 8px;
+            transition: background .15s;
+        }
+        .cfg-product-row:hover { background: rgba(56,189,248,.04); }
+        .cfg-product-row input { margin-bottom: 0; padding: 7px 8px; font-size: 12px; }
+        .cfg-toggle-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* toggle switch */
+        .cfg-toggle { position: relative; width: 36px; height: 20px; display: inline-block; }
+        .cfg-toggle input { opacity: 0; width: 0; height: 0; }
+        .cfg-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(148,163,184,.2);
+            border-radius: 20px;
+            transition: .2s;
+            border: 1px solid var(--border);
+        }
+        .cfg-toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            left: 2px; top: 2px;
+            background: var(--textMuted);
+            border-radius: 50%;
+            transition: .2s;
+        }
+        .cfg-toggle input:checked + .cfg-toggle-slider { background: rgba(34,197,94,.28); border-color: rgba(34,197,94,.5); }
+        .cfg-toggle input:checked + .cfg-toggle-slider::before { transform: translateX(16px); background: #4ade80; }
+        /* rules cards */
+        .cfg-rules-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .cfg-rule-card {
+            background: rgba(7,16,32,.6);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            text-align: center;
+        }
+        .cfg-rule-card input { text-align: center; font-size: 18px; font-weight: 700; font-family: 'Outfit', sans-serif; padding: 8px 6px; margin-bottom: 6px; }
+        .cfg-rule-label { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--textMuted); }
+        .cfg-rule-unit { font-size: 9px; color: var(--textMuted); margin-top: 2px; }
+        /* template rows */
+        .cfg-tpl-row { margin-bottom: 14px; }
+        .cfg-tpl-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .cfg-tpl-badge {
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 2px 7px;
+            border-radius: 100px;
+        }
+        .cfg-tpl-badge.wa { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.28); }
+        .cfg-tpl-badge.email { background: rgba(56,189,248,.12); color: #7dd3fc; border: 1px solid rgba(56,189,248,.28); }
+        .cfg-tpl-badge.pdf { background: rgba(167,139,250,.12); color: #c4b5fd; border: 1px solid rgba(167,139,250,.28); }
+        .cfg-tpl-name { font-size: 11px; font-weight: 600; color: var(--text); }
+        .cfg-tpl-row textarea { margin-bottom: 0; }
+        /* vars hint */
+        .cfg-vars-hint {
+            font-size: 9px;
+            color: var(--textMuted);
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            background: rgba(56,189,248,.06);
+            border: 1px solid rgba(56,189,248,.12);
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(56,189,248,.25); border-radius: 8px; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -511,14 +729,25 @@
     </div>
 
     <div id="admin-panel-config" style="display:none;">
-        <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.08);">
-            <p class="lbl" style="margin-bottom:8px;">Catálogo comercial · precios y bonificación</p>
-            <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Esta pestaña es independiente del seguimiento operativo (mapa/KPIs/timeline). Cambios aquí se publican al documento global y la app comercial los toma en tiempo real en la visita/cotización.</p>
-            <div id="admin-pricing-editor" class="sub">Cargando catálogo...</div>
-            <div class="g2" style="margin-top:12px;">
-                <button type="button" class="btn btn-gh" onclick="loadAdminPricingConfig()">Recargar catálogo</button>
-                <button type="button" class="btn btn-p" style="box-shadow:none;" onclick="saveAdminPricingConfig()">Publicar cambios</button>
+        <div class="cfg-page-header">
+            <div>
+                <div class="cfg-page-title">
+                    <span class="icon">⚙️</span>
+                    Configuración comercial
+                </div>
+                <div class="cfg-page-desc">Precios, bonificaciones y plantillas · se publican en tiempo real a la app del comercial</div>
             </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-gh" style="padding:10px 18px;" onclick="loadAdminPricingConfig()">↺ Recargar</button>
+                <button type="button" class="btn btn-p" style="width:auto;padding:10px 22px;" onclick="saveAdminPricingConfig()">✓ Publicar cambios</button>
+            </div>
+        </div>
+        <div id="admin-pricing-editor">
+            <div class="sub" style="text-align:center;padding:40px 20px;color:var(--textMuted);">Cargando catálogo…</div>
+        </div>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+            <button type="button" class="btn btn-gh" style="padding:10px 18px;" onclick="loadAdminPricingConfig()">↺ Recargar catálogo</button>
+            <button type="button" class="btn btn-p" style="width:auto;padding:10px 24px;" onclick="saveAdminPricingConfig()">✓ Publicar cambios</button>
         </div>
     </div>
 </div>
@@ -783,43 +1012,103 @@ function renderAdminPricingEditor(cfg) {
     var retPct = Number(q.retencionPct != null ? q.retencionPct : 0) || 0;
     var desPct = Number(q.descuentoContadoPct != null ? q.descuentoContadoPct : 5) || 0;
     if (!items.length) items = adminDefaultPricingConfig().items.slice();
-    var rows = items.map(function(it, idx) {
+
+    var productRows = items.map(function(it, idx) {
         var id = escapeHtml(String(it.id || ''));
         var nm = escapeHtml(String(it.name || ''));
         var p = Number(it.priceCOP || 0);
         var b = Number(it.bonusPct || 0);
         var a = it.active !== false;
-        return '<div style="display:grid;grid-template-columns:1.1fr 1.2fr .8fr .6fr .5fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">'
-            + '<input data-price-field="id" data-row="' + idx + '" value="' + id + '" style="padding:8px;">'
-            + '<input data-price-field="name" data-row="' + idx + '" value="' + nm + '" style="padding:8px;">'
-            + '<input data-price-field="priceCOP" data-row="' + idx + '" type="number" min="0" value="' + (isNaN(p) ? 0 : p) + '" style="padding:8px;">'
-            + '<input data-price-field="bonusPct" data-row="' + idx + '" type="number" min="0" max="100" value="' + (isNaN(b) ? 0 : b) + '" style="padding:8px;">'
-            + '<label class="sub" style="display:flex;gap:5px;align-items:center;justify-content:center;"><input data-price-field="active" data-row="' + idx + '" type="checkbox" ' + (a ? 'checked' : '') + '>Act</label>'
+        return '<div class="cfg-product-row">'
+            + '<input data-price-field="id" data-row="' + idx + '" value="' + id + '" placeholder="ID">'
+            + '<input data-price-field="name" data-row="' + idx + '" value="' + nm + '" placeholder="Nombre del producto">'
+            + '<input data-price-field="priceCOP" data-row="' + idx + '" type="number" min="0" value="' + (isNaN(p) ? 0 : p) + '" placeholder="0">'
+            + '<input data-price-field="bonusPct" data-row="' + idx + '" type="number" min="0" max="100" value="' + (isNaN(b) ? 0 : b) + '" placeholder="0">'
+            + '<div class="cfg-toggle-wrap"><label class="cfg-toggle"><input data-price-field="active" data-row="' + idx + '" type="checkbox" ' + (a ? 'checked' : '') + '><span class="cfg-toggle-slider"></span></label></div>'
             + '</div>';
     }).join('');
-    host.innerHTML = '<div class="sub" style="font-size:10px;color:var(--t3);margin-bottom:6px;">ID · Referencia · Precio COP · Bono % · Activo</div>'
-        + rows
-        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">'
-        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">IVA %</p><input id="admin-quote-iva" type="number" min="0" max="100" value="' + ivaPct + '" style="padding:8px;"></div>'
-        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">Retención %</p><input id="admin-quote-ret" type="number" min="0" max="100" value="' + retPct + '" style="padding:8px;"></div>'
-        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">Descuento contado %</p><input id="admin-quote-desc" type="number" min="0" max="100" value="' + desPct + '" style="padding:8px;"></div>'
-        + '</div>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla cotización</p>'
-        + '<textarea id="admin-template-cotizacion" style="height:80px;">' + escapeHtml(String(t.cotizacion || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla propuesta</p>'
-        + '<textarea id="admin-template-propuesta" style="height:80px;">' + escapeHtml(String(t.propuesta || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla brochure</p>'
-        + '<textarea id="admin-template-brochure" style="height:80px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · intro</p>'
-        + '<textarea id="admin-pdf-propuesta-intro" style="height:90px;">' + escapeHtml(String(ptxt.propuestaIntro || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · presentación técnica</p>'
-        + '<textarea id="admin-pdf-propuesta-tecnica" style="height:90px;">' + escapeHtml(String(ptxt.propuestaTecnica || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · beneficios</p>'
-        + '<textarea id="admin-pdf-propuesta-beneficios" style="height:110px;">' + escapeHtml(String(ptxt.propuestaBeneficios || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Propuesta PDF · cierre</p>'
-        + '<textarea id="admin-pdf-propuesta-cierre" style="height:80px;">' + escapeHtml(String(ptxt.propuestaCierre || '')) + '</textarea>'
-        + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Condiciones comerciales PDF cotización</p>'
-        + '<textarea id="admin-pdf-cot-cond" style="height:100px;">' + escapeHtml(String(ptxt.cotizacionCondiciones || '')) + '</textarea>';
+
+    var VARS_HINT = '<div class="cfg-vars-hint">Variables: <code>{{cliente}}</code> · <code>{{asesor}}</code> · <code>{{telefono}}</code> · <code>{{fecha}}</code> · <code>{{base}}</code> · <code>{{iva}}</code> · <code>{{retencion}}</code> · <code>{{descuento}}</code> · <code>{{total}}</code> · <code>{{items}}</code></div>';
+
+    host.innerHTML =
+    /* ── layout 2 columnas ─────────────────────────────────────── */
+    '<div class="cfg-layout">'
+
+    /* ═══ COLUMNA IZQUIERDA: productos + reglas ══════════════════ */
+    + '<div>'
+
+    /* Catálogo de productos */
+    + '<div class="cfg-section">'
+    + '<div class="cfg-section-head">'
+    + '<div class="cfg-section-icon blue">📦</div>'
+    + '<div><div class="cfg-section-title">Catálogo de productos</div><div class="cfg-section-subtitle">Referencias activas para cotización y visitas</div></div>'
+    + '</div>'
+    + '<div class="cfg-table-head">'
+    + '<div class="cfg-th">Referencia ID</div>'
+    + '<div class="cfg-th">Nombre del producto</div>'
+    + '<div class="cfg-th">Precio COP</div>'
+    + '<div class="cfg-th">Bono %</div>'
+    + '<div class="cfg-th" style="text-align:center;">Activo</div>'
+    + '</div>'
+    + productRows
+    + '</div>'
+
+    /* Reglas comerciales */
+    + '<div class="cfg-section">'
+    + '<div class="cfg-section-head">'
+    + '<div class="cfg-section-icon green">💰</div>'
+    + '<div><div class="cfg-section-title">Reglas de la cotización</div><div class="cfg-section-subtitle">Se aplican al calcular el total neto del pedido</div></div>'
+    + '</div>'
+    + '<div class="cfg-rules-grid">'
+    + '<div class="cfg-rule-card"><input id="admin-quote-iva" type="number" min="0" max="100" value="' + ivaPct + '"><div class="cfg-rule-label">IVA</div><div class="cfg-rule-unit">porcentaje sobre base</div></div>'
+    + '<div class="cfg-rule-card"><input id="admin-quote-ret" type="number" min="0" max="100" value="' + retPct + '"><div class="cfg-rule-label">Retención</div><div class="cfg-rule-unit">retención en la fuente</div></div>'
+    + '<div class="cfg-rule-card"><input id="admin-quote-desc" type="number" min="0" max="100" value="' + desPct + '"><div class="cfg-rule-label">Descuento contado</div><div class="cfg-rule-unit">descuento por pago de contado</div></div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'  /* fin col izquierda */
+
+    /* ═══ COLUMNA DERECHA: plantillas de mensajes ════════════════ */
+    + '<div>'
+    + '<div class="cfg-section">'
+    + '<div class="cfg-section-head">'
+    + '<div class="cfg-section-icon purple">💬</div>'
+    + '<div><div class="cfg-section-title">Plantillas de mensajes</div><div class="cfg-section-subtitle">Texto pre-rellenado al compartir con el cliente</div></div>'
+    + '</div>'
+    + VARS_HINT
+    + '<div class="cfg-tpl-row">'
+    + '<div class="cfg-tpl-label"><span class="cfg-tpl-badge wa">WhatsApp / Email</span><span class="cfg-tpl-name">Cotización</span></div>'
+    + '<textarea id="admin-template-cotizacion" style="height:90px;">' + escapeHtml(String(t.cotizacion || '')) + '</textarea>'
+    + '</div>'
+    + '<div class="cfg-tpl-row">'
+    + '<div class="cfg-tpl-label"><span class="cfg-tpl-badge wa">WhatsApp / Email</span><span class="cfg-tpl-name">Propuesta comercial</span></div>'
+    + '<textarea id="admin-template-propuesta" style="height:80px;">' + escapeHtml(String(t.propuesta || '')) + '</textarea>'
+    + '</div>'
+    + '<div class="cfg-tpl-row">'
+    + '<div class="cfg-tpl-label"><span class="cfg-tpl-badge email">WhatsApp / Email</span><span class="cfg-tpl-name">Brochure institucional</span></div>'
+    + '<textarea id="admin-template-brochure" style="height:70px;">' + escapeHtml(String(t.brochure || '')) + '</textarea>'
+    + '</div>'
+    + '</div>'  /* fin cfg-section templates */
+
+    /* Textos PDF propuesta */
+    + '<div class="cfg-section">'
+    + '<div class="cfg-section-head">'
+    + '<div class="cfg-section-icon amber">📄</div>'
+    + '<div><div class="cfg-section-title">Textos PDF · propuesta</div><div class="cfg-section-subtitle">Secciones del documento PDF de propuesta comercial</div></div>'
+    + '</div>'
+    + '<div class="cfg-tpl-row"><div class="cfg-tpl-label"><span class="cfg-tpl-badge pdf">PDF</span><span class="cfg-tpl-name">Introducción / saludo</span></div>'
+    + '<textarea id="admin-pdf-propuesta-intro" style="height:80px;">' + escapeHtml(String(ptxt.propuestaIntro || '')) + '</textarea></div>'
+    + '<div class="cfg-tpl-row"><div class="cfg-tpl-label"><span class="cfg-tpl-badge pdf">PDF</span><span class="cfg-tpl-name">Presentación técnica del producto</span></div>'
+    + '<textarea id="admin-pdf-propuesta-tecnica" style="height:80px;">' + escapeHtml(String(ptxt.propuestaTecnica || '')) + '</textarea></div>'
+    + '<div class="cfg-tpl-row"><div class="cfg-tpl-label"><span class="cfg-tpl-badge pdf">PDF</span><span class="cfg-tpl-name">Beneficios clave</span></div>'
+    + '<textarea id="admin-pdf-propuesta-beneficios" style="height:100px;">' + escapeHtml(String(ptxt.propuestaBeneficios || '')) + '</textarea></div>'
+    + '<div class="cfg-tpl-row"><div class="cfg-tpl-label"><span class="cfg-tpl-badge pdf">PDF</span><span class="cfg-tpl-name">Cierre / llamada a la acción</span></div>'
+    + '<textarea id="admin-pdf-propuesta-cierre" style="height:70px;">' + escapeHtml(String(ptxt.propuestaCierre || '')) + '</textarea></div>'
+    + '<div class="cfg-tpl-row"><div class="cfg-tpl-label"><span class="cfg-tpl-badge pdf">PDF</span><span class="cfg-tpl-name">Condiciones comerciales (cotización)</span></div>'
+    + '<textarea id="admin-pdf-cot-cond" style="height:90px;">' + escapeHtml(String(ptxt.cotizacionCondiciones || '')) + '</textarea></div>'
+    + '</div>'
+    + '</div>'  /* fin col derecha */
+
+    + '</div>';  /* fin cfg-layout */
 }
 
 function readAdminPricingFromForm() {
