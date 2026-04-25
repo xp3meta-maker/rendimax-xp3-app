@@ -318,6 +318,7 @@
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;" id="admin-toolbar">
         <button type="button" class="btn btn-gh admin-tab-btn admin-tab-active" id="tab-summary" onclick="setAdminMainTab('summary')">Resumen · mapa y KPIs</button>
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-timeline" onclick="setAdminMainTab('timeline')">Línea del tiempo del día</button>
+        <button type="button" class="btn btn-gh admin-tab-btn" id="tab-config" onclick="setAdminMainTab('config')">Configuración comercial</button>
         <div style="flex:1;min-width:8px;"></div>
         <label class="sub" for="admin-filter-operator" style="white-space:nowrap;">Operador</label>
         <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
@@ -327,16 +328,6 @@
         <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
         <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
         <div id="admin-route-checklist" class="sub">Cargando plan…</div>
-    </div>
-
-    <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.08);">
-        <p class="lbl" style="margin-bottom:8px;">Catálogo comercial · precios y bonificación</p>
-        <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Cambios aquí se publican al documento global y la app comercial los toma en tiempo real en la visita/cotización.</p>
-        <div id="admin-pricing-editor" class="sub">Cargando catálogo...</div>
-        <div class="g2" style="margin-top:12px;">
-            <button type="button" class="btn btn-gh" onclick="loadAdminPricingConfig()">Recargar catálogo</button>
-            <button type="button" class="btn btn-p" style="box-shadow:none;" onclick="saveAdminPricingConfig()">Publicar cambios</button>
-        </div>
     </div>
 
     <div id="admin-panel-summary">
@@ -382,6 +373,18 @@
             <p class="lbl" style="margin-bottom:8px;">Línea del tiempo del día</p>
             <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Orden cronológico: visitas guardadas, pings GPS (máx. 120 en lista) y alertas si pasan más de 45 min entre pings del mismo dispositivo. Usá el filtro «Operador» para acotar.</p>
             <div id="admin-day-timeline" class="admin-timeline-shell sub">—</div>
+        </div>
+    </div>
+
+    <div id="admin-panel-config" style="display:none;">
+        <div class="card" style="margin-bottom:18px;border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.08);">
+            <p class="lbl" style="margin-bottom:8px;">Catálogo comercial · precios y bonificación</p>
+            <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Esta pestaña es independiente del seguimiento operativo (mapa/KPIs/timeline). Cambios aquí se publican al documento global y la app comercial los toma en tiempo real en la visita/cotización.</p>
+            <div id="admin-pricing-editor" class="sub">Cargando catálogo...</div>
+            <div class="g2" style="margin-top:12px;">
+                <button type="button" class="btn btn-gh" onclick="loadAdminPricingConfig()">Recargar catálogo</button>
+                <button type="button" class="btn btn-p" style="box-shadow:none;" onclick="saveAdminPricingConfig()">Publicar cambios</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1065,21 +1068,34 @@ function refreshAdminFreshnessUI() {
 }
 
 function setAdminMainTab(tab) {
-    _adminMainTab = tab === 'timeline' ? 'timeline' : 'summary';
+    _adminMainTab = tab === 'timeline' ? 'timeline' : (tab === 'config' ? 'config' : 'summary');
     var pSum = document.getElementById('admin-panel-summary');
     var pTl = document.getElementById('admin-panel-timeline');
+    var pCfg = document.getElementById('admin-panel-config');
     var bSum = document.getElementById('tab-summary');
     var bTl = document.getElementById('tab-timeline');
+    var bCfg = document.getElementById('tab-config');
     if (_adminMainTab === 'timeline') {
         if (pSum) pSum.style.display = 'none';
         if (pTl) pTl.style.display = 'block';
+        if (pCfg) pCfg.style.display = 'none';
         if (bSum) bSum.classList.remove('admin-tab-active');
         if (bTl) bTl.classList.add('admin-tab-active');
+        if (bCfg) bCfg.classList.remove('admin-tab-active');
         renderAdminTimeline(orcDateKeyISO(new Date()));
+    } else if (_adminMainTab === 'config') {
+        if (pSum) pSum.style.display = 'none';
+        if (pTl) pTl.style.display = 'none';
+        if (pCfg) pCfg.style.display = 'block';
+        if (bSum) bSum.classList.remove('admin-tab-active');
+        if (bTl) bTl.classList.remove('admin-tab-active');
+        if (bCfg) bCfg.classList.add('admin-tab-active');
     } else {
         if (pSum) pSum.style.display = 'block';
         if (pTl) pTl.style.display = 'none';
+        if (pCfg) pCfg.style.display = 'none';
         if (bTl) bTl.classList.remove('admin-tab-active');
+        if (bCfg) bCfg.classList.remove('admin-tab-active');
         if (bSum) bSum.classList.add('admin-tab-active');
         maybeRedrawAdminMap();
         setTimeout(function() {
