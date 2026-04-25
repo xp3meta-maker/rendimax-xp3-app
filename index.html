@@ -909,9 +909,14 @@ function getDefaultPricingConfig() {
             { id:'impermeable', name:'Impermeables', priceCOP:9500, bonusPct:5, dotClass:'d20', icon:'🦺', active:true }
         ],
         templates: {
-            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nTotal estimado: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
+            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nValor base: {{base}} · IVA: {{iva}} · Retención: {{retencion}} · Desc contado: {{descuento}}.\nTotal neto: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
             propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
+        },
+        quoteRules: {
+            ivaPct: 19,
+            retencionPct: 0,
+            descuentoContadoPct: 5
         }
     };
 }
@@ -6661,6 +6666,16 @@ function pricingBonusPctForProduct(p) {
     return typeof p.bonusPct === 'number' ? p.bonusPct : 8;
 }
 
+function getQuoteRules(cfg) {
+    var q = cfg && cfg.quoteRules ? cfg.quoteRules : {};
+    var base = getDefaultPricingConfig().quoteRules;
+    return {
+        ivaPct: Number(q.ivaPct != null ? q.ivaPct : base.ivaPct) || 0,
+        retencionPct: Number(q.retencionPct != null ? q.retencionPct : base.retencionPct) || 0,
+        descuentoContadoPct: Number(q.descuentoContadoPct != null ? q.descuentoContadoPct : base.descuentoContadoPct) || 0
+    };
+}
+
 function getActiveProductsFromConfig(cfg) {
     var inItems = (cfg && Array.isArray(cfg.items)) ? cfg.items : [];
     return inItems.filter(function(it) {
@@ -6764,24 +6779,37 @@ function updateCalcTotal() {
                 + p.icon + ' ' + p.name + ' × ' + q + '</span><span>$' + sub.toLocaleString('es-CO') + '</span></div>';
         }
     });
+    var rules = getQuoteRules(ACTIVE_PRICING_CONFIG);
+    var iva = Math.round(total * (rules.ivaPct / 100));
+    var ret = Math.round(total * (rules.retencionPct / 100));
+    var disc = Math.round(total * (rules.descuentoContadoPct / 100));
+    var net = total + iva - ret - disc;
+    var extra = total > 0
+        ? ('<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,179,0,.25);font-size:10px;color:var(--t3);">'
+            + 'Base ' + formatCOP(total)
+            + ' · IVA ' + rules.ivaPct + '% ' + formatCOP(iva)
+            + ' · Ret. ' + rules.retencionPct + '% ' + formatCOP(ret)
+            + ' · Desc contado ' + rules.descuentoContadoPct + '% ' + formatCOP(disc)
+            + '</div>')
+        : '';
     var emptyHtml = '<p class="sub" style="font-size:11px;">Seleccione productos para calcular</p>';
     var t1 = document.getElementById('calc-total-val');
     var s1 = document.getElementById('calc-savings');
     var u1 = document.getElementById('total-units-badge');
     var b1 = document.getElementById('calc-breakdown');
-    if (t1) t1.textContent = formatCOP(total);
+    if (t1) t1.textContent = formatCOP(net);
     if (s1) s1.textContent = formatCOP(Math.round(bonus));
     if (u1) u1.textContent = units + ' unidades';
-    if (b1) b1.innerHTML = bd || emptyHtml;
+    if (b1) b1.innerHTML = (bd || emptyHtml) + (bd ? extra : '');
 
     var t2 = document.getElementById('visit-calc-total-val');
     var s2 = document.getElementById('visit-calc-bonus');
     var u2 = document.getElementById('visit-total-units-badge');
     var b2 = document.getElementById('visit-calc-breakdown');
-    if (t2) t2.textContent = formatCOP(total);
+    if (t2) t2.textContent = formatCOP(net);
     if (s2) s2.textContent = formatCOP(Math.round(bonus));
     if (u2) u2.textContent = units + ' unidades';
-    if (b2) b2.innerHTML = bd || emptyHtml;
+    if (b2) b2.innerHTML = (bd || emptyHtml) + (bd ? extra : '');
 }
 
 function updateCalcClient() {
@@ -6804,7 +6832,7 @@ function sendQuote() {
 
 function currentQuoteSummary() {
     var items = [];
-    var total = 0;
+    var baseTotal = 0;
     var bonus = 0;
     PRODUCTS.forEach(function(p) {
         var q = qtys[p.id] || 0;
@@ -6820,13 +6848,23 @@ function currentQuoteSummary() {
             bonusPct: Math.round(pricingBonusPctForProduct(p)),
             bonusCOP: Math.round(b)
         });
-        total += line;
+        baseTotal += line;
         bonus += b;
     });
+    var rules = getQuoteRules(ACTIVE_PRICING_CONFIG);
+    var iva = Math.round(baseTotal * (rules.ivaPct / 100));
+    var ret = Math.round(baseTotal * (rules.retencionPct / 100));
+    var disc = Math.round(baseTotal * (rules.descuentoContadoPct / 100));
+    var net = baseTotal + iva - ret - disc;
     return {
         items: items,
-        totalCOP: Math.round(total),
-        totalBonusCOP: Math.round(bonus)
+        baseCOP: Math.round(baseTotal),
+        ivaCOP: iva,
+        retencionCOP: ret,
+        descuentoContadoCOP: disc,
+        totalCOP: Math.round(net),
+        totalBonusCOP: Math.round(bonus),
+        quoteRules: rules
     };
 }
 
@@ -6849,7 +6887,11 @@ function getVisitShareContext() {
         adminName: (document.getElementById('visit-edit-admin-name') || {}).value || '',
         city: c.city || 'Costa Norte',
         dateText: fecha,
-        totalText: formatCOP(sum.totalCOP),
+        baseText: formatCOP(sum.baseCOP || 0),
+        ivaText: formatCOP(sum.ivaCOP || 0),
+        retencionText: formatCOP(sum.retencionCOP || 0),
+        descuentoText: formatCOP(sum.descuentoContadoCOP || 0),
+        totalText: formatCOP(sum.totalCOP || 0),
         bonusText: formatCOP(sum.totalBonusCOP),
         itemsText: sum.items.length
             ? sum.items.map(function(it) { return '- ' + it.name + ' x' + it.qty + ' (' + formatCOP(it.lineTotalCOP) + ')'; }).join('\n')
@@ -6869,6 +6911,10 @@ function buildTemplateMessage(templateText, ctx) {
         .replace(/\{\{encargado\}\}/g, ctx.adminName || ctx.clientName)
         .replace(/\{\{fecha\}\}/g, ctx.dateText)
         .replace(/\{\{ciudad\}\}/g, ctx.city)
+        .replace(/\{\{base\}\}/g, ctx.baseText)
+        .replace(/\{\{iva\}\}/g, ctx.ivaText)
+        .replace(/\{\{retencion\}\}/g, ctx.retencionText)
+        .replace(/\{\{descuento\}\}/g, ctx.descuentoText)
         .replace(/\{\{total\}\}/g, ctx.totalText)
         .replace(/\{\{bono\}\}/g, ctx.bonusText)
         .replace(/\{\{items\}\}/g, ctx.itemsText)
@@ -6932,8 +6978,14 @@ async function buildVisitPdfBlob(docType) {
         });
         y += 6;
         doc.setFont('helvetica', 'bold');
-        doc.text('Total estimado: ' + formatCOP(sum.totalCOP), 40, y); y += 15;
+        doc.text('Valor base: ' + formatCOP(sum.baseCOP), 40, y); y += 15;
+        doc.text('(+) IVA ' + Math.round(sum.quoteRules.ivaPct || 0) + '%: ' + formatCOP(sum.ivaCOP), 40, y); y += 15;
+        doc.text('(-) Retencion ' + Math.round(sum.quoteRules.retencionPct || 0) + '%: ' + formatCOP(sum.retencionCOP), 40, y); y += 15;
+        doc.text('(-) Descuento contado ' + Math.round(sum.quoteRules.descuentoContadoPct || 0) + '%: ' + formatCOP(sum.descuentoContadoCOP), 40, y); y += 15;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total neto del pedido: ' + formatCOP(sum.totalCOP), 40, y); y += 15;
         doc.text('Bonificacion estimada: ' + formatCOP(sum.totalBonusCOP), 40, y); y += 18;
+        doc.setFont('helvetica', 'normal');
     }
     doc.setFont('helvetica', 'normal');
     var msgLines = doc.splitTextToSize(getVisitShareMessage(), 520);

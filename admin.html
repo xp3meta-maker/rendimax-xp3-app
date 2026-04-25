@@ -615,9 +615,14 @@ function adminDefaultPricingConfig() {
             { id:'gas6', name:'XP3 Motos 6ml', priceCOP:4443, bonusPct:8, dotClass:'gas6', icon:'🏍️', active:true }
         ],
         templates: {
-            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nTotal estimado: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
+            cotizacion: 'Hola {{cliente}}, comparto cotización XP3 del {{fecha}}.\nValor base: {{base}} · IVA: {{iva}} · Retención: {{retencion}} · Desc contado: {{descuento}}.\nTotal neto: {{total}}.\nAsesor: {{asesor}} · {{telefono}}.',
             propuesta: 'Hola {{cliente}}, te comparto la propuesta comercial Rendimax XP3 actualizada al {{fecha}}.\nQuedo atento a tus comentarios.\n{{asesor}} · {{telefono}}',
             brochure: 'Hola {{cliente}}, te comparto nuestro brochure institucional Rendimax XP3.\nQuedo atento para resolver dudas.\n{{asesor}} · {{telefono}}'
+        },
+        quoteRules: {
+            ivaPct: 19,
+            retencionPct: 0,
+            descuentoContadoPct: 5
         }
     };
 }
@@ -628,6 +633,10 @@ function renderAdminPricingEditor(cfg) {
     var c = cfg && typeof cfg === 'object' ? cfg : adminDefaultPricingConfig();
     var items = Array.isArray(c.items) ? c.items : [];
     var t = c.templates || {};
+    var q = c.quoteRules || {};
+    var ivaPct = Number(q.ivaPct != null ? q.ivaPct : 19) || 0;
+    var retPct = Number(q.retencionPct != null ? q.retencionPct : 0) || 0;
+    var desPct = Number(q.descuentoContadoPct != null ? q.descuentoContadoPct : 5) || 0;
     if (!items.length) items = adminDefaultPricingConfig().items.slice();
     var rows = items.map(function(it, idx) {
         var id = escapeHtml(String(it.id || ''));
@@ -645,6 +654,11 @@ function renderAdminPricingEditor(cfg) {
     }).join('');
     host.innerHTML = '<div class="sub" style="font-size:10px;color:var(--t3);margin-bottom:6px;">ID · Referencia · Precio COP · Bono % · Activo</div>'
         + rows
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">'
+        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">IVA %</p><input id="admin-quote-iva" type="number" min="0" max="100" value="' + ivaPct + '" style="padding:8px;"></div>'
+        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">Retención %</p><input id="admin-quote-ret" type="number" min="0" max="100" value="' + retPct + '" style="padding:8px;"></div>'
+        + '<div><p class="sub" style="font-size:10px;color:var(--t3);margin-bottom:4px;">Descuento contado %</p><input id="admin-quote-desc" type="number" min="0" max="100" value="' + desPct + '" style="padding:8px;"></div>'
+        + '</div>'
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla cotización</p>'
         + '<textarea id="admin-template-cotizacion" style="height:80px;">' + escapeHtml(String(t.cotizacion || '')) + '</textarea>'
         + '<p class="sub" style="font-size:10px;margin-top:8px;color:var(--t3);">Plantilla propuesta</p>'
@@ -678,12 +692,20 @@ function readAdminPricingFromForm() {
     var tCot = (document.getElementById('admin-template-cotizacion') || {}).value || '';
     var tPro = (document.getElementById('admin-template-propuesta') || {}).value || '';
     var tBro = (document.getElementById('admin-template-brochure') || {}).value || '';
+    var ivaPct = parseFloat((document.getElementById('admin-quote-iva') || {}).value || '19');
+    var retPct = parseFloat((document.getElementById('admin-quote-ret') || {}).value || '0');
+    var desPct = parseFloat((document.getElementById('admin-quote-desc') || {}).value || '5');
     return {
         items: items,
         templates: {
             cotizacion: String(tCot).trim(),
             propuesta: String(tPro).trim(),
             brochure: String(tBro).trim()
+        },
+        quoteRules: {
+            ivaPct: Math.max(0, Math.min(100, isNaN(ivaPct) ? 19 : ivaPct)),
+            retencionPct: Math.max(0, Math.min(100, isNaN(retPct) ? 0 : retPct)),
+            descuentoContadoPct: Math.max(0, Math.min(100, isNaN(desPct) ? 5 : desPct))
         }
     };
 }
@@ -1290,6 +1312,14 @@ function redrawAdminDashboardUI(todayKey) {
                 var durTxt = _adminFmtDur(r.d.visitDurationSec);
                 if (durTxt === '—') durTxt = '— <span style="color:var(--t3);">(sin temporizador al guardar: abrir «Registrar visita» desde la parada para iniciar el reloj)</span>';
                 var amt = String(r.d.amountCalculated != null ? r.d.amountCalculated : '—');
+                var qd = r.d.quoteDetail || null;
+                var qMeta = '';
+                if (qd && typeof qd === 'object') {
+                    var dt = qd.docType ? String(qd.docType) : 'cotizacion';
+                    var ch = qd.channel ? String(qd.channel) : 'whatsapp';
+                    var bono = (qd.totalBonusCOP != null && !isNaN(qd.totalBonusCOP)) ? ('$' + Number(qd.totalBonusCOP).toLocaleString('es-CO')) : '—';
+                    qMeta = ' · Doc: ' + escapeHtml(dt) + ' · Canal: ' + escapeHtml(ch) + ' · Bono: ' + escapeHtml(bono);
+                }
                 var gpsAcc = (r.d.gpsAtVisitStart && r.d.gpsAtVisitStart.accuracyM != null) ? (r.d.gpsAtVisitStart.accuracyM + ' m') : '—';
                 var docId = r.id ? String(r.id).slice(0, 12) + '…' : '';
                 var obsBlock = com
@@ -1304,7 +1334,7 @@ function redrawAdminDashboardUI(todayKey) {
                     + '<div class="visit-meta">Resultado: <strong style="color:var(--t1);">' + escapeHtml(r.d.result || '—') + '</strong>'
                     + ' · Duración en EDS: ' + durTxt + '</div>'
                     + '<div class="visit-meta">Cotización pantalla: ' + escapeHtml(amt) + ' · Precisión GPS visita: ' + escapeHtml(gpsAcc)
-                    + (docId ? ' · id ' + escapeHtml(docId) : '') + '</div>'
+                    + qMeta + (docId ? ' · id ' + escapeHtml(docId) : '') + '</div>'
                     + obsBlock
                     + '</div>';
             }).join('');
