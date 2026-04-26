@@ -655,6 +655,8 @@
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-timeline" onclick="setAdminMainTab('timeline')">Línea del tiempo del día</button>
         <button type="button" class="btn btn-gh admin-tab-btn" id="tab-config" onclick="setAdminMainTab('config')">Configuración comercial</button>
         <div style="flex:1;min-width:8px;"></div>
+        <label class="sub" for="admin-filter-date" style="white-space:nowrap;">Fecha</label>
+        <input type="date" id="admin-filter-date" onchange="onAdminDateChange()" style="max-width:155px;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;margin-bottom:0;cursor:pointer;">
         <label class="sub" id="admin-filter-operator-label" for="admin-filter-operator" style="white-space:nowrap;">Operador</label>
         <select id="admin-filter-operator" onchange="onAdminOperatorFilterChange()" style="max-width:260px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--t1);font-size:12px;"></select>
     </div>
@@ -674,7 +676,7 @@
             </div>
 
             <div class="card admin-route-card" id="admin-route-plan-wrap" style="margin-bottom:0;">
-                <p class="lbl" style="margin-bottom:8px;">Ruta del día · checklist (plan vs visitas)</p>
+                <p class="lbl" style="margin-bottom:8px;"><span id="admin-route-date-label">Ruta del día</span> · checklist (plan vs visitas)</p>
                 <p class="admin-route-head">Paradas <strong>ACTIVAS</strong> del cronograma ORC para la fecha de hoy; se marcan según visitas guardadas en Firestore (mismo día). Si filtrás por operador, solo cuentan sus visitas.</p>
                 <div id="admin-route-checklist" class="sub">Cargando plan…</div>
             </div>
@@ -683,7 +685,7 @@
         <!-- Col 2 – KPIs + tabla de visitas -->
         <div class="admin-col-center">
             <div class="card" style="margin-bottom:14px;">
-                <p class="lbl" style="margin-bottom:12px;">KPIs hoy (Firestore)</p>
+                <p class="lbl" style="margin-bottom:12px;"><span id="admin-kpis-date-label">KPIs hoy</span> (Firestore)</p>
                 <div class="kpi-grid">
                     <div class="kpi"><div class="kv" id="admin-kpi-first">—</div><div class="kl">Primera visita</div></div>
                     <div class="kpi"><div class="kv" id="admin-kpi-last">—</div><div class="kl">Última visita</div></div>
@@ -694,7 +696,7 @@
                 </div>
             </div>
             <div class="card" style="margin-bottom:0;">
-                <p class="lbl" style="margin-bottom:10px;">Visitas del día · detalle por cliente</p>
+                <p class="lbl" style="margin-bottom:10px;"><span id="admin-visits-date-label">Visitas del día</span> · detalle por cliente</p>
                 <p class="sub" style="font-size:10px;margin-bottom:10px;color:var(--t3);">Incluye observaciones del comercial, resultado, tiempo en estación y cotización calculada en pantalla.</p>
                 <div id="admin-visits-table" class="sub">—</div>
             </div>
@@ -722,7 +724,7 @@
 
     <div id="admin-panel-timeline" style="display:none;">
         <div class="card" style="margin-bottom:20px;">
-            <p class="lbl" style="margin-bottom:8px;">Línea del tiempo del día</p>
+            <p class="lbl" style="margin-bottom:8px;"><span id="admin-timeline-date-label">Línea del tiempo del día</span></p>
             <p class="sub" style="font-size:10px;margin-bottom:12px;color:var(--t3);">Orden cronológico: visitas guardadas, pings GPS (máx. 120 en lista) y alertas si pasan más de 45 min entre pings del mismo dispositivo. Usá el filtro «Operador» para acotar.</p>
             <div id="admin-day-timeline" class="admin-timeline-shell sub">—</div>
         </div>
@@ -967,6 +969,7 @@ var _adminLastPings = [];
 var _adminLiveLocations = [];
 var _adminMainTab = 'summary';
 var _adminOperatorFilter = '';
+var _adminSelectedDate = null; // null = hoy, o Date object para fecha específica
 var _adminTickTimer = null;
 var _adminPricingConfigCache = null;
 
@@ -1281,7 +1284,7 @@ function tryApplyDefaultOperatorFilterOnce() {
             sel.value = sel.options[i].value;
             _adminOperatorFilter = sel.options[i].value;
             _adminDefaultOpApplied = true;
-            redrawAdminDashboardUI(orcDateKeyISO(new Date()));
+            redrawAdminDashboardUI(getAdminSelectedDateKey());
             return;
         }
     }
@@ -1511,7 +1514,7 @@ function setAdminMainTab(tab) {
         if (bSum) bSum.classList.remove('admin-tab-active');
         if (bTl) bTl.classList.add('admin-tab-active');
         if (bCfg) bCfg.classList.remove('admin-tab-active');
-        renderAdminTimeline(orcDateKeyISO(new Date()));
+        renderAdminTimeline(getAdminSelectedDateKey());
     } else if (_adminMainTab === 'config') {
         if (metaCard) metaCard.style.display = 'none';
         if (opSel) opSel.style.display = 'none';
@@ -1541,10 +1544,76 @@ function setAdminMainTab(tab) {
     }
 }
 
+/** Devuelve la fecha seleccionada en el filtro, o hoy si no hay selección */
+function getAdminSelectedDate() {
+    if (_adminSelectedDate && _adminSelectedDate instanceof Date) {
+        return _adminSelectedDate;
+    }
+    return new Date();
+}
+
+/** Devuelve YYYY-MM-DD de la fecha seleccionada */
+function getAdminSelectedDateKey() {
+    return orcDateKeyISO(getAdminSelectedDate());
+}
+
+/** Devuelve texto amigable de la fecha seleccionada */
+function getAdminSelectedDateLabel() {
+    var sel = getAdminSelectedDate();
+    var today = new Date();
+    var selKey = orcDateKeyISO(sel);
+    var todayKey = orcDateKeyISO(today);
+    if (selKey === todayKey) return 'hoy';
+    // Calcular días de diferencia
+    var diff = Math.floor((today.getTime() - sel.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff === 1) return 'ayer';
+    if (diff === -1) return 'mañana';
+    // Formato: "Sábado 26 abril"
+    var days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    var months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return days[sel.getDay()] + ' ' + sel.getDate() + ' ' + months[sel.getMonth()];
+}
+
+/** Actualiza los labels de fecha en la UI */
+function updateAdminDateLabels() {
+    var label = getAdminSelectedDateLabel();
+    var isToday = label === 'hoy';
+    var sel = getAdminSelectedDate();
+    var routeLbl = document.getElementById('admin-route-date-label');
+    var kpisLbl = document.getElementById('admin-kpis-date-label');
+    var visitsLbl = document.getElementById('admin-visits-date-label');
+    var timelineLbl = document.getElementById('admin-timeline-date-label');
+    var headerDate = document.getElementById('admin-date');
+    if (routeLbl) routeLbl.textContent = isToday ? 'Ruta del día' : 'Ruta de ' + label;
+    if (kpisLbl) kpisLbl.textContent = isToday ? 'KPIs hoy' : 'KPIs ' + label;
+    if (visitsLbl) visitsLbl.textContent = isToday ? 'Visitas del día' : 'Visitas de ' + label;
+    if (timelineLbl) timelineLbl.textContent = isToday ? 'Línea del tiempo del día' : 'Línea del tiempo de ' + label;
+    if (headerDate) {
+        var dateStr = sel.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+        headerDate.textContent = dateStr + (isToday ? ' · En vivo' : ' · Histórico');
+    }
+}
+
+function onAdminDateChange() {
+    var input = document.getElementById('admin-filter-date');
+    if (!input || !input.value) {
+        _adminSelectedDate = null;
+    } else {
+        var parts = input.value.split('-');
+        if (parts.length === 3) {
+            _adminSelectedDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+            _adminSelectedDate = null;
+        }
+    }
+    // Recargar listeners con la nueva fecha
+    loadAdminDashboard();
+}
+
 function onAdminOperatorFilterChange() {
     var sel = document.getElementById('admin-filter-operator');
     _adminOperatorFilter = sel ? String(sel.value || '').trim() : '';
-    redrawAdminDashboardUI(orcDateKeyISO(new Date()));
+    redrawAdminDashboardUI(getAdminSelectedDateKey());
 }
 
 function buildAdminTimelineEvents() {
@@ -1756,6 +1825,7 @@ function maybeRedrawAdminMap() {
 }
 
 function redrawAdminDashboardUI(todayKey) {
+    updateAdminDateLabels();
     rebuildAdminOperatorFilterOptions();
     var F = adminFilteredData();
     var rows = F.vr;
@@ -1910,17 +1980,17 @@ function loadAdminDashboard() {
     teardownAdminDashboard();
     _adminLastVisitsRows = [];
     _adminLastPings = [];
-    var todayKey = orcDateKeyISO(new Date());
+    var selectedKey = getAdminSelectedDateKey();
     var unVis = db.collection('visitas').orderBy('timestamp', 'desc').limit(150).onSnapshot(function(snap) {
         var rows = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            if ((d.routeDay || '') !== todayKey) return;
+            if ((d.routeDay || '') !== selectedKey) return;
             var ts = d.timestamp && typeof d.timestamp.toDate === 'function' ? d.timestamp.toDate() : null;
             rows.push({ id: doc.id, d: d, ts: ts });
         });
         _adminLastVisitsRows = rows;
-        redrawAdminDashboardUI(todayKey);
+        redrawAdminDashboardUI(selectedKey);
     }, function(err) {
         var b1 = document.getElementById('admin-bot-txt');
         if (b1) b1.textContent = 'Error visitas: ' + (err && err.message ? err.message : err);
@@ -1930,24 +2000,24 @@ function loadAdminDashboard() {
         var pings = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            if ((d.routeDay || '') !== todayKey) return;
+            if ((d.routeDay || '') !== selectedKey) return;
             if (d.lat != null && d.lng != null) pings.push(Object.assign({ id: doc.id }, d));
         });
         _adminLastPings = pings;
-        redrawAdminDashboardUI(todayKey);
+        redrawAdminDashboardUI(selectedKey);
     }, function(err) {
         console.warn('Pings snapshot:', err);
         _adminLastPings = [];
-        redrawAdminDashboardUI(todayKey);
+        redrawAdminDashboardUI(selectedKey);
     });
     adminDashboardUnsubs.push(function() { unPing(); });
-    var unLive = db.collection(XP3_LIVE_LOC_COLLECTION).where('routeDay', '==', todayKey).onSnapshot(function(snap) {
+    var unLive = db.collection(XP3_LIVE_LOC_COLLECTION).where('routeDay', '==', selectedKey).onSnapshot(function(snap) {
         _adminLiveLocations = [];
         snap.forEach(function(doc) {
             var d = doc.data();
             if (d.lat != null && d.lng != null) _adminLiveLocations.push(Object.assign({ id: doc.id }, d));
         });
-        redrawAdminDashboardUI(todayKey);
+        redrawAdminDashboardUI(selectedKey);
     }, function(err) {
         console.warn('Ubicación viva:', err);
         _adminLiveLocations = [];
@@ -1978,6 +2048,13 @@ function showDashboardAfterAuth(name, email, picture) {
     applyAdminUser(name, email, picture);
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('dash-root').classList.add('visible');
+    // Inicializar date picker con hoy
+    var dateInput = document.getElementById('admin-filter-date');
+    if (dateInput) {
+        var today = new Date();
+        dateInput.value = orcDateKeyISO(today);
+        _adminSelectedDate = null; // null = hoy
+    }
     loadAdminVentasMesField();
     loadAdminPricingConfig();
     setAdminMainTab('summary');
